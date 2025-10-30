@@ -24,7 +24,7 @@ import java.io.IOException;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final JwtValidator jwtValidator;
+    private final JwtStoreService jwtStoreService;
     private final AuthenticationEntryPoint entryPoint;
 
     @Override
@@ -61,7 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
             // 블랙리스트 확인
             String jti = jwtUtil.getJti(token, TokenType.ACCESS);
-            if (jwtValidator.isBlacklisted(jti)) {
+            if (jwtStoreService.isBlacklisted(jti)) {
                 log.warn(">>> 블랙리스트 토큰 검출: jti={}", jti);
                 throw new AppException(AuthErrorCode.BLACKLISTED_ACCESS_TOKEN);
             }
@@ -76,7 +76,7 @@ public class JwtFilter extends OncePerRequestFilter {
             // 사용자 조회
             String email = jwtUtil.getUsername(token, TokenType.ACCESS);
 
-            CustomUserDetails userDetails = jwtValidator.getUserDetails(email);
+            CustomUserDetails userDetails = jwtStoreService.getUserDetails(email);
 
             Authentication auth = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities()

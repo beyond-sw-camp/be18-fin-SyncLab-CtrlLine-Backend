@@ -1,6 +1,11 @@
 package com.beyond.synclab.ctrlline.security.jwt;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.property.AppProperties;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
+import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -10,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class JwtStoreServiceImpl implements JwtStoreService {
-
+    private final UserRepository userRepository;
     private final RedisTemplate<String, String> redisTemplate;
     private final AppProperties appProperties;
 
@@ -55,7 +60,15 @@ public class JwtStoreServiceImpl implements JwtStoreService {
     }
 
     // 블랙리스트 조회
+    @Override
     public boolean isBlacklisted(String jti) {
         return redisTemplate.hasKey(appProperties.getRedis().prefix().blacklist() + jti);
+    }
+
+    @Override
+    public CustomUserDetails getUserDetails(String email) {
+        Users users = userRepository.findByEmail(email).orElseThrow(() -> new AppException(AuthErrorCode.USER_NOT_FOUND));
+
+        return new CustomUserDetails(users);
     }
 }

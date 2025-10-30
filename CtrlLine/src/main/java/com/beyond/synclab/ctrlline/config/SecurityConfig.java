@@ -6,8 +6,8 @@ import com.beyond.synclab.ctrlline.security.handler.RestAuthenticationEntryPoint
 import com.beyond.synclab.ctrlline.security.handler.UserAuthFailureHandler;
 import com.beyond.synclab.ctrlline.security.handler.UserAuthSuccessHandler;
 import com.beyond.synclab.ctrlline.security.jwt.JwtFilter;
+import com.beyond.synclab.ctrlline.security.jwt.JwtStoreService;
 import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
-import com.beyond.synclab.ctrlline.security.jwt.JwtValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +29,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
     private final UserAuthSuccessHandler userAuthSuccessHandler;
     private final UserAuthFailureHandler userAuthFailureHandler;
-    private final JwtValidator jwtValidator;
+    private final JwtStoreService jwtStoreService;
     private final JwtUtil jwtUtil;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
@@ -79,7 +79,7 @@ public class SecurityConfig {
                 )
                 // 🔹 JWT 필터
                 .addFilterBefore(
-                        new JwtFilter(jwtUtil, jwtValidator, restAuthenticationEntryPoint),
+                        new JwtFilter(jwtUtil, jwtStoreService, restAuthenticationEntryPoint),
                         UsernamePasswordAuthenticationFilter.class
                 );
 
