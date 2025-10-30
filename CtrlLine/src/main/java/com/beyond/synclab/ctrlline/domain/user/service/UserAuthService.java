@@ -24,8 +24,9 @@ public class UserAuthService {
     public UserSignupResponseDto signup(UserSignupRequestDto request) {
 
         // 이메일 중복 체크
-        userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(AuthErrorCode.DUPLICATE_EMAIL));
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new AppException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
 
         Users user = request.toEntity(generateEmpNo(request.getHiredDate()), passwordEncoder.encode(request.getPassword()));
 
