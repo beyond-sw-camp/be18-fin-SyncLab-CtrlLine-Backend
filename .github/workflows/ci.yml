@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mariadb:
-        image: mariadb:11
+        image: mariadb:10
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: ctrlline
