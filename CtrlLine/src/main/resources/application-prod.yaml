@@ -20,6 +20,12 @@ cors:
     - DELETE
     - OPTIONS
 
+app:
+  redis:
+    prefix:
+      refresh: "ctrlline:refresh:"
+      blacklist: "ctrlline:refresh:"
+
 spring:
   datasource:
     url: ${DB_URL}
@@ -31,3 +37,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 1
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+  # Jpa
+  jpa:
+    hibernate:
+      ddl-auto: validate # Flyway로 테이블 관리하므로 JPA는 validate로
+    show-sql: true
