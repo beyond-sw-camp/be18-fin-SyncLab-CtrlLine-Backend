@@ -2,7 +2,9 @@ package com.beyond.synclab.ctrlline.common.util;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class CookieUtil {
     //  HttpOnly 쿠키 생성
     public static Cookie createHttpOnlyCookie(String key, String value, int maxAge) {
