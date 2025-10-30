@@ -10,9 +10,9 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UserSignupResponseDto {
-    private Long id;
-    private String email;
-    private String name;
+    private final Long id;
+    private final String email;
+    private final String name;
 
     public static UserSignupResponseDto fromEntity(Users user) {
         return UserSignupResponseDto.builder()
