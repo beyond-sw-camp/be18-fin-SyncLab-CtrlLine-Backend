@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<Users, Long> {
 
     @Query("SELECT u.empNo FROM Users u WHERE u.empNo LIKE :prefix% ORDER BY u.empNo DESC")
     List<String> findEmpNosByPrefix(@Param("prefix") String prefix);
+
+    boolean existsByEmail(String email);
 }
