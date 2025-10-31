@@ -86,8 +86,8 @@ public class SecurityConfig {
         // 🔹 요청 인가 설정
         http
                 .authorizeHttpRequests(auth -> auth
-                        // .requestMatchers(AUTH_WHITE_LIST).permitAll()
-                        // .requestMatchers("/api/**").hasAnyRole("ADMIN", "MANAGER", "USER")
+                        .requestMatchers(AUTH_WHITE_LIST).permitAll()
+                        .requestMatchers("/api/**").hasAnyRole("ADMIN", "MANAGER", "USER")
                         .anyRequest().permitAll()
                 );
 
