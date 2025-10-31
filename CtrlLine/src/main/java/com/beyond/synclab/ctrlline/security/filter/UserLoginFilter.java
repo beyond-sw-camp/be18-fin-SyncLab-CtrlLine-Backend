@@ -53,9 +53,6 @@ public class UserLoginFilter extends UsernamePasswordAuthenticationFilter {
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(userLoginRequestDto.getEmail(), userLoginRequestDto.getPassword());
 
-            AuthenticationManager manager = this.getAuthenticationManager();
-            log.debug(">> authManager class = {}", manager.getClass());
-
             log.debug(">> authManager class = {}", this.authenticationManager.getClass());
 
             return authenticationManager.authenticate(authToken);
