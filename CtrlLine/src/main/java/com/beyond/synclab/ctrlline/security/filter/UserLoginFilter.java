@@ -1,5 +1,7 @@
 package com.beyond.synclab.ctrlline.security.filter;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserLoginRequestDto;
 import com.beyond.synclab.ctrlline.security.handler.UserAuthFailureHandler;
 import com.beyond.synclab.ctrlline.security.handler.UserAuthSuccessHandler;
@@ -59,7 +61,7 @@ public class UserLoginFilter extends UsernamePasswordAuthenticationFilter {
             return authenticationManager.authenticate(authToken);
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new AppException(CommonErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 }
