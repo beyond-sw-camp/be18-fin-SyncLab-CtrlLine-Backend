@@ -18,8 +18,16 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class JwtFilterTest {
 
@@ -51,7 +59,7 @@ class JwtFilterTest {
 
     @Test
     @DisplayName("화이트리스트 경로는 필터를 적용하지 않는다")
-    void shouldNotFilter_whitelist() throws ServletException, IOException {
+    void shouldNotFilter_whitelist() {
         when(request.getRequestURI()).thenReturn("/api/v1/auth/login");
 
         boolean result = jwtFilter.shouldNotFilter(request);

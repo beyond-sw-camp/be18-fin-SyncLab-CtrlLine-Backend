@@ -5,6 +5,7 @@ import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import com.beyond.synclab.ctrlline.security.exception.AuthException;
 import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,8 +40,8 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
+            @Nonnull HttpServletResponse response,
+            @Nonnull FilterChain filterChain
     ) throws ServletException, IOException {
 
         String authorization = request.getHeader("Authorization");
@@ -88,17 +89,17 @@ public class JwtFilter extends OncePerRequestFilter {
 
         } catch (ExpiredJwtException e) {
             SecurityContextHolder.clearContext();
-            log.error(">>> ExpiredJwtException 잡힘: token 만료", e);
+            log.error(">>> ExpiredJwtException 잡힘: token 만료");
             entryPoint.commence(request, response,
                     new AuthException(AuthErrorCode.ACCESS_TOKEN_EXPIRED));
         } catch (AuthException e) {
             SecurityContextHolder.clearContext();
             log.error(">>> AuthException 잡힘: code={}, message={}",
-                    e.getErrorCode().getCode(), e.getMessage(), e);
+                    e.getErrorCode().getCode(), e.getMessage());
             entryPoint.commence(request, response, e);
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            log.error(">>> Exception 잡힘: {}", e.getClass().getName(), e);
+            log.error(">>> Exception 잡힘: {}", e.getClass().getName());
             entryPoint.commence(request, response,
                     new AuthException(AuthErrorCode.UNAUTHORIZED));
         }
