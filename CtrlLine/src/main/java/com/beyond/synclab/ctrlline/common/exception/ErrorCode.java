@@ -2,7 +2,9 @@ package com.beyond.synclab.ctrlline.common.exception;
 
 import org.springframework.http.HttpStatus;
 
-public interface ErrorCode {
+import java.io.Serializable;
+
+public interface ErrorCode extends Serializable {
     HttpStatus getStatus();
     String getCode();
     String getMessage();
