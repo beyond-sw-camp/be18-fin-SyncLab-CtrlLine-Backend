@@ -33,9 +33,8 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
-    private final AuthenticationConfiguration authenticationConfiguration;
 
-    private final static String[] AUTH_WHITE_LIST = {
+    private static final String[] AUTH_WHITE_LIST = {
             // Swagger
             "/swagger-ui/**", "/v3/api-docs/**",
 
