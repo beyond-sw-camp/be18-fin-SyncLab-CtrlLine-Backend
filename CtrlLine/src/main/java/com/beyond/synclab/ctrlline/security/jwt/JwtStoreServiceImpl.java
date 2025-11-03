@@ -6,11 +6,11 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
+import jakarta.annotation.Nonnull;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -61,8 +61,9 @@ public class JwtStoreServiceImpl implements JwtStoreService {
 
     // 블랙리스트 조회
     @Override
-    public boolean isBlacklisted(String jti) {
-        return redisTemplate.hasKey(appProperties.getRedis().prefix().blacklist() + jti);
+    public boolean isBlacklisted(@Nonnull String jti) {
+        String key = appProperties.getRedis().prefix().blacklist() + jti;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
 
     @Override
