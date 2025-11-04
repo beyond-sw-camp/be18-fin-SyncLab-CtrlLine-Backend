@@ -1,3 +1,6 @@
 spring:
-  application:
-    name: CtrlLine
+  profiles:
+    active: staging   # 기본 활성화 profile (로컬 개발 시)
+
+server:
+  port: 8080
