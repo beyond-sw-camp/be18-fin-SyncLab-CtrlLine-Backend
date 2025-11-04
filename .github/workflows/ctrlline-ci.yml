@@ -1,10 +1,14 @@
-name: CI
+name: CtrlLine-CI
 
 on:
   push:
     branches: [develop]
+    paths:
+      - 'CtrlLine/**'   # CtrlLine 폴더 안의 변경이 있을 때만 실행
   pull_request:
     branches: [develop]
+    paths:
+      - 'CtrlLine/**'   # CtrlLine 폴더 안의 변경이 있을 때만 실행
 
 jobs:
 
