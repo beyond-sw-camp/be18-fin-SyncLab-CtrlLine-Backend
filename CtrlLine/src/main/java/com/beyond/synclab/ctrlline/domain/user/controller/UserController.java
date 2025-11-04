@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-public class UserAuthController {
+public class UserController {
 
     private final UserAuthService userAuthService;
 
-    @PostMapping("/signup")
+    @PostMapping
     public ResponseEntity<UserSignupResponseDto> signup(
             @Validated @RequestBody UserSignupRequestDto request
     ) {

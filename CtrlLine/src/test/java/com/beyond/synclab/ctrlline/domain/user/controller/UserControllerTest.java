@@ -1,10 +1,18 @@
 package com.beyond.synclab.ctrlline.domain.user.controller;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,17 +22,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-@WebMvcTest(UserAuthController.class)
+@WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false) // 🔥 Security 필터 무시
-class UserAuthControllerTest {
+class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
@@ -40,7 +40,6 @@ class UserAuthControllerTest {
                 .name(name)
                 .email("hong@test.com")
                 .password("12341234")
-                .passwordConfirm("12341234")
                 .status(Users.UserStatus.ACTIVE)
                 .phoneNumber("010-1234-1234")
                 .address("화산로")
@@ -60,22 +59,23 @@ class UserAuthControllerTest {
         UserSignupRequestDto requestDto = buildSignupRequest(name);
 
         UserSignupResponseDto responseDto = UserSignupResponseDto.builder()
-                .id(1L)
-                .name(name)
-                .email("hong@test.com")
+                .empNo("2025/10/21-1")
+                .userName(name)
+                .userEmail("hong@test.com")
+                .userRole(UserRole.USER)
                 .build();
 
         when(userAuthService.signup(any(UserSignupRequestDto.class)))
                 .thenReturn(responseDto);
 
         // when & then
-        mockMvc.perform(post("/api/v1/auth/signup")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.name").value(name))
-                .andExpect(jsonPath("$.email").value("hong@test.com"));
+                .andExpect(jsonPath("$.empNo").value("2025/10/21-1"))
+                .andExpect(jsonPath("$.userName").value(name))
+                .andExpect(jsonPath("$.userEmail").value("hong@test.com"));
     }
 
     // ======== Test Case: Validation 실패 ========
@@ -86,7 +86,7 @@ class UserAuthControllerTest {
         UserSignupRequestDto invalidRequest = buildSignupRequest(null);
 
         // when & then
-        mockMvc.perform(post("/api/v1/auth/signup")
+        mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
