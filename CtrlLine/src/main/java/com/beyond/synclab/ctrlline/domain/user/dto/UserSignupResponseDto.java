@@ -8,20 +8,20 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserSignupResponseDto {
-    private final String email;
-    private final String name;
     private final String empNo;
-    private final UserRole role;
+    private final String userEmail;
+    private final String userName;
+    private final UserRole userRole;
 
     public static UserSignupResponseDto fromEntity(Users user) {
         return UserSignupResponseDto.builder()
-                .email(user.getEmail())
-                .name(user.getName())
+                .userEmail(user.getEmail())
+                .userName(user.getName())
                 .empNo(user.getEmpNo())
-                .role(user.getRole())
+                .userRole(user.getRole())
                 .build();
     }
 }
