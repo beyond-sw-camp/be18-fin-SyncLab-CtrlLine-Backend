@@ -15,7 +15,10 @@ concurrency:
 jobs:
   build-test-sonar:
     runs-on: self-hosted
-
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      
     steps:
       - uses: actions/checkout@v3
 
