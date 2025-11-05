@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.config;
 
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
+import jakarta.annotation.Nonnull;
 import java.util.Optional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
@@ -11,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class AuditorAwareImpl implements AuditorAware<Long> {
 
     @Override
+    @Nonnull
     public Optional<Long> getCurrentAuditor() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
