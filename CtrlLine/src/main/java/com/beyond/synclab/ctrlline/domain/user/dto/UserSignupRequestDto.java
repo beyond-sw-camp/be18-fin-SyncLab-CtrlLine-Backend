@@ -61,6 +61,9 @@ public class UserSignupRequestDto {
     @NotNull(message = "입사일은 필수입니다.")
     private LocalDate hiredDate;
 
+    @JsonProperty("userExtension")
+    private String extension;
+
     @JsonProperty("userTerminationDate")
     private LocalDate terminationDate;
 
@@ -75,6 +78,7 @@ public class UserSignupRequestDto {
                 .department(this.department)
                 .position(this.position)
                 .role(this.role)
+                .extension(this.extension)
                 .hiredDate(this.hiredDate)
                 .terminationDate(this.terminationDate)
                 .empNo(empNo) // 입사번호 생성 로직
