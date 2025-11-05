@@ -15,6 +15,7 @@ public class CookieUtil {
         cookie.setMaxAge(maxAge);        // 초 단위
         cookie.setAttribute("SameSite", "None"); // 크로스 도메인 환경 고려
         return cookie;
+
     }
 
     //  쿠키 삭제
