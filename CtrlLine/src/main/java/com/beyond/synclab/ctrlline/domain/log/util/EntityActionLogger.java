@@ -24,7 +24,7 @@ public class EntityActionLogger {
     public void afterRemove(Object entity) { publishEvent(entity, Logs.ActionType.DELETE); }
 
     private String getTableName(Object entity) {
-        var clazz = entity.getClass();
+        Class<?> clazz = entity.getClass();
         if (clazz.isAnnotationPresent(Table.class)) {
             var table = clazz.getAnnotation(Table.class);
             if (!table.name().isEmpty()) return table.name();
