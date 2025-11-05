@@ -1,13 +1,17 @@
 package com.beyond.synclab.ctrlline.domain.user.entity;
 
+import com.beyond.synclab.ctrlline.domain.log.service.EntityActionLogger;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,15 +19,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
 public class Users {
     @Id
@@ -51,6 +53,9 @@ public class Users {
 
     @Column(name = "user_termination_date")
     private LocalDate terminationDate;
+
+    @Column(name = "user_extension")
+    private String extension;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false)
