@@ -1,9 +1,8 @@
-package com.beyond.synclab.ctrlline.domain.log.service;
+package com.beyond.synclab.ctrlline.domain.log.util;
 
 import com.beyond.synclab.ctrlline.domain.log.event.LogEventPublisher;
 import com.beyond.synclab.ctrlline.domain.log.entity.Logs;
 import com.beyond.synclab.ctrlline.domain.log.event.LogEvent;
-import com.beyond.synclab.ctrlline.domain.log.util.BeanUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceUnitUtil;
 import jakarta.persistence.PostPersist;
