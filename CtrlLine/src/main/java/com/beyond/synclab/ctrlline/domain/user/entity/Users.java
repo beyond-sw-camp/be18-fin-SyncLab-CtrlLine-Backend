@@ -1,22 +1,25 @@
 package com.beyond.synclab.ctrlline.domain.user.entity;
 
+import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "user")
@@ -24,6 +27,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
 public class Users {
     @Id
@@ -52,6 +56,9 @@ public class Users {
     @Column(name = "user_termination_date")
     private LocalDate terminationDate;
 
+    @Column(name = "user_extension")
+    private String extension;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false)
     private UserRole role; // USER, EMPLOYEE, ADMIN
@@ -70,9 +77,11 @@ public class Users {
     @Column(name = "user_address", nullable = false)
     private String address;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
