@@ -21,9 +21,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(UserController.class)
-@AutoConfigureMockMvc(addFilters = false) // 🔥 Security 필터 무시
+@AutoConfigureMockMvc(addFilters = false)
 class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -68,10 +69,13 @@ class UserControllerTest {
         when(userAuthService.signup(any(UserSignupRequestDto.class)))
                 .thenReturn(responseDto);
 
-        // when & then
-        mockMvc.perform(post("/api/v1/users")
+        // when
+        ResultActions result = mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
+                        .content(objectMapper.writeValueAsString(requestDto)));
+
+        // then
+        result
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.empNo").value("2025/10/21-1"))
                 .andExpect(jsonPath("$.userName").value(name))
@@ -86,9 +90,14 @@ class UserControllerTest {
         UserSignupRequestDto invalidRequest = buildSignupRequest(null);
 
         // when & then
-        mockMvc.perform(post("/api/v1/users")
+        ResultActions result = mockMvc.perform(post("/api/v1/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest());
+                        .content(objectMapper.writeValueAsString(invalidRequest)));
+
+        // then
+        result
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
 }
