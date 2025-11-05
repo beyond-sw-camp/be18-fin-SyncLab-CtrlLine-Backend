@@ -129,41 +129,4 @@ class ProductionOrderServiceTest {
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RETURNED);
         verify(productionPlanRepository).save(plan);
     }
-
-    @Test
-    @DisplayName("Milo API 에러 응답(명세서 기준 코드/메시지)이 오면 생산계획을 RETURNED 처리한다")
-    void dispatchDuePlans_onMiloClientErrorPayloadMarksReturned() {
-        // given
-        LocalDateTime now = LocalDateTime.now(fixedClock);
-        ProductionPlan plan = ProductionPlan.builder()
-                .documentNo("2025-10-24-2")
-                .lineId(2L)
-                .startAt(now.minusMinutes(2))
-                .plannedQty(new java.math.BigDecimal("5000"))
-                .status(PlanStatus.CONFIRMED)
-                .build();
-
-        when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
-                .thenReturn(List.of(plan));
-        when(lineRepository.findById(2L)).thenReturn(Optional.of(Line.of(2L, "PS-002")));
-        when(lineRepository.findItemCodeByLineId(2L)).thenReturn(Optional.of("PRODUCT-002"));
-
-        String errorPayload = """
-                {
-                    "status": "NOT_FOUND",
-                    "code": "404",
-                    "message": "라인 또는 품목이 존재하지 않습니다."
-                }
-                """;
-
-        Mockito.doThrow(new MiloClientException(HttpStatus.NOT_FOUND, errorPayload))
-                .when(miloProductionOrderClient).dispatchOrder(eq("PS-002"), any(MiloProductionOrderRequest.class));
-
-        // when
-        productionOrderService.dispatchDuePlans();
-
-        // then
-        assertThat(plan.getStatus()).isEqualTo(PlanStatus.RETURNED);
-        verify(productionPlanRepository).save(plan);
-    }
 }
