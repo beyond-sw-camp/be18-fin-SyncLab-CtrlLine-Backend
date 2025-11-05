@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.user.entity;
 
-import com.beyond.synclab.ctrlline.domain.log.service.EntityActionLogger;
+import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -18,6 +18,8 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "user")
@@ -75,9 +77,11 @@ public class Users {
     @Column(name = "user_address", nullable = false)
     private String address;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
