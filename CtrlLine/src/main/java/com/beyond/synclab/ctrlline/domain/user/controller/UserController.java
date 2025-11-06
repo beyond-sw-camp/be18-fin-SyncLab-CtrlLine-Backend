@@ -2,10 +2,12 @@ package com.beyond.synclab.ctrlline.domain.user.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
 import com.beyond.synclab.ctrlline.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,11 +49,11 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<BaseResponse<PageResponse<UserResponseDto>>> getUserList(
+    public ResponseEntity<BaseResponse<PageResponse<UserListResponseDto>>> getUserList(
         @ModelAttribute UserSearchCommand userSearchCommand,
         @PageableDefault(sort = "empNo", direction = Direction.ASC) Pageable pageable
     ) {
-        Page<UserResponseDto> users = userService.getUserList(userSearchCommand, pageable);
+        Page<UserListResponseDto> users = userService.getUserList(userSearchCommand, pageable);
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(users)));
     }
 
@@ -62,4 +65,15 @@ public class UserController {
         UserResponseDto dto = userService.getUserById(userId);
         return ResponseEntity.ok(BaseResponse.ok(dto));
     }
+
+    @PatchMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<BaseResponse<UserResponseDto>> updateUser(
+        @PathVariable Long userId,
+        @RequestBody UserUpdateRequestDto dto
+    ) {
+        UserResponseDto responseDto = userService.updateUserById(dto, userId);
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
 }
