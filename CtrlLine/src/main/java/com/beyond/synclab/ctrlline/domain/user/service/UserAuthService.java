@@ -21,7 +21,7 @@ public class UserAuthService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public UserSignupResponseDto signup(UserSignupRequestDto request) {
+    public UserSignupResponseDto enroll(UserSignupRequestDto request) {
 
         // 이메일 중복 체크
         if (userRepository.existsByEmail(request.getEmail())) {

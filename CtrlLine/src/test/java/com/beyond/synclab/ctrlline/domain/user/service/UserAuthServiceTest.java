@@ -41,7 +41,7 @@ class UserAuthServiceTest {
 
     @Test
     @DisplayName("회원가입 실패 - 이메일 중복 시 AppException 발생")
-    void signup_fail_duplicateEmail() {
+    void enroll_fail_duplicateEmail() {
         // given
         UserSignupRequestDto request = UserSignupRequestDto.builder()
                 .email("test@test.com")
@@ -54,7 +54,7 @@ class UserAuthServiceTest {
                 .thenReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> userAuthService.signup(request))
+        assertThatThrownBy(() -> userAuthService.enroll(request))
                 .isInstanceOf(AppException.class)
                 .hasMessage(AuthErrorCode.DUPLICATE_EMAIL.getMessage());
 
@@ -63,7 +63,7 @@ class UserAuthServiceTest {
 
     @Test
     @DisplayName("회원가입 성공 - empNo 자동생성 및 암호화 저장")
-    void signup_success() {
+    void enroll_success() {
         // given
         UserSignupRequestDto request = UserSignupRequestDto.builder()
                 .email("hong@test.com")
@@ -82,7 +82,7 @@ class UserAuthServiceTest {
         ArgumentCaptor<Users> captor = ArgumentCaptor.forClass(Users.class);
 
         // when
-        userAuthService.signup(request);
+        userAuthService.enroll(request);
 
         // then
         verify(userRepository).save(captor.capture());
