@@ -16,9 +16,11 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +35,7 @@ public class UserController {
     private final UserAuthService userAuthService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponse<UserSignupResponseDto>> enroll(
             @Validated @RequestBody UserSignupRequestDto request
     ) {
@@ -49,5 +52,14 @@ public class UserController {
     ) {
         Page<UserResponseDto> users = userService.getUserList(userSearchCommand, pageable);
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(users)));
+    }
+
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<UserResponseDto>> getUserById(
+        @PathVariable Long userId
+    ) {
+        UserResponseDto dto = userService.getUserById(userId);
+        return ResponseEntity.ok(BaseResponse.ok(dto));
     }
 }
