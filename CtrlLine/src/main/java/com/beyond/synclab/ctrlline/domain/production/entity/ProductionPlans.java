@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
-public class ProductionPlan {
+public class ProductionPlans {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

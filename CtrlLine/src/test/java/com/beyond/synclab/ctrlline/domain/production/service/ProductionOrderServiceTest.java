@@ -11,9 +11,9 @@ import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOr
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
-import com.beyond.synclab.ctrlline.domain.production.entity.Line;
-import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlan;
-import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlan.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.production.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import java.time.Clock;
@@ -105,7 +105,7 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_sendOrderAndMarkRunning() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
-        ProductionPlan plan = ProductionPlan.builder()
+        ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
                 .lineId(1L)
                 .startAt(now.minusMinutes(1))
@@ -115,7 +115,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Line.of(1L, 10L, "PS-001")));
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
@@ -151,7 +151,7 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_onFailureMarksPlanReturned() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
-        ProductionPlan plan = ProductionPlan.builder()
+        ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
                 .lineId(1L)
                 .startAt(now.minusMinutes(1))
@@ -161,7 +161,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Line.of(1L, 10L, "PS-001")));
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 

@@ -1,12 +1,12 @@
 package com.beyond.synclab.ctrlline.domain.production.repository;
 
-import com.beyond.synclab.ctrlline.domain.production.entity.Line;
+import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface LineRepository extends JpaRepository<Line, Long> {
+public interface LineRepository extends JpaRepository<Lines, Long> {
 
     @Query(value = """
             SELECT i.item_code

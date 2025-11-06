@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
-public class Line {
+public class Lines {
 
     @Id
     @Column(name = "line_id")
@@ -30,7 +30,7 @@ public class Line {
     @Column(name = "line_code", nullable = false)
     private String lineCode;
 
-    public static Line of(Long id, Long factoryId, String lineCode) {
-        return new Line(id, factoryId, lineCode);
+    public static Lines of(Long id, Long factoryId, String lineCode) {
+        return new Lines(id, factoryId, lineCode);
     }
 }

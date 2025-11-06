@@ -3,9 +3,9 @@ package com.beyond.synclab.ctrlline.domain.production.service;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
-import com.beyond.synclab.ctrlline.domain.production.entity.Line;
-import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlan;
-import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlan.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
 import com.beyond.synclab.ctrlline.domain.production.repository.LineRepository;
@@ -45,13 +45,13 @@ public class ProductionOrderService {
     @Transactional
     public void dispatchDuePlans() {
         LocalDateTime now = LocalDateTime.now(clock);
-        List<ProductionPlan> plans = productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(
+        List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(
                 PlanStatus.CONFIRMED, now
         );
 
-        for (ProductionPlan plan : plans) {
+        for (ProductionPlans plan : plans) {
             try {
-                Optional<Line> lineOptional = lineRepository.findById(plan.getLineId());
+                Optional<Lines> lineOptional = lineRepository.findById(plan.getLineId());
                 if (lineOptional.isEmpty()) {
                     log.warn("Line not found for production plan documentNo={}, lineId={}", plan.getDocumentNo(), plan.getLineId());
                     plan.markDispatchFailed();
@@ -59,7 +59,7 @@ public class ProductionOrderService {
                     continue;
                 }
 
-                Line line = lineOptional.get();
+                Lines line = lineOptional.get();
                 plan.assignLineCode(line.getLineCode());
 
                 Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(plan.getLineId());
