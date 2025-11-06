@@ -1,7 +1,9 @@
 package com.beyond.synclab.ctrlline.domain.factory.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.dto.CreateFactoryRequestDto;
+import com.beyond.synclab.ctrlline.domain.factory.dto.UpdateFactoryRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -13,8 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,18 +34,28 @@ class FactoryServiceImplTest {
 
     private Users buildTestUser(String name, Users.UserRole userRole) {
         return Users.builder()
-                                   .name(name)
-                                   .email("hong@test.com")
-                                   .password("12341234")
-                                   .status(Users.UserStatus.ACTIVE)
-                                   .phoneNumber("010-1234-1234")
-                                   .address("화산로")
-                                   .department("생산1팀")
-                                   .position(Users.UserPosition.DIRECTOR)
-                                   .role(userRole)
-                                   .hiredDate(LocalDate.of(2025, 10, 20))
-                                   .build();
+                     .name(name)
+                     .email("hong@test.com")
+                     .password("12341234")
+                     .status(Users.UserStatus.ACTIVE)
+                     .phoneNumber("010-1234-1234")
+                     .address("화산로")
+                     .department("생산1팀")
+                     .position(Users.UserPosition.DIRECTOR)
+                     .role(userRole)
+                     .hiredDate(LocalDate.of(2025, 10, 20))
+                     .build();
     }
+
+    private Factories buildTestFactory(Users user, boolean isActive) {
+        return Factories.builder()
+                        .users(user)
+                        .factoryCode("F001")
+                        .factoryName("제1공장")
+                        .isActive(isActive)
+                        .build();
+    }
+
 
     @Test
     @DisplayName("USER 역할은 공장을 등록할 수 없다.")
@@ -70,12 +85,7 @@ class FactoryServiceImplTest {
                                                                         .empNo(user.getEmpNo())
                                                                         .isActive(true).build();
 
-        Factories existingFactory = Factories.builder()
-                                             .factoryCode("F001")
-                                             .factoryName("제1공장")
-                                             .users(user)
-                                             .isActive(true)
-                                             .build();
+        Factories existingFactory = buildTestFactory(user, true);
 
         // when
         when(factoryRepository.findByFactoryCode(factoryRequest.getFactoryCode())).thenReturn(java.util.Optional.of(existingFactory));
@@ -85,4 +95,23 @@ class FactoryServiceImplTest {
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining("이미 존재하는 공장코드입니다.");
     }
+
+    @Test
+    @DisplayName("MANAGER 역할은 공장사용여부를 변경할 수 없다.")
+    void updateFactoryStatus_fail_UserRole() {
+        Users user = buildTestUser("홍길동", Users.UserRole.MANAGER);
+        Factories factory = buildTestFactory(user,true);
+
+        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
+
+        UpdateFactoryRequestDto request = UpdateFactoryRequestDto.builder()
+                                                                 .isActive(false)
+                                                                 .build();
+
+        AppException exception = assertThrows(AppException.class,
+                                              () -> factoryService.updateFactoryStatus(user, request, "F001"));
+
+        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.ACCESS_DENIED);
+    }
+
 }

@@ -57,4 +57,9 @@ public class Factories {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void updateStatus(boolean isActive) {
+        this.isActive = isActive;
+    }
+
 }
