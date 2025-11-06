@@ -1,15 +1,21 @@
 package com.beyond.synclab.ctrlline.domain.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
+import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -86,7 +92,7 @@ class UserServiceImplTest {
         when(userRepository.findAll(ArgumentMatchers.<Specification<Users>>any(), eq(pageable)))
             .thenReturn(mockResponse);
 
-        Page<UserResponseDto> response = userService.getUserList(command, pageable);
+        Page<UserListResponseDto> response = userService.getUserList(command, pageable);
 
         assertThat(response).isNotNull();
         assertThat(response.getTotalElements()).isEqualTo(1L);
@@ -118,7 +124,7 @@ class UserServiceImplTest {
             .thenReturn(emptyResponse);
 
         // when
-        Page<UserResponseDto> response = userService.getUserList(command, pageable);
+        Page<UserListResponseDto> response = userService.getUserList(command, pageable);
 
         // then
         assertThat(response).isNotNull();
@@ -151,7 +157,7 @@ class UserServiceImplTest {
             .thenReturn(mockResponse);
 
         // when
-        Page<UserResponseDto> response = userService.getUserList(command, pageable);
+        Page<UserListResponseDto> response = userService.getUserList(command, pageable);
 
         // then
         assertThat(response.getContent()).hasSize(2);
@@ -176,7 +182,7 @@ class UserServiceImplTest {
             .thenReturn(mockResponse);
 
         // when
-        Page<UserResponseDto> response = userService.getUserList(command, pageable);
+        Page<UserListResponseDto> response = userService.getUserList(command, pageable);
 
         // then
         assertThat(response.getContent()).hasSize(1);
@@ -198,5 +204,51 @@ class UserServiceImplTest {
         assertThat(responseDto).isNotNull();
         assertThat(responseDto.getEmpNo()).isEqualTo("202510001");
         assertThat(responseDto.getUserDepartment()).isEqualTo("영업1팀");
+    }
+
+    @Test
+    @DisplayName("유저 수정 성공")
+    void patchUser_success() {
+        //given
+        Long userId = 1L;
+        Users user = createTestUser(userId, "209912001", "testDepartment", UserStatus.ACTIVE);
+
+        UserUpdateRequestDto userUpdateRequestDto = UserUpdateRequestDto.builder()
+            .name("홍길동")
+            .email("hong1234@test.com")
+            .phoneNumber("010-1234-1234")
+            .department("updateDepartment")
+            .position(UserPosition.ASSISTANT)
+            .role(UserRole.USER)
+            .status(UserStatus.ACTIVE)
+            .address("한화로123")
+            .terminationDate(LocalDate.now())
+            .extension("01123")
+            .build();
+
+        // when
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        UserResponseDto responseDto = userService.updateUserById(userUpdateRequestDto, userId);
+
+        assertThat(responseDto).isNotNull();
+        assertThat(responseDto.getEmpNo()).isEqualTo("209912001");
+        assertThat(responseDto.getUserDepartment()).isEqualTo("updateDepartment");
+
+    }
+
+    @Test
+    @DisplayName("유저 수정 성공 - 없는 유저 조회")
+    void patchUser_notFound_fail() {
+        //given
+        Long userId = 1L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.updateUserById(mock(UserUpdateRequestDto.class), userId))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(UserErrorCode.USER_NOT_FOUND.getMessage());
+
     }
 }
