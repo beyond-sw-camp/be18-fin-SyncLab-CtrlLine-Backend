@@ -1,8 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.item;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.Item;
-import com.beyond.synclab.ctrlline.domain.item.enums.ItemAct;
-import com.beyond.synclab.ctrlline.domain.item.enums.ItemStatus;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +19,6 @@ class ItemTest {
         String itemSpec = "32A / 220V";
         String itemUnit = "EA";
         ItemStatus status = ItemStatus.FINISHED_PRODUCT;
-        ItemAct itemAct = ItemAct.ACTIVE;
 
         // when
         Item item = Item.builder()
@@ -29,14 +27,12 @@ class ItemTest {
                 .itemSpecification(itemSpec)
                 .itemUnit(itemUnit)
                 .itemStatus(status)
-                .itemAct(itemAct)
                 .isActive(true)
                 .build();
 
         // then
         assertThat(item).isNotNull();
         assertThat(item.getItemCode()).isEqualTo(itemCode);
-        assertThat(item.getItemAct()).isEqualTo(ItemAct.ACTIVE);
         assertThat(item.getItemStatus()).isEqualTo(ItemStatus.FINISHED_PRODUCT);
         assertThat(item.getIsActive()).isTrue();
     }
@@ -51,7 +47,6 @@ class ItemTest {
                 .itemSpecification("25A / 220V")
                 .itemUnit("EA")
                 .itemStatus(ItemStatus.SEMI_FINISHED_PRODUCT)
-                .itemAct(ItemAct.ACTIVE)
                 .isActive(true)
                 .build();
 
@@ -66,7 +61,7 @@ class ItemTest {
     }
 
     @Test
-    @DisplayName("Item 비활성화 성공 - deactivateItem 호출 시 isActive=false, itemAct=INACTIVE로 변경된다.")
+    @DisplayName("Item 비활성화 성공 - deactivate 호출 시 isActive=false로 변경된다.")
     void deactivateItem_success() {
         // given
         Item item = Item.builder()
@@ -75,20 +70,18 @@ class ItemTest {
                 .itemSpecification("20A / 220V")
                 .itemUnit("EA")
                 .itemStatus(ItemStatus.FINISHED_PRODUCT)
-                .itemAct(ItemAct.ACTIVE)
                 .isActive(true)
                 .build();
 
         // when
-        item.deactivateItem();
+        item.deactivate();
 
         // then
-        assertThat(item.getItemAct()).isEqualTo(ItemAct.INACTIVE);
         assertThat(item.getIsActive()).isFalse();
     }
 
     @Test
-    @DisplayName("Item 재활성화 성공 - activateItem 호출 시 isActive=true, itemAct=ACTIVE로 변경된다.")
+    @DisplayName("Item 재활성화 성공 - activate 호출 시 isActive=true로 변경된다.")
     void activateItem_success() {
         // given
         Item item = Item.builder()
@@ -97,15 +90,13 @@ class ItemTest {
                 .itemSpecification("10A / 110V")
                 .itemUnit("EA")
                 .itemStatus(ItemStatus.RAW_MATERIAL)
-                .itemAct(ItemAct.INACTIVE)
                 .isActive(false)
                 .build();
 
         // when
-        item.activateItem();
+        item.activate();
 
         // then
-        assertThat(item.getItemAct()).isEqualTo(ItemAct.ACTIVE);
         assertThat(item.getIsActive()).isTrue();
     }
 }

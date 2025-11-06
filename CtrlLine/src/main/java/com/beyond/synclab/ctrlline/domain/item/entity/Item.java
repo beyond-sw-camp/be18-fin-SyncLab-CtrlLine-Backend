@@ -1,9 +1,12 @@
 package com.beyond.synclab.ctrlline.domain.item.entity;
 
-import com.beyond.synclab.ctrlline.domain.item.enums.ItemAct;
-import com.beyond.synclab.ctrlline.domain.item.enums.ItemStatus;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "item")
@@ -11,54 +14,55 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-@EqualsAndHashCode(of = "itemId")
+@EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(of = "id")
 public class Item {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "item_id")
-    private Long itemId;
+    @Column(name = "item_id", updatable = false)
+    private Long id;
 
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(name = "item_code", nullable = false, length = 32, unique = true)
     private String itemCode;
 
-    @Column(nullable = false, length = 64)
+    @Column(name = "item_name", nullable = false, length = 32)
     private String itemName;
 
-    @Column(length = 128)
+    @Column(name = "item_specification", length = 32)
     private String itemSpecification;
 
-    @Column(length = 32)
+    @Column(name = "item_unit", nullable = false, length = 32)
     private String itemUnit;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "item_status", nullable = false)
-    private ItemStatus itemStatus;
+    @Column(name = "item_status", nullable = false, length = 32)
+    private ItemStatus itemStatus; // 원재료 / 부재료 / 반제품 / 완제품
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "item_act", nullable = false)
-    private ItemAct itemAct;
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private Boolean isActive;
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
-    /** 품목 정보 수정 **/
-    public void updateItem(String name, String spec, String unit, ItemStatus status) {
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
+    // ====== 도메인 메서드 ======
+    public void updateItem(String name, String specification, String unit, ItemStatus status) {
         this.itemName = name;
-        this.itemSpecification = spec;
+        this.itemSpecification = specification;
         this.itemUnit = unit;
         this.itemStatus = status;
     }
 
-    /** 품목 비활성화 **/
-    public void deactivateItem() {
-        this.itemAct = ItemAct.INACTIVE;
+    public void deactivate() {
         this.isActive = false;
     }
 
-    /** 품목 재활성화 **/
-    public void activateItem() {
-        this.itemAct = ItemAct.ACTIVE;
+    public void activate() {
         this.isActive = true;
     }
 }
