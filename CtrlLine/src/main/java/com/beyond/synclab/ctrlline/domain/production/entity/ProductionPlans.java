@@ -17,6 +17,7 @@ import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -27,6 +28,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
+@EqualsAndHashCode(of = "id")
 public class ProductionPlans {
 
     @Id
