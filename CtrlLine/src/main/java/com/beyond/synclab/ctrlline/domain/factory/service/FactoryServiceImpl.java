@@ -8,6 +8,7 @@ import com.beyond.synclab.ctrlline.domain.factory.dto.UpdateFactoryRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class FactoryServiceImpl implements FactoryService {
     private final FactoryRepository factoryRepository;
+    private final UserRepository userRepository;
 
     public FactoryResponseDto createFactory(Users user, CreateFactoryRequestDto requestDto) {
 
@@ -27,11 +29,23 @@ public class FactoryServiceImpl implements FactoryService {
             throw new AppException(CommonErrorCode.FACTORY_CONFLICT);
         }
 
-        Factories factory = requestDto.toEntity(user);
+        Users manager = userRepository.findByEmpNo(requestDto.getEmpNo())
+                                      .orElseThrow(()-> new AppException(CommonErrorCode.USER_NOT_FOUND));
+
+        Factories factory = requestDto.toEntity(manager);
 
         factoryRepository.save(factory);
 
-        return FactoryResponseDto.fromEntity(factory, user);
+        return FactoryResponseDto.fromEntity(factory, manager);
+    }
+
+    @Override
+    public FactoryResponseDto getFactory(String factoryCode) {
+
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+                                             .orElseThrow(() -> new AppException(CommonErrorCode.FACTORY_NOT_FOUND));
+
+        return FactoryResponseDto.fromEntity(factory, factory.getUsers());
     }
 
 
@@ -49,6 +63,6 @@ public class FactoryServiceImpl implements FactoryService {
 
         factory.updateStatus(request.isActive());
 
-        return FactoryResponseDto.fromEntity(factory, user);
+        return FactoryResponseDto.fromEntity(factory, factory.getUsers());
     }
 }
