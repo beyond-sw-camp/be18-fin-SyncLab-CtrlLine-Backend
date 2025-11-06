@@ -63,6 +63,7 @@ public class GlobalExceptionHandler {
     //  예상 못한 모든 예외 (서버 내부 오류)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+        log.warn(ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(CommonErrorCode.UNEXPECTED_ERROR));
