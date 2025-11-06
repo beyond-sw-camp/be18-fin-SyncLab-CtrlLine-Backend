@@ -30,9 +30,15 @@ public class ProductionOrderService {
     private final Clock clock;
 
     @Transactional(readOnly = true)
-    public ProductionOrderCommandResponse dispatchOrder(String lineCode, ProductionOrderCommandRequest request) {
-        MiloProductionOrderRequest miloRequest = new MiloProductionOrderRequest(request.itemCode(), request.qty());
-        MiloProductionOrderResponse response = miloProductionOrderClient.dispatchOrder(lineCode, miloRequest);
+    public ProductionOrderCommandResponse dispatchOrder(String factoryCode, String lineCode, ProductionOrderCommandRequest request) {
+        MiloProductionOrderRequest miloRequest = new MiloProductionOrderRequest(
+                request.action(),
+                request.orderNo(),
+                request.targetQty(),
+                request.itemCode(),
+                request.ppm()
+        );
+        MiloProductionOrderResponse response = miloProductionOrderClient.dispatchOrder(factoryCode, lineCode, miloRequest);
         return ProductionOrderCommandResponse.from(response);
     }
 
@@ -56,6 +62,14 @@ public class ProductionOrderService {
                 Line line = lineOptional.get();
                 plan.assignLineCode(line.getLineCode());
 
+                Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(plan.getLineId());
+                if (factoryCodeOptional.isEmpty()) {
+                    log.warn("Factory code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
+                    plan.markDispatchFailed();
+                    productionPlanRepository.save(plan);
+                    continue;
+                }
+
                 Optional<String> itemCodeOptional = lineRepository.findItemCodeByLineId(plan.getLineId());
                 if (itemCodeOptional.isEmpty()) {
                     log.warn("Item code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
@@ -73,11 +87,18 @@ public class ProductionOrderService {
                 }
 
                 MiloProductionOrderRequest request = new MiloProductionOrderRequest(
+                        "START",
+                        plan.getDocumentNo(),
+                        quantity,
                         itemCodeOptional.get(),
-                        quantity
+                        null
                 );
 
-                MiloProductionOrderResponse response = miloProductionOrderClient.dispatchOrder(plan.getLineCode(), request);
+                miloProductionOrderClient.dispatchOrder(
+                        factoryCodeOptional.get(),
+                        plan.getLineCode(),
+                        request
+                );
 
                 plan.markDispatched();
                 productionPlanRepository.save(plan);
