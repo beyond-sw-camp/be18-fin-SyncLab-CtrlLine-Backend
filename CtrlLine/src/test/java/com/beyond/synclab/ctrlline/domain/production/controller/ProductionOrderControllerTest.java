@@ -34,7 +34,7 @@ class ProductionOrderControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockiotoBean
     private ProductionOrderService productionOrderService;
 
     @Test
