@@ -6,30 +6,39 @@ import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandR
 import com.beyond.synclab.ctrlline.domain.production.service.ProductionOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Validated
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
+@Slf4j
 public class ProductionOrderController {
 
     private final ProductionOrderService productionOrderService;
 
-    @PostMapping("/{lineCode}/cmd")
+    @PostMapping("/cmd")
     public ResponseEntity<ProductionOrderCommandResponse> dispatchOrder(
-            @PathVariable String lineCode,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+            @RequestParam String factoryCode,
+            @RequestParam String lineCode,
             @Valid @RequestBody ProductionOrderCommandRequest request
     ) {
-        ProductionOrderCommandResponse response = productionOrderService.dispatchOrder(lineCode, request);
+        log.debug("dispatchOrder called authorization={}, factoryCode={}, lineCode={}", authorization, factoryCode, lineCode);
+        log.debug(request.toString());
+        ProductionOrderCommandResponse response = productionOrderService.dispatchOrder(factoryCode, lineCode, request);
+        log.debug(response.toString());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

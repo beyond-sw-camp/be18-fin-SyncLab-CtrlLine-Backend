@@ -5,5 +5,5 @@ import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOr
 
 public interface MiloProductionOrderClient {
 
-    MiloProductionOrderResponse dispatchOrder(String lineCode, MiloProductionOrderRequest request);
+    MiloProductionOrderResponse dispatchOrder(String factoryCode, String lineCode, MiloProductionOrderRequest request);
 }
