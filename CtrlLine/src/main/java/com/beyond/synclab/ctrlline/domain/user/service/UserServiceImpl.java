@@ -1,8 +1,10 @@
 package com.beyond.synclab.ctrlline.domain.user.service;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.user.spec.UserSpecification;
 import lombok.RequiredArgsConstructor;
@@ -36,4 +38,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll(spec, pageable)
             .map(UserResponseDto::fromEntity);
     }
+
+    @Override
+    public UserResponseDto getUserById(Long userId) {
+        Users user = userRepository.findById(userId)
+            .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
+
+        return UserResponseDto.fromEntity(user);
+    }
+
+
 }

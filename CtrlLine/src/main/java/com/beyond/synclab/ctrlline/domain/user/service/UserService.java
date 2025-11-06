@@ -8,4 +8,5 @@ import org.springframework.data.domain.Pageable;
 public interface UserService {
     Page<UserResponseDto> getUserList(UserSearchCommand command, Pageable pageable);
 
+    UserResponseDto getUserById(Long userId);
 }
