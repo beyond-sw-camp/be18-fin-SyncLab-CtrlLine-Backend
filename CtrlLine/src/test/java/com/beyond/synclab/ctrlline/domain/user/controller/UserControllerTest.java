@@ -2,22 +2,34 @@ package com.beyond.synclab.ctrlline.domain.user.controller;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import com.beyond.synclab.ctrlline.domain.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,6 +43,9 @@ class UserControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private UserService userService;
 
     @MockitoBean
     private UserAuthService userAuthService;
@@ -66,7 +81,7 @@ class UserControllerTest {
                 .userRole(UserRole.USER)
                 .build();
 
-        when(userAuthService.signup(any(UserSignupRequestDto.class)))
+        when(userAuthService.enroll(any(UserSignupRequestDto.class)))
                 .thenReturn(responseDto);
 
         // when
@@ -77,9 +92,9 @@ class UserControllerTest {
         // then
         result
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.empNo").value("2025/10/21-1"))
-                .andExpect(jsonPath("$.userName").value(name))
-                .andExpect(jsonPath("$.userEmail").value("hong@test.com"));
+                .andExpect(jsonPath("$.data.empNo").value("2025/10/21-1"))
+                .andExpect(jsonPath("$.data.userName").value(name))
+                .andExpect(jsonPath("$.data.userEmail").value("hong@test.com"));
     }
 
     // ======== Test Case: Validation 실패 ========
@@ -100,4 +115,61 @@ class UserControllerTest {
             .andExpect(jsonPath("$.status").value(400))
             .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
+
+    @Test
+    @DisplayName("사용자 목록 조회 API - 기본 페이징, 정렬")
+    void getUserList_defaultPagingAndSort() throws Exception {
+        // given
+        UserResponseDto user = UserResponseDto.builder()
+            .id(1L)
+            .userName("홍길동")
+            .userDepartment("개발팀")
+            .userStatus(UserStatus.ACTIVE)
+            .userRole(UserRole.USER)
+            .userPhoneNumber("010-1234-1234")
+            .empNo("2025/10/21-1")
+            .build();
+
+        Page<UserResponseDto> mockPage = new PageImpl<>(
+            List.of(user),
+            PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "empNo")),
+            1
+        );
+
+        when(userService.getUserList(any(UserSearchCommand.class), any(Pageable.class)))
+            .thenReturn(mockPage);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/users")
+                .param("userDepartment", "개발팀")
+                .param("page", "0")
+                .param("size", "10")
+                .param("sort", "empNo,asc")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content[0].userName").value("홍길동"))
+            .andExpect(jsonPath("$.data.pageInfo.currentPage").value(1))
+            .andExpect(jsonPath("$.data.pageInfo.pageSize").value(10))
+            .andExpect(jsonPath("$.data.pageInfo.sort[0].sortBy").value("empNo"))
+            .andExpect(jsonPath("$.data.pageInfo.sort[0].direction").value("asc"))
+            .andDo(print());
+    }
+
+    @Test
+    @DisplayName("사용자 목록 조회 API - 검색 조건 없는 경우")
+    void getUserList_noSearchParams() throws Exception {
+        // given
+        Page<UserResponseDto> emptyPage = new PageImpl<>(List.of());
+        when(userService.getUserList(any(UserSearchCommand.class), any(Pageable.class)))
+            .thenReturn(emptyPage);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content").isEmpty())
+            .andExpect(jsonPath("$.data.pageInfo.totalElements").value(0))
+            .andDo(print());
+    }
+
 }
