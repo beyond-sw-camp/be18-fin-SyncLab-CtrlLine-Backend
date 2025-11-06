@@ -64,6 +64,7 @@ public class SecurityConfig {
         log.debug("Configuring SecurityFilterChain");
 
         http
+                .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -86,9 +87,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AUTH_WHITE_LIST).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "MANAGER", "USER")
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 );
 
         UserLoginFilter userLoginFilter = new UserLoginFilter(authenticationManager, userAuthSuccessHandler, userAuthFailureHandler);
