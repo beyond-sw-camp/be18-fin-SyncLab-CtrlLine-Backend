@@ -6,10 +6,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.beyond.synclab.ctrlline.domain.production.client.MiloClientException;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
+import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
+import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
 import com.beyond.synclab.ctrlline.domain.production.entity.Line;
 import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlan;
 import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlan.PlanStatus;
@@ -21,7 +22,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,8 +29,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ProductionOrderServiceTest {
@@ -61,8 +61,48 @@ class ProductionOrderServiceTest {
     }
 
     @Test
-    @DisplayName("시작 시간이 경과한 생산계획은 Milo에 생산지시를 전달하고 DISPATCHED로 변경한다")
-    void dispatchDuePlans_sendOrderAndMarkDispatched() {
+    @DisplayName("dispatchOrder는 Milo 클라이언트에 새 명세로 요청을 전달한다")
+    void dispatchOrder_withFactoryLineAndPayload() {
+        // given
+        ProductionOrderCommandRequest commandRequest = new ProductionOrderCommandRequest(
+                "START",
+                "2025-10-24-1",
+                7000,
+                "PRD-7782",
+                null
+        );
+        MiloProductionOrderResponse response = new MiloProductionOrderResponse(
+                "2025-10-24-1",
+                "PS-001",
+                "PRD-7782",
+                7000,
+                "2025-10-30T02:45:12Z"
+        );
+
+        when(miloProductionOrderClient.dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class)))
+                .thenReturn(response);
+
+        // when
+        ProductionOrderCommandResponse actual = productionOrderService.dispatchOrder("FC-001", "PS-001", commandRequest);
+
+        // then
+        ArgumentCaptor<MiloProductionOrderRequest> captor = ArgumentCaptor.forClass(MiloProductionOrderRequest.class);
+        verify(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), captor.capture());
+
+        MiloProductionOrderRequest sentRequest = captor.getValue();
+        assertThat(sentRequest.action()).isEqualTo("START");
+        assertThat(sentRequest.orderNo()).isEqualTo("2025-10-24-1");
+        assertThat(sentRequest.targetQty()).isEqualTo(7000);
+        assertThat(sentRequest.itemCode()).isEqualTo("PRD-7782");
+        assertThat(sentRequest.ppm()).isNull();
+
+        assertThat(actual.documentNo()).isEqualTo("2025-10-24-1");
+        assertThat(actual.lineCode()).isEqualTo("PS-001");
+    }
+
+    @Test
+    @DisplayName("시작 시간이 경과한 생산계획은 Milo에 생산지시를 전달하고 RUNNING으로 변경한다")
+    void dispatchDuePlans_sendOrderAndMarkRunning() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
         ProductionPlan plan = ProductionPlan.builder()
@@ -75,9 +115,11 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Line.of(1L, "PS-001")));
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(Line.of(1L, 10L, "PS-001")));
+        when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
-        when(miloProductionOrderClient.dispatchOrder(eq("PS-001"), any(MiloProductionOrderRequest.class)))
+
+        when(miloProductionOrderClient.dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class)))
                 .thenReturn(new MiloProductionOrderResponse(
                         plan.getDocumentNo(),
                         "PS-001",
@@ -91,19 +133,22 @@ class ProductionOrderServiceTest {
 
         // then
         ArgumentCaptor<MiloProductionOrderRequest> requestCaptor = ArgumentCaptor.forClass(MiloProductionOrderRequest.class);
-        verify(miloProductionOrderClient).dispatchOrder(eq("PS-001"), requestCaptor.capture());
+        verify(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), requestCaptor.capture());
 
         MiloProductionOrderRequest request = requestCaptor.getValue();
+        assertThat(request.action()).isEqualTo("START");
+        assertThat(request.orderNo()).isEqualTo("2025-10-24-1");
+        assertThat(request.targetQty()).isEqualTo(7_000);
         assertThat(request.itemCode()).isEqualTo("PRD-7782");
-        assertThat(request.qty()).isEqualTo(7_000);
+        assertThat(request.ppm()).isNull();
 
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RUNNING);
         verify(productionPlanRepository).save(plan);
     }
 
     @Test
-    @DisplayName("Milo 전송 실패 시 생산계획을 DISPATCH_FAILED로 표시한다")
-    void dispatchDuePlans_onFailureMarksPlanFailed() {
+    @DisplayName("Milo 전송 실패 시 생산계획을 RETURNED로 표시한다")
+    void dispatchDuePlans_onFailureMarksPlanReturned() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
         ProductionPlan plan = ProductionPlan.builder()
@@ -116,11 +161,12 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Line.of(1L, "PS-001")));
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(Line.of(1L, 10L, "PS-001")));
+        when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
         Mockito.doThrow(new RuntimeException("Milo down"))
-                .when(miloProductionOrderClient).dispatchOrder(eq("PS-001"), any(MiloProductionOrderRequest.class));
+                .when(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
 
         // when
         productionOrderService.dispatchDuePlans();

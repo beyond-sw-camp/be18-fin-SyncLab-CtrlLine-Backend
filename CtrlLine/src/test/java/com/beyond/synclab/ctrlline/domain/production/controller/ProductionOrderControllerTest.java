@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,7 +41,13 @@ class ProductionOrderControllerTest {
     @DisplayName("생산지시 API 성공 시 201 Created와 Milo 응답 본문을 반환한다")
     void dispatchOrder_success() throws Exception {
         // given
-        ProductionOrderCommandRequest request = new ProductionOrderCommandRequest("PRD-7782", 7000);
+        ProductionOrderCommandRequest request = new ProductionOrderCommandRequest(
+                "START",
+                "2025-10-24-1",
+                7000,
+                "PRD-7782",
+                null
+        );
         ProductionOrderCommandResponse response = new ProductionOrderCommandResponse(
                 "2025-10-24-1",
                 "PS-001",
@@ -49,13 +56,17 @@ class ProductionOrderControllerTest {
                 "2025-10-30T02:45:12Z"
         );
 
-        when(productionOrderService.dispatchOrder(eq("PS-001"), any(ProductionOrderCommandRequest.class)))
+        when(productionOrderService.dispatchOrder(eq("FC-001"), eq("PS-001"), any(ProductionOrderCommandRequest.class)))
                 .thenReturn(response);
 
         // when & then
-        mockMvc.perform(post("/api/v1/orders/{lineCode}/cmd", "PS-001")
+        mockMvc.perform(post("/api/v1/orders/cmd")
+                        .param("factoryCode", "FC-001")
+                        .param("lineCode", "PS-001")
+                        .header("Authorization", "Bearer test-secret")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.documentNo").value("2025-10-24-1"))
                 .andExpect(jsonPath("$.lineCode").value("PS-001"))
@@ -68,7 +79,13 @@ class ProductionOrderControllerTest {
     @DisplayName("Milo API가 오류를 반환하면 동일한 상태코드와 메시지를 전달한다")
     void dispatchOrder_miloError() throws Exception {
         // given
-        ProductionOrderCommandRequest request = new ProductionOrderCommandRequest("PRODUCT-002", 1255);
+        ProductionOrderCommandRequest request = new ProductionOrderCommandRequest(
+                "START",
+                "2025-10-24-2",
+                1255,
+                "PRODUCT-002",
+                120
+        );
         String errorPayload = """
                 {
                     "status": "NOT_FOUND",
@@ -77,13 +94,17 @@ class ProductionOrderControllerTest {
                 }
                 """;
 
-        when(productionOrderService.dispatchOrder(eq("PS-999"), any(ProductionOrderCommandRequest.class)))
+        when(productionOrderService.dispatchOrder(eq("FC-999"), eq("PS-999"), any(ProductionOrderCommandRequest.class)))
                 .thenThrow(new MiloClientException(HttpStatus.NOT_FOUND, errorPayload));
 
         // when & then
-        mockMvc.perform(post("/api/v1/orders/{lineCode}/cmd", "PS-999")
+        mockMvc.perform(post("/api/v1/orders/cmd")
+                        .param("factoryCode", "FC-999")
+                        .param("lineCode", "PS-999")
+                        .header("Authorization", "Bearer test-secret")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(errorPayload));
     }
