@@ -66,6 +66,16 @@ dependencies {
     // OpenApi Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
 
+    // QueryDsl
+    // Open Feign QueryDSL (latest security patched version)
+    implementation("io.github.openfeign.querydsl:querydsl-core:${queryDslVersion}")
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:$queryDslVersion")
+
+    // QueryDSL annotation processor - 별도 configuration으로 분리
+    annotationProcessor("io.github.openfeign.querydsl:querydsl-apt:$queryDslVersion:jpa")
+    annotationProcessor("jakarta.annotation:jakarta.annotation-api")
+    annotationProcessor("jakarta.persistence:jakarta.persistence-api")
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -77,4 +87,23 @@ tasks.named('test') {
     useJUnitPlatform()
 
     jvmArgs "-javaagent:${configurations.testRuntimeClasspath.find { it.name.contains('mockito-core') }}", '-Xshare:off'
+}
+
+// Querydsl 설정
+def querydslSrcDir = 'src/main/generated'
+
+// querydsl QClass 파일 생성 위치 지정
+tasks.withType(JavaCompile).configureEach {
+    options.getGeneratedSourceOutputDirectory().set(file(querydslSrcDir))
+}
+
+// java source set 에 querydsl QClass 위치 추가
+sourceSets {
+    main.java.srcDirs += [querydslSrcDir]
+    test.java.srcDirs += [querydslSrcDir]
+}
+
+// gradle clean 시에 QClass 디렉토리 삭제
+clean {
+    delete file(querydslSrcDir)
 }
