@@ -51,52 +51,24 @@ public class ProductionOrderService {
 
         for (ProductionPlans plan : plans) {
             try {
-                Optional<Lines> lineOptional = lineRepository.findById(plan.getLineId());
-                if (lineOptional.isEmpty()) {
-                    log.warn("Line not found for production plan documentNo={}, lineId={}", plan.getDocumentNo(), plan.getLineId());
-                    plan.markDispatchFailed();
-                    productionPlanRepository.save(plan);
+                Optional<DispatchContext> contextOptional = prepareDispatchContext(plan);
+                if (contextOptional.isEmpty()) {
                     continue;
                 }
 
-                Lines line = lineOptional.get();
-                plan.assignLineCode(line.getLineCode());
-
-                Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(plan.getLineId());
-                if (factoryCodeOptional.isEmpty()) {
-                    log.warn("Factory code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
-                    plan.markDispatchFailed();
-                    productionPlanRepository.save(plan);
-                    continue;
-                }
-
-                Optional<String> itemCodeOptional = lineRepository.findItemCodeByLineId(plan.getLineId());
-                if (itemCodeOptional.isEmpty()) {
-                    log.warn("Item code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
-                    plan.markDispatchFailed();
-                    productionPlanRepository.save(plan);
-                    continue;
-                }
-
-                int quantity = plan.commandQuantity();
-                if (quantity <= 0) {
-                    log.warn("Invalid command quantity for documentNo={}, quantity={}", plan.getDocumentNo(), quantity);
-                    plan.markDispatchFailed();
-                    productionPlanRepository.save(plan);
-                    continue;
-                }
+                DispatchContext context = contextOptional.get();
 
                 MiloProductionOrderRequest request = new MiloProductionOrderRequest(
-                        "START",
-                        plan.getDocumentNo(),
-                        quantity,
-                        itemCodeOptional.get(),
-                        null
+                        context.action(),
+                        context.orderNo(),
+                        context.quantity(),
+                        context.itemCode(),
+                        context.ppm()
                 );
 
                 miloProductionOrderClient.dispatchOrder(
-                        factoryCodeOptional.get(),
-                        plan.getLineCode(),
+                        context.factoryCode(),
+                        context.lineCode(),
                         request
                 );
 
@@ -108,5 +80,63 @@ public class ProductionOrderService {
                 productionPlanRepository.save(plan);
             }
         }
+    }
+
+    private Optional<DispatchContext> prepareDispatchContext(ProductionPlans plan) {
+        Optional<Lines> lineOptional = lineRepository.findById(plan.getLineId());
+        if (lineOptional.isEmpty()) {
+            log.warn("Line not found for production plan documentNo={}, lineId={}", plan.getDocumentNo(), plan.getLineId());
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        Lines line = lineOptional.get();
+        plan.assignLineCode(line.getLineCode());
+
+        Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(plan.getLineId());
+        if (factoryCodeOptional.isEmpty()) {
+            log.warn("Factory code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        Optional<String> itemCodeOptional = lineRepository.findItemCodeByLineId(plan.getLineId());
+        if (itemCodeOptional.isEmpty()) {
+            log.warn("Item code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        int quantity = plan.commandQuantity();
+        if (quantity <= 0) {
+            log.warn("Invalid command quantity for documentNo={}, quantity={}", plan.getDocumentNo(), quantity);
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        return Optional.of(new DispatchContext(
+                factoryCodeOptional.get(),
+                plan.getLineCode(),
+                itemCodeOptional.get(),
+                quantity,
+                "START",
+                plan.getDocumentNo(),
+                null
+        ));
+    }
+
+    private record DispatchContext(
+            String factoryCode,
+            String lineCode,
+            String itemCode,
+            int quantity,
+            String action,
+            String orderNo,
+            Integer ppm
+    ) {
     }
 }
