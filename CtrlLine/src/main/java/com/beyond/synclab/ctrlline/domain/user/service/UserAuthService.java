@@ -43,7 +43,7 @@ public class UserAuthService {
         int nextSeq = 1; // 기본 순번
 
         if (!empNos.isEmpty()) {
-            String lastEmpNo = empNos.get(0); // 가장 최신
+            String lastEmpNo = empNos.getFirst(); // 가장 최신
             String lastSeqStr = lastEmpNo.substring(6); // YYYYMMXXX 중 XXX
             nextSeq = Integer.parseInt(lastSeqStr) + 1;
         }
