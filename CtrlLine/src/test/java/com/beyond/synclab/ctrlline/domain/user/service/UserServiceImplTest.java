@@ -14,6 +14,7 @@ import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -180,5 +181,22 @@ class UserServiceImplTest {
         // then
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().getFirst().getUserDepartment()).isEqualTo("A팀");
+    }
+
+    @Test
+    @DisplayName("유저 상세 조회 - 유저 상세 조회 성공")
+    void getUser_success() {
+        // given
+        Long userId = 1L;
+        Users user = createTestUser(userId, "202510001", "영업1팀",  UserStatus.ACTIVE);
+
+        // when
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        UserResponseDto responseDto = userService.getUserById(userId);
+
+        assertThat(responseDto).isNotNull();
+        assertThat(responseDto.getEmpNo()).isEqualTo("202510001");
+        assertThat(responseDto.getUserDepartment()).isEqualTo("영업1팀");
     }
 }
