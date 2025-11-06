@@ -14,19 +14,34 @@ import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandR
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
 import com.beyond.synclab.ctrlline.domain.production.service.ProductionOrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ProductionOrderController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(ProductionOrderControllerTest.MockConfig.class)
 class ProductionOrderControllerTest {
+
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        @Primary
+        ProductionOrderService productionOrderService() {
+            return Mockito.mock(ProductionOrderService.class);
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -34,13 +49,17 @@ class ProductionOrderControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @Autowired
     private ProductionOrderService productionOrderService;
+
+    @BeforeEach
+    void setUp() {
+        Mockito.reset(productionOrderService);
+    }
 
     @Test
     @DisplayName("생산지시 API 성공 시 201 Created와 Milo 응답 본문을 반환한다")
     void dispatchOrder_success() throws Exception {
-        // given
         ProductionOrderCommandRequest request = new ProductionOrderCommandRequest(
                 "START",
                 "2025-10-24-1",
@@ -59,7 +78,6 @@ class ProductionOrderControllerTest {
         when(productionOrderService.dispatchOrder(eq("FC-001"), eq("PS-001"), any(ProductionOrderCommandRequest.class)))
                 .thenReturn(response);
 
-        // when & then
         mockMvc.perform(post("/api/v1/orders/cmd")
                         .param("factoryCode", "FC-001")
                         .param("lineCode", "PS-001")
@@ -78,7 +96,6 @@ class ProductionOrderControllerTest {
     @Test
     @DisplayName("Milo API가 오류를 반환하면 동일한 상태코드와 메시지를 전달한다")
     void dispatchOrder_miloError() throws Exception {
-        // given
         ProductionOrderCommandRequest request = new ProductionOrderCommandRequest(
                 "START",
                 "2025-10-24-2",
@@ -97,7 +114,6 @@ class ProductionOrderControllerTest {
         when(productionOrderService.dispatchOrder(eq("FC-999"), eq("PS-999"), any(ProductionOrderCommandRequest.class)))
                 .thenThrow(new MiloClientException(HttpStatus.NOT_FOUND, errorPayload));
 
-        // when & then
         mockMvc.perform(post("/api/v1/orders/cmd")
                         .param("factoryCode", "FC-999")
                         .param("lineCode", "PS-999")
