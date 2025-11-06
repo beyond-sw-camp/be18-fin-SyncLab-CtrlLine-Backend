@@ -16,4 +16,13 @@ public interface LineRepository extends JpaRepository<Line, Long> {
             LIMIT 1
             """, nativeQuery = true)
     Optional<String> findItemCodeByLineId(@Param("lineId") Long lineId);
+
+    @Query(value = """
+            SELECT f.factory_code
+            FROM line l
+            JOIN factory f ON l.factory_id = f.factory_id
+            WHERE l.line_id = :lineId
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<String> findFactoryCodeByLineId(@Param("lineId") Long lineId);
 }

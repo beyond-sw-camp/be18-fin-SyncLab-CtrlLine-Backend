@@ -24,10 +24,13 @@ public class Line {
     @Column(name = "line_id")
     private Long id;
 
+    @Column(name = "factory_id", nullable = false)
+    private Long factoryId;
+
     @Column(name = "line_code", nullable = false)
     private String lineCode;
 
-    public static Line of(Long id, String lineCode) {
-        return new Line(id, lineCode);
+    public static Line of(Long id, Long factoryId, String lineCode) {
+        return new Line(id, factoryId, lineCode);
     }
 }
