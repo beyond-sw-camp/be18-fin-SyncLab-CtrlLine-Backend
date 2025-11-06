@@ -1,10 +1,12 @@
 package com.beyond.synclab.ctrlline.domain.user.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,10 +14,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
@@ -181,7 +185,7 @@ class UserControllerTest {
     @WithMockUser(username = "admin@test.com", roles = {"ADMIN", "MANAGER", "USER"})
     void getUserList_defaultPagingAndSort() throws Exception {
         // given
-        UserResponseDto user = UserResponseDto.builder()
+        UserListResponseDto user = UserListResponseDto.builder()
             .id(1L)
             .userName("홍길동")
             .userDepartment("개발팀")
@@ -191,7 +195,7 @@ class UserControllerTest {
             .empNo("2025/10/21-1")
             .build();
 
-        Page<UserResponseDto> mockPage = new PageImpl<>(
+        Page<UserListResponseDto> mockPage = new PageImpl<>(
             List.of(user),
             PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "empNo")),
             1
@@ -221,7 +225,7 @@ class UserControllerTest {
     @WithMockUser(username = "admin@test.com", roles = {"ADMIN"})
     void getUserList_noSearchParams() throws Exception {
         // given
-        Page<UserResponseDto> emptyPage = new PageImpl<>(List.of());
+        Page<UserListResponseDto> emptyPage = new PageImpl<>(List.of());
         when(userService.getUserList(any(UserSearchCommand.class), any(Pageable.class)))
             .thenReturn(emptyPage);
 
@@ -267,7 +271,6 @@ class UserControllerTest {
             .andExpect(jsonPath("$.data.userName").value("홍길동"))
             .andExpect(jsonPath("$.data.userEmail").value("test@test.com"))
             .andDo(print());
-
     }
 
     @Test
@@ -286,5 +289,38 @@ class UserControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.status").value(404))
             .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("유저 수정 성공 - 200")
+    @WithMockUser(roles = {"ADMIN"})
+    void patchUser_success() throws Exception {
+        //given
+        Long userId = 1L;
+
+        UserResponseDto userResponseDto = UserResponseDto.builder()
+            .id(userId)
+            .empNo("2025/10/21-1")
+            .userName("홍길동")
+            .userDepartment("testDepartment")
+            .userStatus(UserStatus.ACTIVE)
+            .userRole(UserRole.USER)
+            .userPosition(UserPosition.ASSISTANT)
+            .userPhoneNumber("010-1234-1234")
+            .userEmail("hong1234@test.com")
+            .createdAt(LocalDateTime.now())
+            .build();
+
+        when(userService.updateUserById(any(UserUpdateRequestDto.class), eq(userId))).thenReturn(userResponseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(patch("/api/v1/users/{userId}", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(userResponseDto)));
+
+        // then
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200));
     }
 }
