@@ -1,12 +1,17 @@
 package com.beyond.synclab.ctrlline.domain.factory.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.factory.dto.CreateFactoryRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.dto.FactoryResponseDto;
+import com.beyond.synclab.ctrlline.domain.factory.dto.FactorySearchDto;
 import com.beyond.synclab.ctrlline.domain.factory.dto.UpdateFactoryRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.service.FactoryService;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -48,6 +53,22 @@ public class FactoryController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<PageResponse<FactoryResponseDto>>> getFactoryList(
+            @AuthenticationPrincipal CustomUserDetails user,
+            FactorySearchDto searchDto,
+            @PageableDefault(size = 10, sort = "factoryCode", direction = Sort.Direction.ASC)
+            Pageable pageable
+    ) {
+        PageResponse<FactoryResponseDto> response = factoryService.getFactoryList(user.getUser(), searchDto, pageable);
+
+        BaseResponse<PageResponse<FactoryResponseDto>> baseResponse =
+                BaseResponse.of(HttpStatus.OK.value(), response);
+
+        return ResponseEntity.ok(baseResponse);
+    }
+
 
     @PatchMapping("/{factoryCode}")
     public ResponseEntity<BaseResponse<FactoryResponseDto>> updateFactoryStatus(
