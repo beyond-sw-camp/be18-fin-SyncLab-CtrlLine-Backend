@@ -4,13 +4,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import com.beyond.synclab.ctrlline.domain.user.dto.ReissueResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.service.UserAuthServiceImpl;
 import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,20 +35,20 @@ class UserAuthControllerTest {
     @TestConfiguration
     static class UserAuthControllerTestContextConfiguration {
         @Bean
-        UserAuthService userAuthService() {return mock(UserAuthService.class);}
+        UserAuthServiceImpl userAuthService() {return mock(UserAuthServiceImpl.class);}
     }
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private UserAuthService userAuthService;
+    private UserAuthServiceImpl userAuthServiceImpl;
 
     @Test
     @DisplayName("로그아웃 성공 - 200")
     void logout_success() throws Exception {
         // given
-        doNothing().when(userAuthService).logout(any(HttpServletRequest.class), any(
+        doNothing().when(userAuthServiceImpl).logout(any(HttpServletRequest.class), any(
             HttpServletResponse.class));
 
         // when
@@ -64,7 +68,7 @@ class UserAuthControllerTest {
     void logout_unAuthorized() throws Exception {
         // given
         doThrow(new AppException(AuthErrorCode.UNAUTHORIZED))
-            .when(userAuthService)
+            .when(userAuthServiceImpl)
             .logout(any(HttpServletRequest.class), any(HttpServletResponse.class));
 
         // when
@@ -77,5 +81,28 @@ class UserAuthControllerTest {
             .andDo(print())
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    @DisplayName("액세스토큰 재발급 - 204 No Content")
+    void refresh_noContent() throws Exception {
+        // given
+        ReissueResponseDto responseDto = ReissueResponseDto.builder()
+            .accessToken("accessToken")
+            .refreshToken("refreshToken")
+            .maxAge(100)
+            .build();
+
+        when(userAuthServiceImpl.reissue("refreshToken")).thenReturn(responseDto);
+
+        ResultActions resultActions = mockMvc.perform(post("/api/v1/auth/token/refresh")
+            .cookie(new Cookie("refresh_token", "refreshToken"))
+            .header("Authorization", "Bearer accessToken"));
+
+        resultActions
+            .andExpect(status().isNoContent())
+            .andExpect(header().string("Authorization", "Bearer accessToken"))
+            .andExpect(cookie().maxAge("refresh_token", 100))
+            .andExpect(cookie().value("refresh_token", "refreshToken"));
     }
 }
