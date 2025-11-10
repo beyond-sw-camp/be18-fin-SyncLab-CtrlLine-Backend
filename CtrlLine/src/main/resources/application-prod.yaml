@@ -27,7 +27,7 @@ app:
   redis:
     prefix:
       refresh: "ctrlline:refresh:"
-      blacklist: "ctrlline:refresh:"
+      blacklist: "ctrlline:blacklist:"
 
 spring:
   datasource:
