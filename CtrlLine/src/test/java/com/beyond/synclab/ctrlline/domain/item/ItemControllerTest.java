@@ -138,7 +138,7 @@ class ItemControllerTest {
 
         Mockito.when(itemService.updateItem(eq(1L), any(Item.class))).thenReturn(updated);
 
-        mockMvc.perform(put("/api/v1/items/{itemId}", 1L)
+        mockMvc.perform(patch("/api/v1/items/{itemId}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updated)))
                 .andExpect(status().isOk())
@@ -150,18 +150,40 @@ class ItemControllerTest {
        🔹 활성/비활성 전환 테스트
     ======================================================== */
     @Test
-    @DisplayName("PATCH /api/v1/items/{itemId}/deactivate - 품목 비활성화 성공")
+    @DisplayName("PATCH /api/v1/items - 품목 비활성화 성공")
     void deactivateItem_success() throws Exception {
-        mockMvc.perform(patch("/api/v1/items/{itemId}/deactivate", 1L))
-                .andExpect(status().isOk());
+        String requestJson = """
+            {
+                "itemIds": [1],
+                "isActive": false
+            }
+        """;
+
+        mockMvc.perform(patch("/api/v1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("품목 사용여부가 수정되었습니다."));
+
         Mockito.verify(itemService).deactivateItem(1L);
     }
 
     @Test
-    @DisplayName("PATCH /api/v1/items/{itemId}/activate - 품목 활성화 성공")
+    @DisplayName("PATCH /api/v1/items - 품목 활성화 성공")
     void activateItem_success() throws Exception {
-        mockMvc.perform(patch("/api/v1/items/{itemId}/activate", 1L))
-                .andExpect(status().isOk());
+        String requestJson = """
+            {
+                "itemIds": [1],
+                "isActive": true
+            }
+        """;
+
+        mockMvc.perform(patch("/api/v1/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("품목 사용여부가 수정되었습니다."));
+
         Mockito.verify(itemService).activateItem(1L);
     }
 }

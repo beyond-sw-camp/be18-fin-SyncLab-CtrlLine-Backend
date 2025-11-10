@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.item.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.ItemStatusUpdateRequest;
 import com.beyond.synclab.ctrlline.domain.item.entity.Item;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.item.service.ItemService;
@@ -9,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.beyond.synclab.ctrlline.domain.item.dto.request.ItemStatusUpdateRequest;
 
 import java.util.List;
 
