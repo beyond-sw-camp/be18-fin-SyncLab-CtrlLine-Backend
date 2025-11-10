@@ -22,14 +22,14 @@ public class MesTelemetryListener {
             topics = "${mes.kafka.topic}",
             containerFactory = "telemetryKafkaListenerContainerFactory"
     )
-    public void onTelemetry(ConsumerRecord<String, String> record) {
-        JsonNode payload = parsePayload(record.value());
+    public void onTelemetry(ConsumerRecord<String, String> telemetryRecord) {
+        JsonNode payload = parsePayload(telemetryRecord.value());
         log.info("Telemetry received topic={}, partition={}, offset={}, key={}, payload={}",
-                record.topic(),
-                record.partition(),
-                record.offset(),
-                record.key(),
-                payload != null ? payload : record.value());
+                telemetryRecord.topic(),
+                telemetryRecord.partition(),
+                telemetryRecord.offset(),
+                telemetryRecord.key(),
+                payload != null ? payload : telemetryRecord.value());
     }
 
     JsonNode parsePayload(String value) {
