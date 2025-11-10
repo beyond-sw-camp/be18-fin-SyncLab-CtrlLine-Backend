@@ -5,13 +5,13 @@ import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
+import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
+@Slf4j
 @Component
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
@@ -21,12 +21,14 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request,
                        HttpServletResponse response,
                        AccessDeniedException ex) throws IOException {
+        log.debug(">>> AccessDeniedHandler ex = {}, msg = {}", ex.getClass(), ex.getMessage());
 
-        response.setStatus(HttpStatus.FORBIDDEN.value());
+        AuthErrorCode errorCode = AuthErrorCode.ACCESS_DENIED;
+
+        response.setStatus(errorCode.getStatus().value());
         response.setContentType("application/json;charset=UTF-8");
 
-        ErrorResponse body = ErrorResponse.of(AuthErrorCode.ACCESS_DENIED);
-
+        ErrorResponse body = ErrorResponse.of(errorCode);
 
         om.writeValue(response.getWriter(), body);
     }
