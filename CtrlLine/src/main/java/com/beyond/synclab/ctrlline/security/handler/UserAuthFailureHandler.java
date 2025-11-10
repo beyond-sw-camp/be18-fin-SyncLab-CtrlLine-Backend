@@ -23,13 +23,7 @@ public class UserAuthFailureHandler implements AuthenticationFailureHandler {
                                         HttpServletResponse response,
                                         AuthenticationException exception
     ) throws IOException {
-        AuthErrorCode errorCode;
-        if (exception instanceof DisabledException) {
-            errorCode = AuthErrorCode.ACCESS_DENIED;
-            log.debug("퇴사한 사용자는 로그인할 수 없습니다.");
-        } else {
-            errorCode = AuthErrorCode.INVALID_LOGIN;
-        }
+        AuthErrorCode errorCode = AuthErrorCode.INVALID_LOGIN;
 
         response.setStatus(errorCode.getStatus().value());
         response.setContentType("application/json;charset=UTF-8");

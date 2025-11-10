@@ -26,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         if (user.getStatus() == UserStatus.RESIGNED) {
             log.debug(">> loadUserByUsername : 퇴사한 사용자는 로그인할 수 없습니다.");
-            throw new DisabledException("퇴사한 사용자는 로그인할 수 없습니다.");
+            throw new UsernameNotFoundException("User not found: " + email);
         }
 
         return new CustomUserDetails(user);
