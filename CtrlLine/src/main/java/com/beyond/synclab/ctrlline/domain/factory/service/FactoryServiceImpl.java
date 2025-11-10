@@ -25,10 +25,6 @@ public class FactoryServiceImpl implements FactoryService {
 
     public FactoryResponseDto createFactory(Users user, CreateFactoryRequestDto requestDto) {
 
-        if(user.getRole() != Users.UserRole.ADMIN) {
-            throw new AppException(CommonErrorCode.ACCESS_DENIED);
-        }
-
         if(factoryRepository.findByFactoryCode(requestDto.getFactoryCode()).isPresent()) {
             throw new AppException(CommonErrorCode.FACTORY_CONFLICT);
         }
