@@ -3,26 +3,28 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 class MesTelemetryListenerTest {
 
-    private final MesKafkaProperties properties = new MesKafkaProperties(
-            List.of("localhost:29092"),
-            "mes-machine-telemetry",
-            "ctrlline-client",
-            "ctrlline-group",
-            "earliest",
-            java.time.Duration.ofSeconds(5)
-    );
+    @Mock
+    private MesPowerConsumptionService mesPowerConsumptionService;
 
-    private final MesTelemetryListener listener = new MesTelemetryListener(new ObjectMapper(), properties);
+    private MesTelemetryListener listener;
+
+    @BeforeEach
+    void setUp() {
+        listener = new MesTelemetryListener(new ObjectMapper(), mesPowerConsumptionService);
+    }
 
     @Test
     void parsePayload_returnsJsonNode_whenValidJson() {
