@@ -1,5 +1,9 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ENERGY_USAGE_TAG;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
@@ -20,10 +24,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class MesTelemetryListener {
-
-    private static final String ENERGY_USAGE_TAG = "energy_usage";
-    private static final String VALUE_FIELD = "value";
-    private static final String TIMESTAMP_FIELD = "timestamp";
 
     private final ObjectMapper objectMapper;
     private final MesPowerConsumptionService mesPowerConsumptionService;
