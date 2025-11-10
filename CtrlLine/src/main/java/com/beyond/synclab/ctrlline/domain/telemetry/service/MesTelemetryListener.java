@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 public class MesTelemetryListener {
 
     private static final String ENERGY_USAGE_TAG = "energy_usage";
+    private static final String VALUE_FIELD = "value";
+    private static final String TIMESTAMP_FIELD = "timestamp";
 
     private final ObjectMapper objectMapper;
     private final MesPowerConsumptionService mesPowerConsumptionService;
@@ -51,10 +53,10 @@ public class MesTelemetryListener {
         }
 
         for (JsonNode recordNode : recordsNode) {
-            JsonNode valueNode = recordNode.path("value");
+            JsonNode valueNode = recordNode.path(VALUE_FIELD);
             if (isEnergyUsageRecord(valueNode)) {
-                double energyUsage = valueNode.path("value").asDouble(Double.NaN);
-                long timestamp = valueNode.path("timestamp").asLong(0L);
+                double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
+                long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
                 accumulateEnergyUsage(timestamp, energyUsage);
             }
         }
@@ -123,11 +125,11 @@ public class MesTelemetryListener {
         if (!ENERGY_USAGE_TAG.equals(valueNode.path("tag").asText())) {
             return false;
         }
-        if (!valueNode.hasNonNull("value") || !valueNode.hasNonNull("timestamp")) {
+        if (!valueNode.hasNonNull(VALUE_FIELD) || !valueNode.hasNonNull(TIMESTAMP_FIELD)) {
             return false;
         }
-        double energyUsage = valueNode.path("value").asDouble(Double.NaN);
-        long timestamp = valueNode.path("timestamp").asLong(0L);
+        double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
+        long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
         return !Double.isNaN(energyUsage) && timestamp > 0L;
     }
 }
