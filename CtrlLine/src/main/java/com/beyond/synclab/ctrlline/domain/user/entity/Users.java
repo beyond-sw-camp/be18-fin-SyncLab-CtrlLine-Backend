@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.user.entity;
 
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -84,6 +85,48 @@ public class Users {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void update(UserUpdateRequestDto dto) {
+        if (dto.getDepartment() != null && !dto.getDepartment().isBlank()) {
+            this.department = dto.getDepartment();
+        }
+
+        if (dto.getPosition() != null) {
+            this.position = dto.getPosition();
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            this.email = dto.getEmail();
+        }
+
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            this.name = dto.getName();
+        }
+
+        if (dto.getRole() != null) {
+            this.role = dto.getRole();
+        }
+
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()) {
+            this.phoneNumber = dto.getPhoneNumber();
+        }
+
+        if (dto.getStatus() != null) {
+            this.status = dto.getStatus();
+        }
+
+        if (dto.getAddress() != null) {
+            this.address = dto.getAddress();
+        }
+
+        if (dto.getTerminationDate() != null) {
+            this.terminationDate = dto.getTerminationDate();
+        }
+
+        if (dto.getExtension() != null && !dto.getExtension().isBlank()) {
+            this.extension = dto.getExtension();
+        }
+    }
 
     public enum UserRole {
         ADMIN, MANAGER, USER
