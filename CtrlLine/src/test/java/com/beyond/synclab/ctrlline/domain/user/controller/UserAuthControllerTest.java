@@ -2,13 +2,16 @@ package com.beyond.synclab.ctrlline.domain.user.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -56,4 +59,23 @@ class UserAuthControllerTest {
             .andExpect(jsonPath("$.code").value(200));
     }
 
+    @Test
+    @DisplayName("로그아웃 실패 - 401")
+    void logout_unAuthorized() throws Exception {
+        // given
+        doThrow(new AppException(AuthErrorCode.UNAUTHORIZED))
+            .when(userAuthService)
+            .logout(any(HttpServletRequest.class), any(HttpServletResponse.class));
+
+        // when
+        ResultActions resultActions = mockMvc.perform(post("/api/v1/auth/logout")
+            .header("Authorization", "Bearer accessToken")
+            .cookie(new Cookie("refresh_token", "refreshToken")));
+
+        // then
+        resultActions
+            .andDo(print())
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.status").value(401));
+    }
 }
