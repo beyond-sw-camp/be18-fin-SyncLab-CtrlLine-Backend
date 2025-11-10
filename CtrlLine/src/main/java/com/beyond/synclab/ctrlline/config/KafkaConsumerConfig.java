@@ -44,7 +44,6 @@ public class KafkaConsumerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(telemetryConsumerFactory());
         factory.setConcurrency(1);
-        factory.getContainerProperties().setAckOnError(false);
         return factory;
     }
 }

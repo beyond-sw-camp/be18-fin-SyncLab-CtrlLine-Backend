@@ -19,7 +19,7 @@ public class MesTelemetryListener {
     private final MesKafkaProperties mesKafkaProperties;
 
     @KafkaListener(
-            topics = "#{mesKafkaProperties.topic()}",
+            topics = "${mes.kafka.topic}",
             containerFactory = "telemetryKafkaListenerContainerFactory"
     )
     public void onTelemetry(ConsumerRecord<String, String> record) {
