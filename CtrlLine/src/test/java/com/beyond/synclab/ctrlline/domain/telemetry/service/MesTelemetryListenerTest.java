@@ -42,7 +42,7 @@ class MesTelemetryListenerTest {
 
     @Test
     void onTelemetry_handlesRecordWithoutException() {
-        ConsumerRecord<String, String> record = new ConsumerRecord<>(
+        ConsumerRecord<String, String> telemetryRecord = new ConsumerRecord<>(
                 "mes-machine-telemetry",
                 0,
                 10,
@@ -50,6 +50,6 @@ class MesTelemetryListenerTest {
                 "{\"status\":\"RUNNING\"}"
         );
 
-        listener.onTelemetry(record);
+        listener.onTelemetry(telemetryRecord);
     }
 }
