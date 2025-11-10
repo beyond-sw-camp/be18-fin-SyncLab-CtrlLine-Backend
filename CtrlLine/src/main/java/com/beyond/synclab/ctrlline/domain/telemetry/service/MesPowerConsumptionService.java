@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class MesPowerConsumptionService {
-// rename branch
+
     private final MesDataRepository mesDataRepository;
 
     @Transactional
