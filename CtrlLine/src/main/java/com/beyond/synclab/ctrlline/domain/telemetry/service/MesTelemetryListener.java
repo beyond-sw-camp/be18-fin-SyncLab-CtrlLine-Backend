@@ -30,7 +30,6 @@ public class MesTelemetryListener {
                 record.offset(),
                 record.key(),
                 payload != null ? payload : record.value());
-        // TODO: downstream processing once telemetry contract is finalized
     }
 
     JsonNode parsePayload(String value) {
