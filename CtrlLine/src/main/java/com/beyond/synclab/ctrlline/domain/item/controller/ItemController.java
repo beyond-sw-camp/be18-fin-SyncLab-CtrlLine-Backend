@@ -106,6 +106,6 @@ public class ItemController {
         log.info("[ITEM-STATUS] {}건 상태 변경 완료 (isActive={})",
                 request.getItemIds().size(), request.getIsActive());
 
-        return ResponseEntity.ok(BaseResponse.ok("품목 사용여부가 수정되었습니다."));
+        return ResponseEntity.ok(BaseResponse.ok(null));
     }
 }

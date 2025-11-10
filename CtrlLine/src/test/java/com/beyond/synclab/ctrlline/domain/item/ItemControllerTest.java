@@ -164,7 +164,7 @@ class ItemControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("품목 사용여부가 수정되었습니다."));
+                .andExpect(jsonPath("$.data").isEmpty());
 
         Mockito.verify(itemService).deactivateItem(1L);
     }
@@ -183,7 +183,7 @@ class ItemControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("품목 사용여부가 수정되었습니다."));
+                .andExpect(jsonPath("$.data").isEmpty());
 
         Mockito.verify(itemService).activateItem(1L);
     }
