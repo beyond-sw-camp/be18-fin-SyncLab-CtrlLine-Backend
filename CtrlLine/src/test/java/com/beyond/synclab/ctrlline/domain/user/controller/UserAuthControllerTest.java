@@ -1,0 +1,59 @@
+package com.beyond.synclab.ctrlline.domain.user.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+
+@WebMvcTest(UserAuthController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class UserAuthControllerTest {
+    @TestConfiguration
+    static class UserAuthControllerTestContextConfiguration {
+        @Bean
+        UserAuthService userAuthService() {return mock(UserAuthService.class);}
+    }
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserAuthService userAuthService;
+
+    @Test
+    @DisplayName("로그아웃 성공 - 200")
+    void logout_success() throws Exception {
+        // given
+        doNothing().when(userAuthService).logout(any(HttpServletRequest.class), any(
+            HttpServletResponse.class));
+
+        // when
+        ResultActions resultActions = mockMvc.perform(post("/api/v1/auth/logout")
+            .header("Authorization", "Bearer accessToken")
+            .cookie(new Cookie("refresh_token", "refreshToken")));
+
+        // then
+        resultActions
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200));
+    }
+
+}
