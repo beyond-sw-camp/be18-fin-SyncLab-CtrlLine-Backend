@@ -52,18 +52,11 @@ public class MesTelemetryListener {
 
         for (JsonNode recordNode : recordsNode) {
             JsonNode valueNode = recordNode.path("value");
-            if (!valueNode.isObject()) {
-                continue;
+            if (isEnergyUsageRecord(valueNode)) {
+                double energyUsage = valueNode.path("value").asDouble(Double.NaN);
+                long timestamp = valueNode.path("timestamp").asLong(0L);
+                accumulateEnergyUsage(timestamp, energyUsage);
             }
-            if (!ENERGY_USAGE_TAG.equals(valueNode.path("tag").asText())) {
-                continue;
-            }
-            double energyUsage = valueNode.path("value").asDouble(Double.NaN);
-            long timestamp = valueNode.path("timestamp").asLong(0L);
-            if (Double.isNaN(energyUsage) || timestamp <= 0L) {
-                continue;
-            }
-            accumulateEnergyUsage(timestamp, energyUsage);
         }
     }
 
@@ -121,5 +114,20 @@ public class MesTelemetryListener {
 
     private long bucketTimestamp(long timestamp) {
         return timestamp / 1000L;
+    }
+
+    private boolean isEnergyUsageRecord(JsonNode valueNode) {
+        if (!valueNode.isObject()) {
+            return false;
+        }
+        if (!ENERGY_USAGE_TAG.equals(valueNode.path("tag").asText())) {
+            return false;
+        }
+        if (!valueNode.hasNonNull("value") || !valueNode.hasNonNull("timestamp")) {
+            return false;
+        }
+        double energyUsage = valueNode.path("value").asDouble(Double.NaN);
+        long timestamp = valueNode.path("timestamp").asLong(0L);
+        return !Double.isNaN(energyUsage) && timestamp > 0L;
     }
 }
