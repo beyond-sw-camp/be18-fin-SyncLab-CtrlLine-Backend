@@ -51,7 +51,11 @@ class ItemTest {
                 .build();
 
         // when
-        item.updateItem("MCCB 차단기(수정)", "50A / 220V", "BOX", ItemStatus.FINISHED_PRODUCT);
+        item.updateItem("ITEM-002", // ✅ itemCode 추가
+                "MCCB 차단기(수정)",
+                "50A / 220V",
+                "BOX",
+                ItemStatus.FINISHED_PRODUCT);
 
         // then
         assertThat(item.getItemName()).isEqualTo("MCCB 차단기(수정)");

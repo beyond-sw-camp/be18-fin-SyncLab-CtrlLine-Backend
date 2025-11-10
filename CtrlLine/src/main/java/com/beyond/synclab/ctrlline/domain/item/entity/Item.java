@@ -3,8 +3,8 @@ package com.beyond.synclab.ctrlline.domain.item.entity;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
@@ -39,11 +39,11 @@ public class Item {
     @Column(name = "item_status", nullable = false, length = 32)
     private ItemStatus itemStatus; // 원재료 / 부재료 / 반제품 / 완제품
 
-    @CreatedDate
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -51,7 +51,8 @@ public class Item {
     private Boolean isActive = true;
 
     // ====== 도메인 메서드 ======
-    public void updateItem(String name, String specification, String unit, ItemStatus status) {
+    public void updateItem(String code, String name, String specification, String unit, ItemStatus status) {
+        this.itemCode = code;
         this.itemName = name;
         this.itemSpecification = specification;
         this.itemUnit = unit;

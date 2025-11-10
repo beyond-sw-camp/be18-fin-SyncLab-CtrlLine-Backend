@@ -1,8 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.item;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.Item;
-import com.beyond.synclab.ctrlline.domain.item.enums.ItemAct;
-import com.beyond.synclab.ctrlline.domain.item.enums.ItemStatus;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
@@ -21,7 +20,6 @@ class ItemRepositoryTest {
                 .itemCode("ITEM-001")
                 .itemName("3P 차단기")
                 .itemStatus(ItemStatus.FINISHED_PRODUCT)
-                .itemAct(ItemAct.ACTIVE)
                 .isActive(true)
                 .build());
 
@@ -29,7 +27,6 @@ class ItemRepositoryTest {
                 .itemCode("ITEM-002")
                 .itemName("퓨즈박스")
                 .itemStatus(ItemStatus.RAW_MATERIAL)
-                .itemAct(ItemAct.INACTIVE)
                 .isActive(false)
                 .build());
 

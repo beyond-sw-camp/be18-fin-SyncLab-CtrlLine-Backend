@@ -21,28 +21,16 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
 
     /* ================================
-       🔹 단건 조회 (정확 일치)
+       🔹 단건 조회 (PK 기반)
     ================================= */
     @Override
-    public Item getItemByCode(String itemCode) {
-        return itemRepository.findByItemCode(itemCode)
-                .orElseThrow(() -> new ItemNotFoundException(itemCode));
-    }
-
-    @Override
-    public Item getItemByName(String itemName) {
-        return itemRepository.findByItemName(itemName)
-                .orElseThrow(() -> new ItemNotFoundException(itemName));
-    }
-
-    @Override
-    public Item getItemBySpecification(String specification) {
-        return itemRepository.findByItemSpecification(specification)
-                .orElseThrow(() -> new ItemNotFoundException(specification));
+    public Item getItemById(Long itemId) {
+        return itemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException("ID: " + itemId));
     }
 
     /* ================================
-       🔹 목록 조회 (부분 일치)
+       🔹 목록 조회 (Filter 기반)
     ================================= */
     @Override
     public List<Item> searchByItemCode(String code) {
@@ -70,7 +58,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     /* ================================
-       🔹 신규 등록
+       🔹 신규 등록 (itemCode 중복 방지)
     ================================= */
     @Override
     @Transactional
@@ -86,45 +74,49 @@ public class ItemServiceImpl implements ItemService {
     }
 
     /* ================================
-       🔹 수정
+       🔹 수정 (PK 기반, itemCode 포함 업데이트)
     ================================= */
     @Override
     @Transactional
-    public Item updateItem(String itemCode, Item updated) {
-        Item existing = itemRepository.findByItemCode(itemCode)
-                .orElseThrow(() -> new ItemNotFoundException(itemCode));
+    public Item updateItem(Long itemId, Item updated) {
+        Item existing = getItemById(itemId);
 
+        // itemCode 변경 시 중복 검증
+        if (!existing.getItemCode().equals(updated.getItemCode())
+                && itemRepository.existsByItemCode(updated.getItemCode())) {
+            log.warn("[ITEM-CONFLICT] Duplicate itemCode detected during update: {}", updated.getItemCode());
+            throw new ItemCodeConflictException(updated.getItemCode());
+        }
+
+        // 도메인 메서드 기반 전체 갱신
         existing.updateItem(
+                updated.getItemCode(),
                 updated.getItemName(),
                 updated.getItemSpecification(),
                 updated.getItemUnit(),
                 updated.getItemStatus()
         );
 
-        log.info("[ITEM-UPDATE] Item updated: {}", itemCode);
+        log.info("[ITEM-UPDATE] Item updated (ID: {}, Code: {})", itemId, updated.getItemCode());
         return existing;
     }
 
     /* ================================
-       🔹 활성화 / 비활성화
+       🔹 활성화 / 비활성화 (PK 기반)
     ================================= */
     @Override
     @Transactional
-    public void deactivateItem(String itemCode) {
-        Item item = itemRepository.findByItemCode(itemCode)
-                .orElseThrow(() -> new ItemNotFoundException(itemCode));
-
+    public void deactivateItem(Long itemId) {
+        Item item = getItemById(itemId);
         item.deactivate();
-        log.info("[ITEM-DEACTIVATE] Item set inactive: {}", itemCode);
+        log.info("[ITEM-DEACTIVATE] Item set inactive: {}", itemId);
     }
 
     @Override
     @Transactional
-    public void activateItem(String itemCode) {
-        Item item = itemRepository.findByItemCode(itemCode)
-                .orElseThrow(() -> new ItemNotFoundException(itemCode));
-
+    public void activateItem(Long itemId) {
+        Item item = getItemById(itemId);
         item.activate();
-        log.info("[ITEM-ACTIVATE] Item set active: {}", itemCode);
+        log.info("[ITEM-ACTIVATE] Item set active: {}", itemId);
     }
 }
