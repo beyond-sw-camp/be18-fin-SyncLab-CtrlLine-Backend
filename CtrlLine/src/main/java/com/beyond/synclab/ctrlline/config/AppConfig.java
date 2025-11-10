@@ -2,6 +2,8 @@ package com.beyond.synclab.ctrlline.config;
 
 import com.beyond.synclab.ctrlline.common.property.AppProperties;
 import com.beyond.synclab.ctrlline.common.property.JwtProperties;
+import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
+import com.beyond.synclab.ctrlline.common.property.MiloClientProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,15 +15,24 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @Configuration
 @RequiredArgsConstructor
-@EnableConfigurationProperties({JwtProperties.class, AppProperties.class})
+@EnableConfigurationProperties({
+        JwtProperties.class,
+        AppProperties.class,
+        MiloClientProperties.class,
+        MesKafkaProperties.class
+})
 public class AppConfig {
 
     private final JwtProperties jwtProperties;
     private final AppProperties appProperties;
+    private final MiloClientProperties miloClientProperties;
+    private final MesKafkaProperties mesKafkaProperties;
 
     @PostConstruct
     void init() {
         log.debug("jwtProperties = {}", jwtProperties);
         log.debug("appProperties = {}", appProperties);
+        log.debug("miloClientProperties = {}", miloClientProperties);
+        log.debug("mesKafkaProperties = {}", mesKafkaProperties);
     }
 }

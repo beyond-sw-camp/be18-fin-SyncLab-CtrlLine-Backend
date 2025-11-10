@@ -1,13 +1,14 @@
 package com.beyond.synclab.ctrlline.domain.user.repository;
 
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
-import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<Users, Long> {
     Optional<Users> findByEmail(String email);
@@ -18,5 +19,7 @@ public interface UserRepository extends JpaRepository<Users, Long> {
 
     boolean existsByEmail(String email);
 
-    boolean existsByEmpNo(@NotBlank(message = "사번은 필수입니다.") String empNo);
+    boolean existsByEmpNo(String empNo);
+
+    Page<Users> findAll(Specification<Users> spec, Pageable pageable);
 }

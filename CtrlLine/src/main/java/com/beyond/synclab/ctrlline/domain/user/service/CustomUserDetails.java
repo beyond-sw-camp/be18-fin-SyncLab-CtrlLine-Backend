@@ -18,8 +18,8 @@ public class CustomUserDetails implements UserDetails {
         this.user = user;
     }
 
-    public String getId() {
-        return user.getId().toString(); // UUID → String 변환
+    public Long getId() {
+        return user.getId();
     }
 
     @Override

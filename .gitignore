@@ -267,4 +267,7 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
+**/registry.bin
+**/registry.bin.lock
+
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,visualstudiocode,java,gradle,maven,git,macos,windows,linux

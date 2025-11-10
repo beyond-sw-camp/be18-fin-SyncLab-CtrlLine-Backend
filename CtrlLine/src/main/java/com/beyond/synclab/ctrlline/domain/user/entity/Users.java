@@ -1,29 +1,34 @@
 package com.beyond.synclab.ctrlline.domain.user.entity;
 
+import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "user")
+@Table(name = "`user`")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
 public class Users {
     @Id
@@ -52,6 +57,9 @@ public class Users {
     @Column(name = "user_termination_date")
     private LocalDate terminationDate;
 
+    @Column(name = "user_extension")
+    private String extension;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false)
     private UserRole role; // USER, EMPLOYEE, ADMIN
@@ -70,11 +78,55 @@ public class Users {
     @Column(name = "user_address", nullable = false)
     private String address;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void update(UserUpdateRequestDto dto) {
+        if (dto.getDepartment() != null && !dto.getDepartment().isBlank()) {
+            this.department = dto.getDepartment();
+        }
+
+        if (dto.getPosition() != null) {
+            this.position = dto.getPosition();
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            this.email = dto.getEmail();
+        }
+
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            this.name = dto.getName();
+        }
+
+        if (dto.getRole() != null) {
+            this.role = dto.getRole();
+        }
+
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()) {
+            this.phoneNumber = dto.getPhoneNumber();
+        }
+
+        if (dto.getStatus() != null) {
+            this.status = dto.getStatus();
+        }
+
+        if (dto.getAddress() != null) {
+            this.address = dto.getAddress();
+        }
+
+        if (dto.getTerminationDate() != null) {
+            this.terminationDate = dto.getTerminationDate();
+        }
+
+        if (dto.getExtension() != null && !dto.getExtension().isBlank()) {
+            this.extension = dto.getExtension();
+        }
+    }
 
     public enum UserRole {
         ADMIN, MANAGER, USER

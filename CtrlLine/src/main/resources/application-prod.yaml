@@ -27,7 +27,7 @@ app:
   redis:
     prefix:
       refresh: "ctrlline:refresh:"
-      blacklist: "ctrlline:refresh:"
+      blacklist: "ctrlline:blacklist:"
 
 spring:
   datasource:
@@ -38,7 +38,10 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    clean-disabled: true     # 절대 DB 초기화 금지
+    out-of-order: false      # 순서 보장 강제
+    validate-on-migrate: true
+    baseline-on-migrate: false
     baseline-version: 0
   data:
     redis:
@@ -50,3 +53,12 @@ spring:
     hibernate:
       ddl-auto: validate # Flyway로 테이블 관리하므로 JPA는 validate로
     show-sql: true
+
+mes:
+  kafka:
+    bootstrap-servers: ${MES_KAFKA_BOOTSTRAP_SERVERS}
+    topic: ${MES_KAFKA_TOPIC:mes-machine-telemetry}
+    client-id: ${MES_KAFKA_CLIENT_ID:ctrlline-prod-client}
+    group-id: ${MES_KAFKA_GROUP_ID:ctrlline-prod-group}
+    auto-offset-reset: ${MES_KAFKA_AUTO_OFFSET_RESET:earliest}
+    poll-interval: ${MES_KAFKA_POLL_INTERVAL:5s}
