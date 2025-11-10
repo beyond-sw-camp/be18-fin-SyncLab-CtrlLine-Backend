@@ -1,0 +1,59 @@
+server:
+  port: 8088
+
+jwt:
+  access-token:
+    expired: 3600000         # 1시간
+    secret-key: "q3vi45t39ttovn84ty8ov4ty384yt34oty834ru3489utf98uvgi3bti90"
+  refresh-token:
+    expired: 86400000        # 1일
+    secret-key: "kgjopkghpojghogh0jgmjhbomkj1fdx1fxd1fxdf1xhmnkfthkdc"
+
+
+cors:
+  allowed-origins:
+    - "http://localhost:3000"
+  allowed-headers:
+    - "*"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+
+app:
+  redis:
+    prefix:
+      refresh: "ctrlline:refresh:"
+      blacklist: "ctrlline:refresh:"
+
+spring:
+  datasource:
+    url: "jdbc:mariadb://121.170.161.72:30028/ctrlline"
+    username: ctrlline
+    password: MariaCtrlline12!@
+    driver-class-name: org.mariadb.jdbc.Driver
+  # Flyway
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+  # Redis
+  data:
+    redis:
+      host: 121.170.161.72
+      port: 30027
+      password: Ctrlline12!@
+  # Jpa
+  jpa:
+    hibernate:
+      ddl-auto: validate # Flyway로 테이블 관리하므로 JPA는 validate로
+    show-sql: true
+
+logging:
+  level:
+    com.beyond.synclab.ctrlline.**: debug
+
