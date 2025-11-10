@@ -1,12 +1,11 @@
 package com.beyond.synclab.ctrlline.domain.factory.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.dto.CreateFactoryRequestDto;
-import com.beyond.synclab.ctrlline.domain.factory.dto.UpdateFactoryRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,15 +14,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("FactoryServiceImplTest 단위 테스트")
 class FactoryServiceImplTest {
     @InjectMocks
     private FactoryServiceImpl factoryService;
@@ -31,10 +26,13 @@ class FactoryServiceImplTest {
     @Mock
     private FactoryRepository factoryRepository;
 
+    @Mock
+    private UserRepository userRepository;
 
     private Users buildTestUser(String name, Users.UserRole userRole) {
         return Users.builder()
                      .name(name)
+                     .empNo("202411001")
                      .email("hong@test.com")
                      .password("12341234")
                      .status(Users.UserStatus.ACTIVE)
@@ -58,23 +56,6 @@ class FactoryServiceImplTest {
 
 
     @Test
-    @DisplayName("USER 역할은 공장을 등록할 수 없다.")
-    void createFactory_fail_UserRole() {
-        Users user = buildTestUser("홍길동", Users.UserRole.USER);
-        CreateFactoryRequestDto factoryRequest = CreateFactoryRequestDto.builder()
-                                                                        .factoryCode("F001")
-                                                                        .factoryName("제1공장")
-                                                                        .empNo(user.getEmpNo())
-                                                                        .isActive(true).build();
-
-        // then
-        assertThatThrownBy(() -> factoryService.createFactory(user, factoryRequest))
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining("접근 권한이 없습니다.");
-    }
-
-
-    @Test
     @DisplayName("공장코드가 중복되면 등록에 실패한다.")
     void createFactory_fail_duplicateFactoryCode() {
         // given
@@ -94,24 +75,6 @@ class FactoryServiceImplTest {
         assertThatThrownBy(() -> factoryService.createFactory(user, factoryRequest))
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining("이미 존재하는 공장코드입니다.");
-    }
-
-    @Test
-    @DisplayName("MANAGER 역할은 공장사용여부를 변경할 수 없다.")
-    void updateFactoryStatus_fail_UserRole() {
-        Users user = buildTestUser("홍길동", Users.UserRole.MANAGER);
-        Factories factory = buildTestFactory(user,true);
-
-        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
-
-        UpdateFactoryRequestDto request = UpdateFactoryRequestDto.builder()
-                                                                 .isActive(false)
-                                                                 .build();
-
-        AppException exception = assertThrows(AppException.class,
-                                              () -> factoryService.updateFactoryStatus(user, request, "F001"));
-
-        assertThat(exception.getErrorCode()).isEqualTo(CommonErrorCode.ACCESS_DENIED);
     }
 
 }

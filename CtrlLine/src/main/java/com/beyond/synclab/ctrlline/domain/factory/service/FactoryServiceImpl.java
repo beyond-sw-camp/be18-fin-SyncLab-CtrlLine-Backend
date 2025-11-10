@@ -71,9 +71,6 @@ public class FactoryServiceImpl implements FactoryService {
         Factories factory = factoryRepository.findByFactoryCode(factoryCode)
                                              .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
-        if(user.getRole() != Users.UserRole.ADMIN) {
-            throw new AppException(CommonErrorCode.ACCESS_DENIED);
-        }
 
         factory.updateStatus(request.isActive());
 

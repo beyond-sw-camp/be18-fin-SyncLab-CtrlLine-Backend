@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 @Import(QuerydslTestConfig.class)
-@DisplayName("Factory QueryDSL Repository 통합 테스트")
 class FactoryQueryRepositoryImplTest {
 
     @Autowired

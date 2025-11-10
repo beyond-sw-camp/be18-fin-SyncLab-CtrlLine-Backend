@@ -72,6 +72,7 @@ public class FactoryController {
     }
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{factoryCode}")
     public ResponseEntity<BaseResponse<FactoryResponseDto>> updateFactoryStatus(
             @AuthenticationPrincipal CustomUserDetails user, @RequestBody
