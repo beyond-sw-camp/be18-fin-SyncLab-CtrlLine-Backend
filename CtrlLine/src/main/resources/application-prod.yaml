@@ -52,3 +52,12 @@ spring:
     hibernate:
       ddl-auto: validate # Flyway로 테이블 관리하므로 JPA는 validate로
     show-sql: true
+
+mes:
+  kafka:
+    bootstrap-servers: ${MES_KAFKA_BOOTSTRAP_SERVERS}
+    topic: ${MES_KAFKA_TOPIC:mes-machine-telemetry}
+    client-id: ${MES_KAFKA_CLIENT_ID:ctrlline-prod-client}
+    group-id: ${MES_KAFKA_GROUP_ID:ctrlline-prod-group}
+    auto-offset-reset: ${MES_KAFKA_AUTO_OFFSET_RESET:earliest}
+    poll-interval: ${MES_KAFKA_POLL_INTERVAL:5s}
