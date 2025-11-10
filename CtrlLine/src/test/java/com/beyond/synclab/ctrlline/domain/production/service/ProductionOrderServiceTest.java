@@ -6,15 +6,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
-import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans.PlanStatus;
-import com.beyond.synclab.ctrlline.domain.production.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -22,6 +23,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -104,6 +107,8 @@ class ProductionOrderServiceTest {
     @DisplayName("시작 시간이 경과한 생산계획은 Milo에 생산지시를 전달하고 RUNNING으로 변경한다")
     void dispatchDuePlans_sendOrderAndMarkRunning() {
         // given
+        Factories mockFactory = Factories.builder().id(10L).factoryName("제1공장").build();
+        Users mockUser = Users.builder().id(20L).name("라인 담당자").build();
         LocalDateTime now = LocalDateTime.now(fixedClock);
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
@@ -115,7 +120,8 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
+
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(mockFactory, mockUser, "PS-001", "제1생산라인")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
@@ -150,6 +156,8 @@ class ProductionOrderServiceTest {
     @DisplayName("Milo 전송 실패 시 생산계획을 RETURNED로 표시한다")
     void dispatchDuePlans_onFailureMarksPlanReturned() {
         // given
+        Factories mockFactory = Factories.builder().id(10L).factoryName("제1공장").build();
+        Users mockUser = Users.builder().id(20L).name("라인 담당자").build();
         LocalDateTime now = LocalDateTime.now(fixedClock);
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
@@ -161,7 +169,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(mockFactory, mockUser, "PS-001", "제1생산라인")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
