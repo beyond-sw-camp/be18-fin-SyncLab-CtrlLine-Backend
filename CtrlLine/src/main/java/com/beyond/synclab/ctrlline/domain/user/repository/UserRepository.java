@@ -13,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 public interface UserRepository extends JpaRepository<Users, Long> {
     Optional<Users> findByEmail(String email);
 
+    Optional<Users> findByEmpNo(String empNo);
+
     @Query("SELECT u.empNo FROM Users u WHERE u.empNo LIKE :prefix% ORDER BY u.empNo DESC")
     List<String> findEmpNosByPrefix(@Param("prefix") String prefix);
 
