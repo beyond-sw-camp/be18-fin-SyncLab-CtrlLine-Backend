@@ -8,6 +8,7 @@ import com.beyond.synclab.ctrlline.domain.factory.dto.FactoryResponseDto;
 import com.beyond.synclab.ctrlline.domain.factory.dto.FactorySearchDto;
 import com.beyond.synclab.ctrlline.domain.factory.dto.UpdateFactoryRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.factory.errorcode.FactoryErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
@@ -26,7 +27,7 @@ public class FactoryServiceImpl implements FactoryService {
     public FactoryResponseDto createFactory(Users user, CreateFactoryRequestDto requestDto) {
 
         if(factoryRepository.findByFactoryCode(requestDto.getFactoryCode()).isPresent()) {
-            throw new AppException(CommonErrorCode.FACTORY_CONFLICT);
+            throw new AppException(FactoryErrorCode.FACTORY_CONFLICT);
         }
 
         Users manager = userRepository.findByEmpNo(requestDto.getEmpNo())
@@ -44,7 +45,7 @@ public class FactoryServiceImpl implements FactoryService {
     public FactoryResponseDto getFactory(String factoryCode) {
 
         Factories factory = factoryRepository.findByFactoryCode(factoryCode)
-                                             .orElseThrow(() -> new AppException(CommonErrorCode.FACTORY_NOT_FOUND));
+                                             .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
         return FactoryResponseDto.fromEntity(factory, factory.getUsers());
     }
@@ -68,7 +69,7 @@ public class FactoryServiceImpl implements FactoryService {
                                                   String factoryCode) {
 
         Factories factory = factoryRepository.findByFactoryCode(factoryCode)
-                                             .orElseThrow(() -> new AppException(CommonErrorCode.FACTORY_NOT_FOUND));
+                                             .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
         if(user.getRole() != Users.UserRole.ADMIN) {
             throw new AppException(CommonErrorCode.ACCESS_DENIED);
