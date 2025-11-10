@@ -26,7 +26,7 @@ public class MesTelemetryListener {
     private final ObjectMapper objectMapper;
     private final MesPowerConsumptionService mesPowerConsumptionService;
 
-    private final NavigableMap<Long, Double> energyUsageByTimestamp = new TreeMap<>();
+    private final NavigableMap<Long, Double> energyUsageByBucket = new TreeMap<>();
     private final ReentrantLock aggregationLock = new ReentrantLock();
 
     @KafkaListener(
@@ -80,23 +80,24 @@ public class MesTelemetryListener {
     }
 
     private void accumulateEnergyUsage(long timestamp, double energyUsage) {
+        long bucketTimestamp = bucketTimestamp(timestamp);
         aggregationLock.lock();
         try {
-            energyUsageByTimestamp.merge(timestamp, energyUsage, Double::sum);
-            flushCompletedAggregations(timestamp);
+            energyUsageByBucket.merge(bucketTimestamp, energyUsage, Double::sum);
+            flushCompletedAggregations(bucketTimestamp);
         } finally {
             aggregationLock.unlock();
         }
     }
 
-    private void flushCompletedAggregations(long newestTimestamp) {
-        while (!energyUsageByTimestamp.isEmpty()) {
-            Map.Entry<Long, Double> oldestEntry = energyUsageByTimestamp.firstEntry();
-            if (oldestEntry.getKey() >= newestTimestamp) {
+    private void flushCompletedAggregations(long newestBucketTimestamp) {
+        while (!energyUsageByBucket.isEmpty()) {
+            Map.Entry<Long, Double> oldestEntry = energyUsageByBucket.firstEntry();
+            if (oldestEntry.getKey() >= newestBucketTimestamp) {
                 break;
             }
             persistPowerConsumption(oldestEntry.getValue());
-            energyUsageByTimestamp.pollFirstEntry();
+            energyUsageByBucket.pollFirstEntry();
         }
     }
 
@@ -110,11 +111,15 @@ public class MesTelemetryListener {
     public void flushRemainingAggregations() {
         aggregationLock.lock();
         try {
-            energyUsageByTimestamp.values()
+            energyUsageByBucket.values()
                     .forEach(this::persistPowerConsumption);
-            energyUsageByTimestamp.clear();
+            energyUsageByBucket.clear();
         } finally {
             aggregationLock.unlock();
         }
+    }
+
+    private long bucketTimestamp(long timestamp) {
+        return timestamp / 1000L;
     }
 }
