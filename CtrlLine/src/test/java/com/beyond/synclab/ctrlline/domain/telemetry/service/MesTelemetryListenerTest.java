@@ -1,7 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,6 +50,7 @@ class MesTelemetryListenerTest {
                 "{\"status\":\"RUNNING\"}"
         );
 
-        listener.onTelemetry(telemetryRecord);
+        assertThatCode(() -> listener.onTelemetry(telemetryRecord))
+                .doesNotThrowAnyException();
     }
 }
