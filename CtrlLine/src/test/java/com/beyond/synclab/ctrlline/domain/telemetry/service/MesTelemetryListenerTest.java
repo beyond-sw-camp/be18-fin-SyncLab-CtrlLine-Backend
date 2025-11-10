@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class MesTelemetryListenerTest {
 
@@ -25,19 +26,21 @@ class MesTelemetryListenerTest {
 
     @Test
     void parsePayload_returnsJsonNode_whenValidJson() {
-        JsonNode node = listener.parsePayload("{\"machineId\":\"M-01\"}");
+        JsonNode node = ReflectionTestUtils.invokeMethod(listener, "parsePayload", "{\"machineId\":\"M-01\"}");
 
         assertThat(node.get("machineId").asText()).isEqualTo("M-01");
     }
 
     @Test
     void parsePayload_returnsNull_whenBlank() {
-        assertThat(listener.parsePayload("  ")).isNull();
+        JsonNode result = ReflectionTestUtils.invokeMethod(listener, "parsePayload", "  ");
+        assertThat(result).isNull();
     }
 
     @Test
     void parsePayload_returnsNull_whenInvalidJson() {
-        assertThat(listener.parsePayload("invalid-json")).isNull();
+        JsonNode result = ReflectionTestUtils.invokeMethod(listener, "parsePayload", "invalid-json");
+        assertThat(result).isNull();
     }
 
     @Test

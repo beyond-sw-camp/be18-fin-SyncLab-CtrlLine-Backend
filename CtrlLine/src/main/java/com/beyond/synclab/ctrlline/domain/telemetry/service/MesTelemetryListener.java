@@ -32,7 +32,7 @@ public class MesTelemetryListener {
                 payload != null ? payload : telemetryRecord.value());
     }
 
-    JsonNode parsePayload(String value) {
+    private JsonNode parsePayload(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
