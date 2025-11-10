@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.equipment.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentListResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
@@ -8,7 +9,11 @@ import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentReposito
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +22,7 @@ public class EquipmentService {
     private final EquipmentRepository equipmentRepository;
     private final UserRepository userRepository;
 
+    // 설비 등록
     public EquipmentRegisterResponseDto register(EquipmentRegisterRequestDto requestDto) {
 
         // (1) 설비코드 중복검사
@@ -65,5 +71,22 @@ public class EquipmentService {
                 .empNo(user.getEmpNo())
                 .isActive(saved.getIsActive())
                 .build();
+    }
+
+    // 설비 목록 조회
+    public Page<EquipmentListResponseDto> getEquipments(PageRequest pageRequest) {
+        Page<Equipments> equipmentPage = equipmentRepository.findAll(pageRequest);
+
+        return equipmentPage.map(equipment -> {
+            Users user = userRepository.findById(equipment.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+            return EquipmentListResponseDto.builder()
+                    .equipmentCode(equipment.getEquipmentCode())
+                    .equipmentType(equipment.getEquipmentType())
+                    .userName(user.getName())
+                    .userDepartment(user.getDepartment())
+                    .build();
+        });
     }
 }

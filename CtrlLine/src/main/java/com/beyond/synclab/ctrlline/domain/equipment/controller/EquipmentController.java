@@ -1,17 +1,28 @@
 package com.beyond.synclab.ctrlline.domain.equipment.controller;
 
 import com.beyond.synclab.ctrlline.common.exception.ErrorResponse;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentListResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import jakarta.validation.Valid;
-import lombok.Getter;
+import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+
 
 @RestController
 @RequestMapping("/api/v1/equipments")
@@ -19,13 +30,9 @@ import org.springframework.web.bind.annotation.*;
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
+    private final JwtUtil jwtUtil;
 
-    /**
-     * 설비 등록 API
-     *
-     * @param requestDto 요청 데이터 (equipmentCode, equipmentName 등)
-     * @return 등록된 설비 정보 (201 Created)
-     */
+     // 설비 등록 API
 
     // @Valid 검증도 없고, 예외 처리도 안 함. 그래서 무조건 201만 나옴.
     @PostMapping
@@ -64,6 +71,20 @@ public class EquipmentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(500, "UNEXPECTED_ERROR", "예상치 못한 에러"));
         }
+    }
+
+    // 설비 목록 조회 API
+    @GetMapping
+    public ResponseEntity<BaseResponse<PageResponse<EquipmentListResponseDto>>> getEquipments(
+            @PageableDefault(sort = "equipmentCode", direction = Direction.ASC) Pageable pageable) {
+
+        // Pageable 객체는 클라이언트에서 받은 페이지 번호와 페이지 크기를 자동으로 처리
+        // 페이지 처리된 설비 목록을 반환
+        Page<EquipmentListResponseDto> equipmentPage = equipmentService.getEquipments(pageable);
+
+        // PageResponse로 감싸고 BaseResponse로 감싸서 반환
+        PageResponse<EquipmentListResponseDto> pageResponse = PageResponse.from(equipmentPage);
+        return ResponseEntity.ok(BaseResponse.ok(pageResponse));
     }
 
     // 오류 응답 객체
