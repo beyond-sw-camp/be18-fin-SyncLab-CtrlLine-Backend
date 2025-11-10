@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -68,7 +67,7 @@ class CustomUserDetailsServiceTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(users));
 
         assertThatThrownBy(() -> customUserDetailsService.loadUserByUsername(email))
-            .isInstanceOf(DisabledException.class);
+            .isInstanceOf(UsernameNotFoundException.class);
     }
 
 }
