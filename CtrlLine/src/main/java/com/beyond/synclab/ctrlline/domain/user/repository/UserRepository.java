@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.user.repository;
 
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,4 +17,6 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     List<String> findEmpNosByPrefix(@Param("prefix") String prefix);
 
     boolean existsByEmail(String email);
+
+    boolean existsByEmpNo(@NotBlank(message = "사번은 필수입니다.") String empNo);
 }
