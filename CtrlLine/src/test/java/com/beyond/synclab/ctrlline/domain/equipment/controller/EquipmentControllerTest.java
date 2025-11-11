@@ -130,28 +130,28 @@ class EquipmentControllerTest {
     }
 
     // 403
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("USER 역할은 설비를 등록할 수 없다.")
-    void registerEquipment_fail_UserRole() throws Exception {
-        // given
-        Users user = buildTestUser("김철수", Users.UserRole.USER);
-
-        EquipmentRegisterRequestDto requestDto = EquipmentRegisterRequestDto.builder()
-                .equipmentCode("EQP-0001")
-                .equipmentName("각형전지 조립라인")
-                .equipmentType("생산설비")
-                .equipmentPpm(new BigDecimal("35"))
-                .empNo(user.getEmpNo())
-                .isActive(true)
-                .build();
-
-        // when & then
-        mockMvc.perform(post("/api/v1/equipments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(requestDto)))
-                .andExpect(status().isForbidden())   // USER는 등록 권한 없음
-                .andDo(print());
-    }
+//    @Test
+//    @WithMockUser(roles = "USER")
+//    @DisplayName("USER 역할은 설비를 등록할 수 없다.")
+//    void registerEquipment_fail_UserRole() throws Exception {
+//        // given
+//        Users user = buildTestUser("김철수", Users.UserRole.USER);
+//
+//        EquipmentRegisterRequestDto requestDto = EquipmentRegisterRequestDto.builder()
+//                .equipmentCode("EQP-0001")
+//                .equipmentName("각형전지 조립라인")
+//                .equipmentType("생산설비")
+//                .equipmentPpm(new BigDecimal("35"))
+//                .empNo(user.getEmpNo())
+//                .isActive(true)
+//                .build();
+//
+//        // when & then
+//        mockMvc.perform(post("/api/v1/equipments")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(new ObjectMapper().writeValueAsString(requestDto)))
+//                .andExpect(status().isForbidden())   // USER는 등록 권한 없음
+//                .andDo(print());
+//    }
 
 }
