@@ -1,10 +1,14 @@
 package com.beyond.synclab.ctrlline.domain.equipment.entity;
 
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,6 +16,8 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,8 +43,9 @@ public class Equipments {
     @Column(name = "equipment_status_id", nullable = false)
     private Long equipmentStatusId; // 설비상태 FK
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId; // 사용자 FK
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private Users users; // 사용자 FK
 
     // ───────── 기본 정보 ─────────
     @Column(name = "equipment_code", nullable = false, length = 32)
@@ -54,7 +61,7 @@ public class Equipments {
     @Column(name = "operating_time", nullable = false)
     private LocalDateTime operatingTime; // 가동시간
 
-    @Column(name = "maintenance_history", nullable = false)
+    @Column(name = "maintenance_history", nullable = true)
     private LocalDateTime maintenanceHistory; // 유지보수이력 (최근 날짜)
 
     // ───────── 생산 관련 수치 ─────────
@@ -68,11 +75,13 @@ public class Equipments {
     private BigDecimal defectiveCount; // 불량수량
 
     // ───────── 관리 정보 ─────────
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt; // 생성시간
+    private LocalDateTime createdAt; // 생성시각
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt; // 수정시간
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = true)
+    private LocalDateTime updatedAt; // 수정시각
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive; // 사용여부
