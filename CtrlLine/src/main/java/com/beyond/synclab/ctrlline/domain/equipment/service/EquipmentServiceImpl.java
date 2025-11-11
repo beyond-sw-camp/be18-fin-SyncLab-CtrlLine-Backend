@@ -37,7 +37,7 @@ public class EquipmentServiceImpl implements EquipmentService {
             throw new AppException(EquipmentErrorCode.BAD_REQUEST);
         }
 
-        // (3) 사용자 중복 검사 (404)
+        // (3) 사용자 존재 여부 검사 (404)
         Users user = userRepository.findByEmpNo(requestDto.getEmpNo())
                 .orElseThrow(() -> new AppException(CommonErrorCode.USER_NOT_FOUND));
 

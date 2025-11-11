@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -37,21 +38,33 @@ public class EquipmentRegisterRequestDto {
 //    @NotNull(message = "담당자는 필수입니다.")
 //    private String userName;
 
+    // 사번으로 담당자, 담당부서 찾음.
     @NotBlank(message = "사번은 필수입니다.")
     private String empNo;
 
     @NotNull(message = "설비 사용 여부는 필수입니다.")
     private Boolean isActive;
 
+    private Long lineId;
 
-    public Equipments toEntity (Users users) {
+    private Long equipmentStatusId;
+
+    private LocalDateTime operatingTime;
+
+    // Post할 때, 아무런 값도 안 넣으면 Null이라고 생각해서, 0으로 기본값 넣어줌.
+    public Equipments toEntity(Users users) {
         return Equipments.builder()
+                .lineId(this.lineId)                       // ✅ FK 1
+                .equipmentStatusId(this.equipmentStatusId) // ✅ FK 2
                 .equipmentCode(this.equipmentCode)
                 .equipmentName(this.equipmentName)
                 .equipmentType(this.equipmentType)
+                .operatingTime(this.operatingTime)
+                .equipmentPpm(this.equipmentPpm != null ? this.equipmentPpm : BigDecimal.ZERO)
+                .totalCount(BigDecimal.ZERO)               // ✅ 기본값
+                .defectiveCount(BigDecimal.ZERO)           // ✅ 기본값
+                .isActive(this.isActive != null ? this.isActive : true)
                 .users(users)
-                .equipmentPpm(this.equipmentPpm)
-                .isActive(this.isActive)
                 .build();
     }
 }
