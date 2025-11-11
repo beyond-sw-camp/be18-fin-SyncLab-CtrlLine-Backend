@@ -26,7 +26,7 @@ public class MesDatas {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "mes_data_id", updatable = false)
+    @Column(name = "mes_data_id", updatable = false, nullable = false)
     private Long id;
 
     @Column(name = "power_consumption", nullable = false, precision = 10, scale = 2)
