@@ -1,9 +1,19 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
-import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ENERGY_USAGE_TAG;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -16,7 +26,10 @@ import org.springframework.stereotype.Service;
 public class MesTelemetryListener {
 
     private final ObjectMapper objectMapper;
-    private final MesKafkaProperties mesKafkaProperties;
+    private final MesPowerConsumptionService mesPowerConsumptionService;
+
+    private final NavigableMap<Long, Double> energyUsageByBucket = new TreeMap<>();
+    private final ReentrantLock aggregationLock = new ReentrantLock();
 
     @KafkaListener(
             topics = "${mes.kafka.topic}",
@@ -30,6 +43,23 @@ public class MesTelemetryListener {
                 telemetryRecord.offset(),
                 telemetryRecord.key(),
                 payload != null ? payload : telemetryRecord.value());
+
+        if (payload == null) {
+            return;
+        }
+        JsonNode recordsNode = payload.path("records");
+        if (!recordsNode.isArray()) {
+            return;
+        }
+
+        for (JsonNode recordNode : recordsNode) {
+            JsonNode valueNode = recordNode.path(VALUE_FIELD);
+            if (isEnergyUsageRecord(valueNode)) {
+                double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
+                long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
+                accumulateEnergyUsage(timestamp, energyUsage);
+            }
+        }
     }
 
     private JsonNode parsePayload(String value) {
@@ -42,5 +72,64 @@ public class MesTelemetryListener {
             log.warn("Failed to parse telemetry payload as JSON. value={}", value, ex);
             return null;
         }
+    }
+
+    private void accumulateEnergyUsage(long timestamp, double energyUsage) {
+        long bucketTimestamp = bucketTimestamp(timestamp);
+        aggregationLock.lock();
+        try {
+            energyUsageByBucket.merge(bucketTimestamp, energyUsage, Double::sum);
+            flushCompletedAggregations(bucketTimestamp);
+        } finally {
+            aggregationLock.unlock();
+        }
+    }
+
+    private void flushCompletedAggregations(long newestBucketTimestamp) {
+        while (!energyUsageByBucket.isEmpty()) {
+            Map.Entry<Long, Double> oldestEntry = energyUsageByBucket.firstEntry();
+            if (oldestEntry.getKey() >= newestBucketTimestamp) {
+                break;
+            }
+            persistPowerConsumption(oldestEntry.getValue());
+            energyUsageByBucket.pollFirstEntry();
+        }
+    }
+
+    private void persistPowerConsumption(double totalEnergyUsage) {
+        BigDecimal powerConsumption = BigDecimal.valueOf(totalEnergyUsage)
+                .setScale(2, RoundingMode.HALF_UP);
+        mesPowerConsumptionService.savePowerConsumption(powerConsumption);
+    }
+
+    @PreDestroy
+    public void flushRemainingAggregations() {
+        aggregationLock.lock();
+        try {
+            energyUsageByBucket.values()
+                    .forEach(this::persistPowerConsumption);
+            energyUsageByBucket.clear();
+        } finally {
+            aggregationLock.unlock();
+        }
+    }
+
+    private long bucketTimestamp(long timestamp) {
+        return timestamp / 1000L;
+    }
+
+    private boolean isEnergyUsageRecord(JsonNode valueNode) {
+        if (!valueNode.isObject()) {
+            return false;
+        }
+        if (!ENERGY_USAGE_TAG.equals(valueNode.path("tag").asText())) {
+            return false;
+        }
+        if (!valueNode.hasNonNull(VALUE_FIELD) || !valueNode.hasNonNull(TIMESTAMP_FIELD)) {
+            return false;
+        }
+        double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
+        long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
+        return !Double.isNaN(energyUsage) && timestamp > 0L;
     }
 }
