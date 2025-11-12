@@ -14,17 +14,19 @@
 
 ## 📚 목차
 
-1. [프로젝트 개요](#1-프로젝트-개요)  
-2. [요구사항 명세서](#2-요구사항-명세서)  
-3. [기술 스택](#3-기술-스택)  
-4. [시스템 아키텍처](#4-시스템-아키텍처)  
-5. [데이터베이스 설계 (ERD)](#5-데이터베이스-설계-erd)  
-6. [테이블 명세서](#6-테이블-명세서)  
-7. [API 명세서](#7-api-명세서)  
-8. [테스트 결과서](#8-테스트-결과서)
-9. [CI/CD 절차](#9-CI/CD-절차)
-10. [향후 개선 계획](#10-향후-개선-계획)  
-11. [회고록](#11-회고록)
+1. [프로젝트 개요](#1-프로젝트-개요)
+2. [프로젝트 기획서](#2-프로젝트-기획서)
+3. [WBS](#3-WBS)
+4. [요구사항 명세서](#4-요구사항-명세서)  
+5. [기술 스택](#5-기술-스택)  
+6. [시스템 아키텍처](#6-시스템-아키텍처)  
+7. [데이터베이스 설계 (ERD)](#7-데이터베이스-설계-erd)  
+8. [화면 기능 설계서](#8-화면-기능-설계서)
+9. [테이블 명세서](#9-테이블-명세서)  
+10. [API 명세서](#10-api-명세서)  
+11. [테스트 결과서](#11-테스트-결과서)
+12. [향후 개선 계획](#12-향후-개선-계획)  
+13. [회고록](#13-회고록)
 
 <br/>
 
@@ -37,15 +39,26 @@
 
 <br/>
 
+
+## 2. 프로젝트 기획서
+
+[프로젝트 기획서](https://docs.google.com/document/d/1VOfl-v10xuCLpZuywdeU1bzYZpoQW2oC3x20mmyNN_4/edit?usp=sharing)
+
 <br/>
 
-## 2. 요구사항 명세서
+
+## 3. WBS
+[WBS](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?gid=1347645772#gid=1347645772)
+
+<br/>
+
+## 4. 요구사항 명세서
 
 ### 기능 요구사항
 
-#### 2.1 요약
+#### 4.1 요약
 
-#### 2.2 전문
+#### 4.2 전문
 <details>
 <summary>요구사항 명세서 링크</summary>
 <div markdown="1">
@@ -58,7 +71,7 @@
 <br/>
 
 
-## 3. 기술 스택
+## 5. 기술 스택
 
 
 #**Frontend**
@@ -105,14 +118,14 @@
 
 <br/>
 
-## 4. 시스템 아키텍처
+## 6. 시스템 아키텍처
 
 ![시스템 아키텍쳐](docs/images/Ctrlline_SystemArchitecture.png)
 
 <br/>
 
 
-## 5. 데이터베이스 설계 (ERD)
+## 7. 데이터베이스 설계 (ERD)
 
 ### ERD
 [ERD CLOUD](https://www.erdcloud.com/d/GZ45RSaNe7xaFb63i)
@@ -124,15 +137,26 @@
 </details>
 <br>
 
+<br/>
 
-## 6. 테이블 명세서
+
+## 8. 화면 기능 설계서
+
+
+[화면 기능 설계서](https://www.figma.com/design/jo6faqqTZK320fXP527dob/CtrlLine?node-id=0-1&t=8yKKimKnYCLoXNiW-1)
+
+
+<br>
+
+
+## 9. 테이블 명세서
 
 [테이블 명세서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?gid=1523346293#gid=1523346293)
 
 
 <br>
 
-## 7. API 명세서
+## 10. API 명세서
 
 [API 명세서](https://www.notion.so/API-296819b5e8c6814e9739c33e1f54de15?source=copy_link)
 
@@ -140,7 +164,7 @@
 
 
 
-## 8. 테스트 결과서
+## 11. 테스트 결과서
 
 <!-- [백엔드 테스트 결과서](https://www.notion.so/2775605940ec801286d6f888af3e93d2?v=2775605940ec80ba931c000c1fcfe3ed) -->
 <!-- 
@@ -149,15 +173,12 @@
 
 <br>
 
-## 9. CI/CD 절차
-<br>
 
-
-## 10. 향후 개선 계획
+## 12. 향후 개선 계획
 
 
 
 
 <br/>
 
-## 11. 회고록
+## 13. 회고록

@@ -25,7 +25,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
-import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import com.beyond.synclab.ctrlline.domain.user.service.UserAuthServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
@@ -66,8 +66,8 @@ class UserControllerTest {
         }
 
         @Bean
-        public UserAuthService userAuthService() {
-            return mock(UserAuthService.class);
+        public UserAuthServiceImpl userAuthService() {
+            return mock(UserAuthServiceImpl.class);
         }
     }
 
@@ -75,12 +75,12 @@ class UserControllerTest {
     private UserService userService;
 
     @Autowired
-    private UserAuthService userAuthService;
+    private UserAuthServiceImpl userAuthServiceImpl;
 
     @AfterEach
     void tearDown() {
         reset(userService);
-        reset(userAuthService);
+        reset(userAuthServiceImpl);
     }
 
     // ======== Fixture Builder ========
@@ -115,7 +115,7 @@ class UserControllerTest {
                 .userRole(UserRole.ADMIN)
                 .build();
 
-        when(userAuthService.enroll(any(UserSignupRequestDto.class)))
+        when(userAuthServiceImpl.enroll(any(UserSignupRequestDto.class)))
                 .thenReturn(responseDto);
 
         // when
@@ -146,7 +146,7 @@ class UserControllerTest {
             .userRole(UserRole.USER)
             .build();
 
-        when(userAuthService.enroll(any(UserSignupRequestDto.class)))
+        when(userAuthServiceImpl.enroll(any(UserSignupRequestDto.class)))
             .thenReturn(responseDto);
 
         // when
