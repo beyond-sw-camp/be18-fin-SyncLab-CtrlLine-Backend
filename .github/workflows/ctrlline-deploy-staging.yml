@@ -73,9 +73,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
           git add deploy.yaml
-          if ((git diff --cached --quiet) -eq $false) {
-            git commit -m "[Chore] update image tag to $env:TAG"
-            git push origin develop
-          } else {
-            Write-Host "No changes to commit."
-          }
+          git commit -m "[Chore] update image tag to $env:TAG"
+          git push origin develop
