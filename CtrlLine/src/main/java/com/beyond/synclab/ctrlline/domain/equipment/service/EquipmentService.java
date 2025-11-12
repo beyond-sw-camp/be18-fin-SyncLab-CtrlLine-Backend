@@ -1,7 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.equipment.service;
 
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
-// import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentListResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
