@@ -1,0 +1,42 @@
+name: Develop Push Staging CI (Build + Test + Docker)
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'CtrlLine/**'
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-docker:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build & Test
+        working-directory: CtrlLine
+        run: .\gradlew.bat clean build test
+
+      - name: Docker Build & Push
+        shell: cmd
+        working-directory: CtrlLine
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_STAGING_REPO }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          set TAG=%GITHUB_SHA:~0,6%
+          echo Building image with tag %TAG%
+          docker build -t %DOCKER_REPO%:%TAG% .
+          echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+          docker push %DOCKER_REPO%:%TAG%
