@@ -38,7 +38,7 @@ public class Equipments {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "equipment_id", updatable = false)
-    private Long equipmentId; // 설비 PK
+    private Long id; // 설비 PK
 
     // ───────── FK 영역 ─────────
     @Column(name = "line_id", nullable = false)
