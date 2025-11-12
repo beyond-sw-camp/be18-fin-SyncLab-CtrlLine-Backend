@@ -63,16 +63,16 @@ jobs:
         shell: pwsh
         run: |
           $TAG = "${{ env.TAG }}"
-          $manifestFile = "ctrlline\deploy.yaml"
+          $manifestFile = "manifest-repo\ctrlline\deploy.yaml"
           (Get-Content $manifestFile) -replace '(image:\s*.+):.+', "`$1:$TAG" | Set-Content $manifestFile
 
       - name: Commit & Push manifest update
         shell: pwsh
         run: |
-          cd ctrlline
+          cd manifest-repo\ctrlline
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
-          git add .
+          git add deploy.yaml
           if ((git diff --cached --quiet) -eq $false) {
             git commit -m "[Chore] update image tag to $env:TAG"
             git push origin develop
