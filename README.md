@@ -142,14 +142,10 @@
 
 ## 8. 화면 기능 설계서
 
-### ERD
+
 [화면 기능 설계서](https://www.figma.com/design/jo6faqqTZK320fXP527dob/CtrlLine?node-id=0-1&t=8yKKimKnYCLoXNiW-1)
 
-<details>
-  
-<!-- ![erd](docs/images/ERD2.png) -->
 
-</details>
 <br>
 
 
