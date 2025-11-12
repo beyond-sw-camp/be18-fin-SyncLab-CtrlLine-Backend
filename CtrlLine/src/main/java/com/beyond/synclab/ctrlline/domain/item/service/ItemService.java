@@ -1,32 +1,33 @@
 package com.beyond.synclab.ctrlline.domain.item.service;
 
-import com.beyond.synclab.ctrlline.domain.item.entity.Item;
-import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
-
-import java.util.List;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.CreateItemRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemActRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemListResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ItemService {
 
-    // 단건 조회 (PK 기반)
-    Item getItemById(Long itemId);
+    // 품목 등록
+    GetItemDetailResponseDto createItem(final CreateItemRequestDto request);
 
-    // 목록 조회 (Filter 기반)
-    List<Item> searchByItemCode(String code);
+    // 품목 목록 조회 (검색 / 페이징)
+    Page<GetItemListResponseDto> getItemList(
+            final String itemCode,
+            final String itemName,
+            final String itemSpecification,
+            final Boolean isActive,
+            final Pageable pageable
+    );
 
-    List<Item> searchByItemName(String name);
+    // 품목 상세 조회
+    GetItemDetailResponseDto getItemDetail(final Long itemId);
 
-    List<Item> searchByItemSpecification(String spec);
+    // 품목 수정 (단건)
+    GetItemDetailResponseDto updateItem(final Long itemId, final UpdateItemRequestDto request);
 
-    List<Item> searchByStatus(ItemStatus status);
-
-    List<Item> searchByIsActive(boolean isActive);
-
-    // 등록 / 수정 / 상태변경
-    Item createItem(Item item);
-
-    Item updateItem(Long itemId, Item updated);
-
-    void deactivateItem(Long itemId);
-
-    void activateItem(Long itemId);
+    // 품목 활성/비활성 처리 (다건)
+    void updateItemAct(final UpdateItemActRequestDto request);
 }

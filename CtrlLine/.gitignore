@@ -39,3 +39,21 @@ out/
 
 application*
 !application-prod.yaml
+
+# main generated sources
+/src/main/generated/
+/src/main/generated/**
+
+# test generated sources
+/src/test/generated/
+/src/test/generated/**
+
+# IntelliJ build cache (for QueryDSL)
+.idea/**/out/
+.idea/**/build/
+
+# gradle cache
+.gradle/
+
+# Security configuration file (local only)
+**/config/SecurityConfig.java

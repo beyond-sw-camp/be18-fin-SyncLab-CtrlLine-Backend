@@ -1,122 +1,112 @@
 package com.beyond.synclab.ctrlline.domain.item.service;
 
-import com.beyond.synclab.ctrlline.domain.item.entity.Item;
-import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.CreateItemRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.SearchItemRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemActRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemListResponseDto;
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.exception.ItemCodeConflictException;
 import com.beyond.synclab.ctrlline.domain.item.exception.ItemNotFoundException;
 import com.beyond.synclab.ctrlline.domain.item.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
 
-    /* ================================
-       🔹 단건 조회 (PK 기반)
-    ================================= */
-    @Override
-    public Item getItemById(Long itemId) {
-        return itemRepository.findById(itemId)
-                .orElseThrow(() -> new ItemNotFoundException("ID: " + itemId));
-    }
-
-    /* ================================
-       🔹 목록 조회 (Filter 기반)
-    ================================= */
-    @Override
-    public List<Item> searchByItemCode(String code) {
-        return itemRepository.findByItemCodeContaining(code);
-    }
-
-    @Override
-    public List<Item> searchByItemName(String name) {
-        return itemRepository.findByItemNameContaining(name);
-    }
-
-    @Override
-    public List<Item> searchByItemSpecification(String spec) {
-        return itemRepository.findByItemSpecificationContaining(spec);
-    }
-
-    @Override
-    public List<Item> searchByStatus(ItemStatus status) {
-        return itemRepository.findByItemStatus(status);
-    }
-
-    @Override
-    public List<Item> searchByIsActive(boolean isActive) {
-        return itemRepository.findByIsActive(isActive);
-    }
-
-    /* ================================
-       🔹 신규 등록 (itemCode 중복 방지)
-    ================================= */
+    // 품목 등록
     @Override
     @Transactional
-    public Item createItem(Item item) {
-        if (itemRepository.existsByItemCode(item.getItemCode())) {
-            log.warn("[ITEM-CONFLICT] Duplicate itemCode detected: {}", item.getItemCode());
-            throw new ItemCodeConflictException(item.getItemCode());
+    public GetItemDetailResponseDto createItem(final CreateItemRequestDto request) {
+        if (itemRepository.existsByItemCode(request.getItemCode())) {
+            log.warn("[ITEM-CREATE] Duplicate itemCode detected: {}", request.getItemCode());
+            throw new ItemCodeConflictException(request.getItemCode());
         }
 
-        Item saved = itemRepository.save(item);
-        log.info("[ITEM-CREATE] New item created: {}", saved.getItemCode());
-        return saved;
+        Items saved = itemRepository.save(request.toEntity());
+        log.info("[ITEM-CREATE] itemCode={} 등록 완료", saved.getItemCode());
+        return GetItemDetailResponseDto.fromEntity(saved);
     }
 
-    /* ================================
-       🔹 수정 (PK 기반, itemCode 포함 업데이트)
-    ================================= */
+    // 품목 목록 조회 (검색 / 페이징)
+    @Override
+    @Transactional(readOnly = true)
+    public Page<GetItemListResponseDto> getItemList(
+            final String itemCode,
+            final String itemName,
+            final String itemSpecification,
+            final Boolean isActive,
+            final Pageable pageable
+    ) {
+        SearchItemRequestDto condition = SearchItemRequestDto.builder()
+                .itemCode(itemCode)
+                .itemName(itemName)
+                .itemSpecification(itemSpecification)
+                .isActive(isActive)
+                .build();
+
+        Page<Items> result = itemRepository.searchItems(condition, pageable);
+        log.info("[ITEM-LIST] 조회 완료 - count={}, filters=[code={}, name={}, active={}]",
+                result.getTotalElements(), itemCode, itemName, isActive);
+
+        return result.map(GetItemListResponseDto::fromEntity);
+    }
+
+    // 품목 상세 조회
+    @Override
+    @Transactional(readOnly = true)
+    public GetItemDetailResponseDto getItemDetail(final Long itemId) {
+        Items item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException(String.valueOf(itemId)));
+
+        log.info("[ITEM-DETAIL] itemId={} 조회 완료", itemId);
+        return GetItemDetailResponseDto.fromEntity(item);
+    }
+
+    // 품목 수정 (단건)
     @Override
     @Transactional
-    public Item updateItem(Long itemId, Item updated) {
-        Item existing = getItemById(itemId);
+    public GetItemDetailResponseDto updateItem(final Long itemId, final UpdateItemRequestDto request) {
+        Items item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ItemNotFoundException(String.valueOf(itemId)));
 
-        // itemCode 변경 시 중복 검증
-        if (!existing.getItemCode().equals(updated.getItemCode())
-                && itemRepository.existsByItemCode(updated.getItemCode())) {
-            log.warn("[ITEM-CONFLICT] Duplicate itemCode detected during update: {}", updated.getItemCode());
-            throw new ItemCodeConflictException(updated.getItemCode());
+        if (!item.getItemCode().equals(request.getItemCode())
+                && itemRepository.existsByItemCode(request.getItemCode())) {
+            log.warn("[ITEM-UPDATE] Duplicate itemCode during update: {}", request.getItemCode());
+            throw new ItemCodeConflictException(request.getItemCode());
         }
 
-        // 도메인 메서드 기반 전체 갱신
-        existing.updateItem(
-                updated.getItemCode(),
-                updated.getItemName(),
-                updated.getItemSpecification(),
-                updated.getItemUnit(),
-                updated.getItemStatus()
-        );
+        item.updateItem(request);
 
-        log.info("[ITEM-UPDATE] Item updated (ID: {}, Code: {})", itemId, updated.getItemCode());
-        return existing;
+        log.info("[ITEM-UPDATE] itemId={} 수정 완료", itemId);
+        return GetItemDetailResponseDto.fromEntity(item);
     }
 
-    /* ================================
-       🔹 활성화 / 비활성화 (PK 기반)
-    ================================= */
+    // 품목 활성/비활성 처리 (다건)
     @Override
     @Transactional
-    public void deactivateItem(Long itemId) {
-        Item item = getItemById(itemId);
-        item.deactivate();
-        log.info("[ITEM-DEACTIVATE] Item set inactive: {}", itemId);
-    }
+    public void updateItemAct(final UpdateItemActRequestDto request) {
+        if (request.getItemIds() == null || request.getItemIds().isEmpty()) {
+            throw new ItemNotFoundException("No itemIds provided");
+        }
 
-    @Override
-    @Transactional
-    public void activateItem(Long itemId) {
-        Item item = getItemById(itemId);
-        item.activate();
-        log.info("[ITEM-ACTIVATE] Item set active: {}", itemId);
+        request.getItemIds().forEach(id -> {
+            Items item = itemRepository.findById(id)
+                    .orElseThrow(() -> new ItemNotFoundException(String.valueOf(id)));
+            item.updateItemAct(request.getIsActive());
+        });
+
+        log.info("[ITEM-ACT] {}건 isActive 변경 완료 (isActive={})",
+                request.getItemIds().size(), request.getIsActive());
     }
 }

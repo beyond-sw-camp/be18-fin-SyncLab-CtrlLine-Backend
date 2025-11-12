@@ -1,17 +1,18 @@
 package com.beyond.synclab.ctrlline.domain.item;
 
-import com.beyond.synclab.ctrlline.domain.item.entity.Item;
+import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("Item 도메인 단위 테스트 (CtrlLine 기준)")
+@DisplayName("Items 도메인 단위 테스트 (CtrlLine 기준)")
 class ItemTest {
 
     @Test
-    @DisplayName("Item 생성 성공 - 정상 입력 시 품목 객체 생성")
+    @DisplayName("Item 생성 성공 - 정상 입력 시 품목 객체가 올바르게 생성된다.")
     void createItem_success() {
         // given
         String itemCode = "ITEM-001";
@@ -21,7 +22,7 @@ class ItemTest {
         ItemStatus status = ItemStatus.FINISHED_PRODUCT;
 
         // when
-        Item item = Item.builder()
+        Items item = Items.builder()
                 .itemCode(itemCode)
                 .itemName(itemName)
                 .itemSpecification(itemSpec)
@@ -33,15 +34,18 @@ class ItemTest {
         // then
         assertThat(item).isNotNull();
         assertThat(item.getItemCode()).isEqualTo(itemCode);
+        assertThat(item.getItemName()).isEqualTo(itemName);
+        assertThat(item.getItemSpecification()).isEqualTo(itemSpec);
+        assertThat(item.getItemUnit()).isEqualTo(itemUnit);
         assertThat(item.getItemStatus()).isEqualTo(ItemStatus.FINISHED_PRODUCT);
         assertThat(item.getIsActive()).isTrue();
     }
 
     @Test
-    @DisplayName("Item 수정 성공 - updateItem 호출 시 필드값이 변경된다.")
+    @DisplayName("Item 수정 성공 - updateItem 호출 시 null이 아닌 필드만 변경된다.")
     void updateItem_success() {
         // given
-        Item item = Item.builder()
+        Items item = Items.builder()
                 .itemCode("ITEM-002")
                 .itemName("MCCB 차단기")
                 .itemSpecification("25A / 220V")
@@ -50,14 +54,18 @@ class ItemTest {
                 .isActive(true)
                 .build();
 
+        UpdateItemRequestDto dto = UpdateItemRequestDto.builder()
+                .itemName("MCCB 차단기(수정)")
+                .itemSpecification("50A / 220V")
+                .itemUnit("BOX")
+                .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                .build();
+
         // when
-        item.updateItem("ITEM-002", // ✅ itemCode 추가
-                "MCCB 차단기(수정)",
-                "50A / 220V",
-                "BOX",
-                ItemStatus.FINISHED_PRODUCT);
+        item.updateItem(dto);
 
         // then
+        assertThat(item.getItemCode()).isEqualTo("ITEM-002"); // 변경되지 않음
         assertThat(item.getItemName()).isEqualTo("MCCB 차단기(수정)");
         assertThat(item.getItemSpecification()).isEqualTo("50A / 220V");
         assertThat(item.getItemUnit()).isEqualTo("BOX");
@@ -65,42 +73,49 @@ class ItemTest {
     }
 
     @Test
-    @DisplayName("Item 비활성화 성공 - deactivate 호출 시 isActive=false로 변경된다.")
-    void deactivateItem_success() {
+    @DisplayName("Item 다건 사용여부 변경 성공 - updateItemAct 호출 시 isActive 값이 변경된다.")
+    void updateItemAct_success() {
         // given
-        Item item = Item.builder()
-                .itemCode("ITEM-003")
-                .itemName("누전차단기")
-                .itemSpecification("20A / 220V")
+        Items item = Items.builder()
+                .itemCode("ITEM-005")
+                .itemName("ACB 차단기")
+                .itemSpecification("100A / 380V")
                 .itemUnit("EA")
                 .itemStatus(ItemStatus.FINISHED_PRODUCT)
                 .isActive(true)
                 .build();
 
         // when
-        item.deactivate();
+        item.updateItemAct(false);
 
         // then
         assertThat(item.getIsActive()).isFalse();
     }
 
     @Test
-    @DisplayName("Item 재활성화 성공 - activate 호출 시 isActive=true로 변경된다.")
-    void activateItem_success() {
+    @DisplayName("Item 수정 시 null로 전달된 필드는 기존 값이 유지된다.")
+    void updateItem_nullFields_ignored() {
         // given
-        Item item = Item.builder()
-                .itemCode("ITEM-004")
+        Items item = Items.builder()
+                .itemCode("ITEM-006")
                 .itemName("퓨즈박스")
                 .itemSpecification("10A / 110V")
                 .itemUnit("EA")
                 .itemStatus(ItemStatus.RAW_MATERIAL)
-                .isActive(false)
+                .isActive(true)
+                .build();
+
+        UpdateItemRequestDto dto = UpdateItemRequestDto.builder()
+                .itemName(null)
+                .itemSpecification(null)
                 .build();
 
         // when
-        item.activate();
+        item.updateItem(dto);
 
         // then
-        assertThat(item.getIsActive()).isTrue();
+        assertThat(item.getItemName()).isEqualTo("퓨즈박스"); // 유지
+        assertThat(item.getItemSpecification()).isEqualTo("10A / 110V"); // 유지
+        assertThat(item.getIsActive()).isTrue(); // 유지
     }
 }

@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -27,6 +27,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfig {
     private final UserAuthSuccessHandler userAuthSuccessHandler;
     private final UserAuthFailureHandler userAuthFailureHandler;
@@ -64,6 +65,7 @@ public class SecurityConfig {
         log.debug("Configuring SecurityFilterChain");
 
         http
+                .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -86,11 +88,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(AUTH_WHITE_LIST).permitAll()
-                        .anyRequest().authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers("/api/v1/items/**").permitAll()
-                        .requestMatchers("/api/**").hasAnyRole("ADMIN", "MANAGER", "USER")
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 );
 
         UserLoginFilter userLoginFilter = new UserLoginFilter(authenticationManager, userAuthSuccessHandler, userAuthFailureHandler);

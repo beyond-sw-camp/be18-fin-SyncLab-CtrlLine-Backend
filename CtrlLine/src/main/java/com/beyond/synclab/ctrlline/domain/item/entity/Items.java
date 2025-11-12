@@ -1,5 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.item.entity;
 
+import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,21 +11,29 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "item")
+@Table(
+        name = "item",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_item_code",
+                        columnNames = "item_code"
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @EntityListeners(AuditingEntityListener.class)
 @EqualsAndHashCode(of = "id")
-public class Item {
+public class Items {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "item_id", updatable = false)
     private Long id;
 
-    @Column(name = "item_code", nullable = false, length = 32, unique = true)
+    @Column(name = "item_code", nullable = false, unique = true, length = 32)
     private String itemCode;
 
     @Column(name = "item_name", nullable = false, length = 32)
@@ -40,6 +49,9 @@ public class Item {
     @Column(name = "item_status", nullable = false, length = 32)
     private ItemStatus itemStatus; // 원재료 / 부재료 / 반제품 / 완제품
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -48,23 +60,26 @@ public class Item {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    // ======================
+    // 도메인 메서드
+    // ======================
 
-    // ====== 도메인 메서드 ======
-    public void updateItem(String code, String name, String specification, String unit, ItemStatus status) {
-        this.itemCode = code;
-        this.itemName = name;
-        this.itemSpecification = specification;
-        this.itemUnit = unit;
-        this.itemStatus = status;
+    // 품목 수정
+    public void updateItem(UpdateItemRequestDto dto) {
+        if (dto.getItemCode() != null) this.itemCode = dto.getItemCode();
+        if (dto.getItemName() != null) this.itemName = dto.getItemName();
+        if (dto.getItemSpecification() != null) this.itemSpecification = dto.getItemSpecification();
+        if (dto.getItemUnit() != null) this.itemUnit = dto.getItemUnit();
+        if (dto.getItemStatus() != null) this.itemStatus = dto.getItemStatus();
+        if (dto.getIsActive() != null) this.isActive = dto.getIsActive();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public void deactivate() {
-        this.isActive = false;
-    }
-
-    public void activate() {
-        this.isActive = true;
+    // 품목 사용여부 변경 (다건 수정 대응)
+    public void updateItemAct(Boolean isActive) {
+        if (isActive != null) {
+            this.isActive = isActive;
+            this.updatedAt = LocalDateTime.now();
+        }
     }
 }

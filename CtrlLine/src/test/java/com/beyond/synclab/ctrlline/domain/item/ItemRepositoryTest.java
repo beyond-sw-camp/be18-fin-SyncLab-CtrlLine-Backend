@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.item;
 
-import com.beyond.synclab.ctrlline.domain.item.entity.Item;
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,15 +15,15 @@ class ItemRepositoryTest {
     @DisplayName("Item 상태별 필터링 로직 단위 검증")
     void findByItemStatus_success() {
         // given
-        List<Item> allItems = new ArrayList<>();
-        allItems.add(Item.builder()
+        List<Items> allItems = new ArrayList<>();
+        allItems.add(Items.builder()
                 .itemCode("ITEM-001")
                 .itemName("3P 차단기")
                 .itemStatus(ItemStatus.FINISHED_PRODUCT)
                 .isActive(true)
                 .build());
 
-        allItems.add(Item.builder()
+        allItems.add(Items.builder()
                 .itemCode("ITEM-002")
                 .itemName("퓨즈박스")
                 .itemStatus(ItemStatus.RAW_MATERIAL)
@@ -31,7 +31,7 @@ class ItemRepositoryTest {
                 .build());
 
         // when
-        List<Item> materials = allItems.stream()
+        List<Items> materials = allItems.stream()
                 .filter(i -> i.getItemStatus() == ItemStatus.RAW_MATERIAL)
                 .toList();
 
