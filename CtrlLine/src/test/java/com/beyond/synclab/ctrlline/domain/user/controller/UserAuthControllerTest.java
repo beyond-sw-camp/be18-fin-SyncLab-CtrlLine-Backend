@@ -11,13 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.user.dto.ReissueResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthServiceImpl;
-import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
-import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
-import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,6 +24,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -35,9 +32,6 @@ import org.springframework.test.web.servlet.ResultActions;
 @WebMvcTest(UserAuthController.class)
 @Import(TestSecurityConfig.class)
 class UserAuthControllerTest {
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @TestConfiguration
     static class UserAuthControllerTestContextConfiguration {
@@ -73,10 +67,10 @@ class UserAuthControllerTest {
 
     @Test
     @DisplayName("로그아웃 실패 - 401")
+    @WithAnonymousUser
     void logout_unAuthorized() throws Exception {
         // given
-        doThrow(new AppException(AuthErrorCode.UNAUTHORIZED))
-            .when(userAuthServiceImpl)
+        doNothing().when(userAuthServiceImpl)
             .logout(any(HttpServletRequest.class), any(HttpServletResponse.class));
 
         // when
@@ -93,6 +87,7 @@ class UserAuthControllerTest {
 
     @Test
     @DisplayName("액세스토큰 재발급 - 204 No Content")
+    @WithMockUser
     void refresh_noContent() throws Exception {
         // given
         ReissueResponseDto responseDto = ReissueResponseDto.builder()
