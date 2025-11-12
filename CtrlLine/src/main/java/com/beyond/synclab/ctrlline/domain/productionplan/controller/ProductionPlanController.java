@@ -1,7 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanCreateRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -24,13 +24,13 @@ public class ProductionPlanController {
     private final ProductionPlanService productionPlanService;
 
     @PostMapping
-    public ResponseEntity<BaseResponse<ProductionPlanResponseDto>> enrollProductionPlan(
-        @RequestBody ProductionPlanCreateRequestDto requestDto,
+    public ResponseEntity<BaseResponse<ProductionPlanResponseDto>> createProductionPlan(
+        @RequestBody CreateProductionPlanRequestDto requestDto,
         @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Users user = userDetails.getUser();
 
-        ProductionPlanResponseDto responseDto = productionPlanService.enroll(requestDto, user);
+        ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, user);
 
         return ResponseEntity
             .status(HttpStatus.CREATED)

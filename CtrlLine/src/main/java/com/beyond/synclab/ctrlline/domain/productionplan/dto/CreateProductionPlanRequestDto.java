@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ProductionPlanCreateRequestDto {
+public class CreateProductionPlanRequestDto {
 
     @NotNull(message = "납기일은 필수입니다.")
     private LocalDate dueDate;

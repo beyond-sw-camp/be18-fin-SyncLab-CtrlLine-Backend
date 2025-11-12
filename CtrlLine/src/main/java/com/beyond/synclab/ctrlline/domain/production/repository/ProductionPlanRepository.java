@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProductionPlanRepository extends JpaRepository<ProductionPlans, Long> {
 
     List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startAt);
+
+    List<ProductionPlans> findAllByLineCode(String lineCode);
 }

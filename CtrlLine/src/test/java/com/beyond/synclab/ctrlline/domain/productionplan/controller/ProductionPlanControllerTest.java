@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanCreateRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
@@ -56,7 +56,7 @@ class ProductionPlanControllerTest {
     @WithCustomUser(roles = {"ROLE_ADMIN"})
     void enrollProductionPlan_success() throws Exception {
         // given
-        ProductionPlanCreateRequestDto createRequestDto = ProductionPlanCreateRequestDto.builder()
+        CreateProductionPlanRequestDto createRequestDto = CreateProductionPlanRequestDto.builder()
             .dueDate(LocalDate.now())
             .plannedQty(BigDecimal.valueOf(100))
             .productionManagerNo(1L)
@@ -74,7 +74,7 @@ class ProductionPlanControllerTest {
             .productionManagerNo(1L)
             .build();
 
-        when(productionPlanService.enroll(any(ProductionPlanCreateRequestDto.class), any(Users.class))).thenReturn(responseDto);
+        when(productionPlanService.createProductionPlan(any(CreateProductionPlanRequestDto.class), any(Users.class))).thenReturn(responseDto);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/api/v1/production-plans")
