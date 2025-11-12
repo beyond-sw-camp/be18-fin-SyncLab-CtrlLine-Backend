@@ -60,14 +60,14 @@ jobs:
           path: manifest-repo
 
       - name: Update image tag in manifest
-        shell: pwsh
+        shell: powershell
         run: |
           $TAG = "${{ env.TAG }}"
           $manifestFile = "manifest-repo\ctrlline\deploy.yaml"
           (Get-Content $manifestFile) -replace '(image:\s*.+):.+', "`$1:$TAG" | Set-Content $manifestFile
 
       - name: Commit & Push manifest update
-        shell: pwsh
+        shell: powershell
         run: |
           cd manifest-repo\ctrlline
           git config user.name "github-actions[bot]"
