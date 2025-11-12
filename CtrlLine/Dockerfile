@@ -19,7 +19,7 @@ FROM eclipse-temurin:21-jre-alpine-3.22
 
 WORKDIR /app
 
-ARG BUILD_PROFILE=staging
+ARG BUILD_PROFILE=staging-prod
 ARG BUILD_PORT=8088
 
 # Build 단계에서 생성된 Jar 파일 복사
