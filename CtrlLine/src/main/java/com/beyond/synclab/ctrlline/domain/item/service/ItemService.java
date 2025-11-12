@@ -5,6 +5,7 @@ import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemActRequestD
 import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
 import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemListResponseDto;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -18,6 +19,7 @@ public interface ItemService {
             final String itemCode,
             final String itemName,
             final String itemSpecification,
+            final ItemStatus itemStatus,
             final Boolean isActive,
             final Pageable pageable
     );

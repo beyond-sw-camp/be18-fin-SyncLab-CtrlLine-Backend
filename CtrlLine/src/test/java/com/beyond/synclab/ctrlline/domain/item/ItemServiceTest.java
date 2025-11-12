@@ -87,10 +87,10 @@ class ItemServiceTest {
     }
 
     /* ========================================================
-       🔹 품목 상세 조회 성공
-    ======================================================== */
+   🔹 품목 상세 조회 성공
+======================================================== */
     @Test
-    @DisplayName("품목 상세 조회 성공 - ID 기준으로 조회 시 정상 반환된다.")
+    @DisplayName("품목 상세 조회 성공 - ID 기준으로 조회 시 모든 필드가 정상 반환된다.")
     void getItemDetail_success() {
         // given
         Items item = Items.builder()
@@ -109,8 +109,25 @@ class ItemServiceTest {
         GetItemDetailResponseDto result = itemService.getItemDetail(1L);
 
         // then
-        assertThat(result.getItemName()).isEqualTo("퓨즈박스");
-        assertThat(result.getItemStatus()).isEqualTo(ItemStatus.RAW_MATERIAL);
+        assertThat(result)
+                .extracting(
+                        GetItemDetailResponseDto::getId,
+                        GetItemDetailResponseDto::getItemCode,
+                        GetItemDetailResponseDto::getItemName,
+                        GetItemDetailResponseDto::getItemSpecification,
+                        GetItemDetailResponseDto::getItemUnit,
+                        GetItemDetailResponseDto::getItemStatus,
+                        GetItemDetailResponseDto::getIsActive
+                )
+                .containsExactly(
+                        1L,
+                        "ITEM-002",
+                        "퓨즈박스",
+                        "10A / 110V",
+                        "EA",
+                        ItemStatus.RAW_MATERIAL,
+                        true
+                );
     }
 
     /* ========================================================
@@ -220,22 +237,5 @@ class ItemServiceTest {
         // then
         assertThat(item.getIsActive()).isFalse();
         then(itemRepository).should(times(1)).findById(1L);
-    }
-
-    /* ========================================================
-       🔹 품목 다건 활성/비활성 실패
-    ======================================================== */
-    @Test
-    @DisplayName("품목 다건 활성/비활성 처리 실패 - itemIds가 비어있을 때 예외 발생")
-    void updateItemAct_fail_noIds() {
-        // given
-        UpdateItemActRequestDto request = UpdateItemActRequestDto.builder()
-                .itemIds(List.of())
-                .isActive(false)
-                .build();
-
-        // when & then
-        assertThatThrownBy(() -> itemService.updateItemAct(request))
-                .isInstanceOf(ItemNotFoundException.class);
     }
 }

@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.item.dto.request;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -19,11 +20,14 @@ public class CreateItemRequestDto {
     private String itemName;
 
     private String itemSpecification;
+
+    @NotBlank(message = "단위는 필수 입력값입니다.")
     private String itemUnit;
 
-    @NotNull(message = "품목 상태는 필수입니다.")
+    @Enumerated
     private ItemStatus itemStatus;
 
+    @NotNull(message = "사용여부는 필수 입력값입니다.")
     private Boolean isActive;
 
     public Items toEntity() {
@@ -32,7 +36,7 @@ public class CreateItemRequestDto {
                 .itemName(itemName.trim())
                 .itemSpecification(itemSpecification)
                 .itemUnit(itemUnit)
-                .itemStatus(itemStatus)
+                .itemStatus(itemStatus != null ? itemStatus : ItemStatus.RAW_MATERIAL)
                 .isActive(isActive != null ? isActive : Boolean.TRUE)
                 .build();
     }

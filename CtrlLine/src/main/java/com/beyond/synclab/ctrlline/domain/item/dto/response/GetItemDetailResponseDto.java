@@ -8,23 +8,22 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class GetItemDetailResponseDto {
-    private Long id;
-    private String itemCode;
-    private String itemName;
-    private String itemSpecification;
-    private String itemUnit;
-    private ItemStatus itemStatus;
-    private Boolean isActive;
+    private final Long id;
+    private final String itemCode;
+    private final String itemName;
+    private final String itemSpecification;
+    private final String itemUnit;
+    private final ItemStatus itemStatus;
+    private final Boolean isActive;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Seoul")
-    private LocalDateTime createdAt;
+    private final LocalDateTime createdAt;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm", timezone = "Asia/Seoul")
-    private LocalDateTime updatedAt;
+    private final LocalDateTime updatedAt;
 
     public static GetItemDetailResponseDto fromEntity(Items item) {
         return GetItemDetailResponseDto.builder()

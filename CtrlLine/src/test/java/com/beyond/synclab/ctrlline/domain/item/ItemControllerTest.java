@@ -14,17 +14,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-
 import java.util.List;
 
-import static com.beyond.synclab.ctrlline.common.dto.BaseResponse.ok;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -86,11 +85,11 @@ class ItemControllerTest {
     }
 
     /* ========================================================
-       🔹 품목 목록 조회 성공
+       🔹 품목 목록 조회 성공 (PageResponse 적용)
     ======================================================== */
     @Test
     @WithMockUser(roles = "USER")
-    @DisplayName("USER 역할은 품목 목록을 조회할 수 있다.")
+    @DisplayName("USER 역할은 품목 목록을 PageResponse 형태로 조회할 수 있다.")
     void getItemList_success() throws Exception {
         GetItemListResponseDto item1 = GetItemListResponseDto.builder()
                 .id(1L)
@@ -108,10 +107,10 @@ class ItemControllerTest {
                 .isActive(true)
                 .build();
 
-        var pageable = PageRequest.of(0, 10);
-        var page = new PageImpl<>(List.of(item1, item2), pageable, 2);
+        PageRequest pageable = PageRequest.of(0, 10);
+        Page<GetItemListResponseDto> page = new PageImpl<>(List.of(item1, item2), pageable, 2);
 
-        when(itemService.getItemList(any(), any(), any(), any(), any())).thenReturn(page);
+        when(itemService.getItemList(any(), any(), any(), any(), any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/items")
                         .param("itemCode", "ITEM")
@@ -119,7 +118,11 @@ class ItemControllerTest {
                         .param("isActive", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content").isArray())
-                .andExpect(jsonPath("$.data.content[0].id").value(1))
+                .andExpect(jsonPath("$.data.content[0].itemCode").value("ITEM-001"))
+                .andExpect(jsonPath("$.data.content[1].itemCode").value("ITEM-002"))
+                .andExpect(jsonPath("$.data.pageInfo.currentPage").value(1))
+                .andExpect(jsonPath("$.data.pageInfo.pageSize").value(10))
+                .andExpect(jsonPath("$.data.pageInfo.totalElements").value(2))
                 .andDo(print());
     }
 
@@ -128,7 +131,7 @@ class ItemControllerTest {
     ======================================================== */
     @Test
     @WithMockUser(roles = "USER")
-    @DisplayName("품목 단건 조회 성공")
+    @DisplayName("USER 역할은 품목 단건을 조회할 수 있다.")
     void getItemDetail_success() throws Exception {
         GetItemDetailResponseDto response = GetItemDetailResponseDto.builder()
                 .id(1L)
@@ -142,7 +145,7 @@ class ItemControllerTest {
 
         when(itemService.getItemDetail(1L)).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/items/{id}", 1L))
+        mockMvc.perform(get("/api/v1/items/{itemId}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.itemName").value("MCCB 차단기"))
                 .andExpect(jsonPath("$.data.id").value(1))
@@ -173,7 +176,7 @@ class ItemControllerTest {
 
         when(itemService.updateItem(eq(2L), any(UpdateItemRequestDto.class))).thenReturn(response);
 
-        mockMvc.perform(patch("/api/v1/items/{id}", 2L)
+        mockMvc.perform(patch("/api/v1/items/{itemId}", 2L)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -188,7 +191,7 @@ class ItemControllerTest {
     ======================================================== */
     @Test
     @WithMockUser(roles = "ADMIN")
-    @DisplayName("ADMIN 역할은 품목 다건 사용여부를 변경할 수 있다.")
+    @DisplayName("ADMIN 역할은 품목 다건의 사용여부를 변경할 수 있다.")
     void updateItemAct_success() throws Exception {
         UpdateItemActRequestDto request = UpdateItemActRequestDto.builder()
                 .itemIds(List.of(1L, 2L))
@@ -200,6 +203,6 @@ class ItemControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andDo(print());
+                .andExpect(jsonPath("$.data.isActive").value(false))                .andDo(print());
     }
 }

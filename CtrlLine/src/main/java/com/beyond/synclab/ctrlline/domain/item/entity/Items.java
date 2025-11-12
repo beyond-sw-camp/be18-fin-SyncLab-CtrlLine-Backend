@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.flywaydb.core.internal.util.StringUtils;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -66,10 +67,10 @@ public class Items {
 
     // 품목 수정
     public void updateItem(UpdateItemRequestDto dto) {
-        if (dto.getItemCode() != null) this.itemCode = dto.getItemCode();
-        if (dto.getItemName() != null) this.itemName = dto.getItemName();
-        if (dto.getItemSpecification() != null) this.itemSpecification = dto.getItemSpecification();
-        if (dto.getItemUnit() != null) this.itemUnit = dto.getItemUnit();
+        if (StringUtils.hasText(dto.getItemCode())) this.itemCode = dto.getItemCode().trim();
+        if (StringUtils.hasText(dto.getItemName())) this.itemName = dto.getItemName().trim();
+        if (StringUtils.hasText(dto.getItemSpecification())) this.itemSpecification = dto.getItemSpecification().trim();
+        if (StringUtils.hasText(dto.getItemUnit())) this.itemUnit = dto.getItemUnit().trim();
         if (dto.getItemStatus() != null) this.itemStatus = dto.getItemStatus();
         if (dto.getIsActive() != null) this.isActive = dto.getIsActive();
         this.updatedAt = LocalDateTime.now();
