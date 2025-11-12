@@ -38,7 +38,7 @@ public class TestSecurityConfig {
                     .accessDeniedHandler(restAccessDeniedHandler)
             )
             .authorizeHttpRequests(registry -> {
-                registry.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/refresh").permitAll();
+                registry.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll();
                 registry.anyRequest().authenticated();
             });
         return http.build();

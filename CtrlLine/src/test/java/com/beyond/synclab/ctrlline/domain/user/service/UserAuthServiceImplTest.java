@@ -1,16 +1,21 @@
 package com.beyond.synclab.ctrlline.domain.user.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.user.dto.ReissueResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import com.beyond.synclab.ctrlline.security.jwt.JwtStoreService;
 import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
 import com.beyond.synclab.ctrlline.security.jwt.TokenType;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.sql.Date;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +46,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserAuthService 단위 테스트")
-class UserAuthServiceTest {
+class UserAuthServiceImplTest {
     @Mock
     private JwtStoreService jwtStoreService;
 
@@ -55,7 +60,7 @@ class UserAuthServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
-    private UserAuthService userAuthService;
+    private UserAuthServiceImpl userAuthServiceImpl;
 
     @Test
     @DisplayName("회원가입 실패 - 이메일 중복 시 AppException 발생")
@@ -72,7 +77,7 @@ class UserAuthServiceTest {
                 .thenReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> userAuthService.enroll(request))
+        assertThatThrownBy(() -> userAuthServiceImpl.enroll(request))
                 .isInstanceOf(AppException.class)
                 .hasMessage(AuthErrorCode.DUPLICATE_EMAIL.getMessage());
 
@@ -100,7 +105,7 @@ class UserAuthServiceTest {
         ArgumentCaptor<Users> captor = ArgumentCaptor.forClass(Users.class);
 
         // when
-        userAuthService.enroll(request);
+        userAuthServiceImpl.enroll(request);
 
         // then
         verify(userRepository).save(captor.capture());
@@ -119,7 +124,7 @@ class UserAuthServiceTest {
                 .thenReturn(Arrays.asList("202510003", "202510002", "202510001"));
 
         // when
-        String empNo = ReflectionTestUtils.invokeMethod(userAuthService, "generateEmpNo", hiredDate);
+        String empNo = ReflectionTestUtils.invokeMethod(userAuthServiceImpl, "generateEmpNo", hiredDate);
 
         // then
         assertThat(empNo).isEqualTo("202510004");
@@ -141,7 +146,7 @@ class UserAuthServiceTest {
         doNothing().when(jwtStoreService).blacklistAccessToken(eq("qwe123"), anyLong());
 
         // when
-        userAuthService.logout(mockRequest, mockResponse);
+        userAuthServiceImpl.logout(mockRequest, mockResponse);
 
         // then
         verify(jwtUtil, times(1)).isExpired("accessToken", TokenType.ACCESS);
@@ -162,7 +167,7 @@ class UserAuthServiceTest {
         when(mockRequest.getHeader("Authorization")).thenReturn(null);
 
         // when & then
-        assertThatThrownBy(() -> userAuthService.logout(mockRequest, mockResponse))
+        assertThatThrownBy(() -> userAuthServiceImpl.logout(mockRequest, mockResponse))
             .isInstanceOf(AppException.class)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.UNAUTHORIZED);
 
@@ -180,7 +185,7 @@ class UserAuthServiceTest {
         when(mockRequest.getHeader("Authorization")).thenReturn("Invalid accessToken");
 
         // when & then
-        assertThatThrownBy(() -> userAuthService.logout(mockRequest, mockResponse))
+        assertThatThrownBy(() -> userAuthServiceImpl.logout(mockRequest, mockResponse))
             .isInstanceOf(AppException.class)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.UNAUTHORIZED);
 
@@ -198,7 +203,7 @@ class UserAuthServiceTest {
         when(jwtUtil.isExpired("expiredToken", TokenType.ACCESS)).thenReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> userAuthService.logout(mockRequest, mockResponse))
+        assertThatThrownBy(() -> userAuthServiceImpl.logout(mockRequest, mockResponse))
             .isInstanceOf(AppException.class)
             .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.ACCESS_TOKEN_EXPIRED);
 
@@ -225,11 +230,153 @@ class UserAuthServiceTest {
             .when(jwtStoreService).blacklistAccessToken(eq("jti123"), anyLong());
 
         // when & then
-        assertThatThrownBy(() -> userAuthService.logout(mockRequest, mockResponse))
+        assertThatThrownBy(() -> userAuthServiceImpl.logout(mockRequest, mockResponse))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Redis error");
 
         verify(jwtStoreService, times(1)).deleteRefreshToken("hong123@test.com");
+    }
+
+    @Test
+    @DisplayName("토큰 재발급에 성공합니다.")
+    void reissue_accessToken_success() {
+        // given
+        String oldRefreshToken = "oldRefreshToken";
+        String newRefreshToken = "newRefreshToken";
+        String newAccessToken = "newAccessToken";
+        int newMaxAge = 100;
+        String username = "hong123@test.com";
+
+        Users user = Users.builder()
+                .email(username)
+                .role(UserRole.USER)
+                .build();
+
+        doNothing().when(jwtUtil).validateToken(oldRefreshToken, TokenType.REFRESH);
+        when(jwtUtil.getCategory(oldRefreshToken, TokenType.REFRESH)).thenReturn(TokenType.REFRESH.name());
+        when(jwtUtil.getUsername(oldRefreshToken, TokenType.REFRESH)).thenReturn(username);
+        when(jwtStoreService.getRefreshToken(username)).thenReturn(oldRefreshToken);
+        when(userRepository.findByEmail(username)).thenReturn(Optional.of(user));
+        when(jwtUtil.createAccessToken(username, UserRole.USER.name())).thenReturn(newAccessToken);
+        when(jwtUtil.createRefreshToken(username)).thenReturn(newRefreshToken);
+        doNothing().when(jwtStoreService).deleteRefreshToken(username);
+        when(jwtUtil.getExpiration(newRefreshToken, TokenType.REFRESH)).thenReturn(new Date(System.currentTimeMillis() + newMaxAge * 1000));
+        doNothing().when(jwtStoreService).saveRefreshToken(eq(username), eq(newRefreshToken), anyLong());
+
+        // when
+        ReissueResponseDto responseDto = userAuthServiceImpl.reissue(oldRefreshToken);
+
+        // then
+        assertThat(responseDto.getAccessToken()).isEqualTo(newAccessToken);
+        assertThat(responseDto.getRefreshToken()).isEqualTo(newRefreshToken);
+        assertThat(responseDto.getMaxAge()).isLessThanOrEqualTo(newMaxAge);
+
+        // verify
+        verify(jwtUtil, times(1)).validateToken(oldRefreshToken, TokenType.REFRESH);
+        verify(jwtUtil, times(1)).getCategory(oldRefreshToken, TokenType.REFRESH);
+        verify(jwtUtil, times(1)).getUsername(oldRefreshToken, TokenType.REFRESH);
+        verify(jwtStoreService, times(1)).getRefreshToken(username);
+        verify(userRepository, times(1)).findByEmail(username);
+        verify(jwtUtil, times(1)).createAccessToken(username, UserRole.USER.name());
+        verify(jwtUtil, times(1)).createRefreshToken(username);
+        verify(jwtStoreService, times(1)).deleteRefreshToken(username);
+        verify(jwtUtil, times(1)).getExpiration(newRefreshToken, TokenType.REFRESH);
+        verify(jwtStoreService, times(1)).saveRefreshToken(eq(username), eq(newRefreshToken), anyLong());
+
+    }
+
+    // 1️⃣ Refresh Token이 null 또는 공백일 때
+    @Test
+    @DisplayName("토큰 재발급 실패 - refresh token이 null 또는 공백")
+    void reissue_fail_nullOrBlankToken() {
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(null))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN);
+
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(" "))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    // 2️⃣ Refresh Token 만료됨
+    @Test
+    @DisplayName("토큰 재발급 실패 - refresh token 만료됨")
+    void reissue_fail_expiredToken() {
+        String refreshToken = "expiredToken";
+        doThrow(new ExpiredJwtException(null, null, "Expired"))
+            .when(jwtUtil).validateToken(refreshToken, TokenType.REFRESH);
+
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(refreshToken))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.REFRESH_TOKEN_EXPIRED);
+    }
+
+    // 3️⃣ Refresh Token 형식 오류 or 유효하지 않음
+    @Test
+    @DisplayName("토큰 재발급 실패 - refresh token 형식 오류")
+    void reissue_fail_invalidTokenFormat() {
+        String refreshToken = "invalidToken";
+        doThrow(new JwtException("invalid"))
+            .when(jwtUtil).validateToken(refreshToken, TokenType.REFRESH);
+
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(refreshToken))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    // 4️⃣ 카테고리 불일치
+    @Test
+    @DisplayName("토큰 재발급 실패 - 카테고리 불일치")
+    void reissue_fail_invalidCategory() {
+        String refreshToken = "token";
+        doNothing().when(jwtUtil).validateToken(refreshToken, TokenType.REFRESH);
+        when(jwtUtil.getCategory(refreshToken, TokenType.REFRESH)).thenReturn("ACCESS");
+
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(refreshToken))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    // 5️⃣ Redis에 저장된 Refresh Token 불일치
+    @Test
+    @DisplayName("토큰 재발급 실패 - Redis 저장된 refresh token 불일치")
+    void reissue_fail_mismatchedRedisToken() {
+        String refreshToken = "token";
+        String username = "hong@test.com";
+
+        doNothing().when(jwtUtil).validateToken(refreshToken, TokenType.REFRESH);
+        when(jwtUtil.getCategory(refreshToken, TokenType.REFRESH)).thenReturn(TokenType.REFRESH.name());
+        when(jwtUtil.getUsername(refreshToken, TokenType.REFRESH)).thenReturn(username);
+        when(jwtStoreService.getRefreshToken(username)).thenReturn("anotherToken");
+
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(refreshToken))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    // 6️⃣ DB에서 유저를 찾을 수 없음
+    @Test
+    @DisplayName("토큰 재발급 실패 - 사용자 존재하지 않음")
+    void reissue_fail_userNotFound() {
+        String refreshToken = "token";
+        String username = "hong@test.com";
+
+        doNothing().when(jwtUtil).validateToken(refreshToken, TokenType.REFRESH);
+        when(jwtUtil.getCategory(refreshToken, TokenType.REFRESH)).thenReturn(TokenType.REFRESH.name());
+        when(jwtUtil.getUsername(refreshToken, TokenType.REFRESH)).thenReturn(username);
+        when(jwtStoreService.getRefreshToken(username)).thenReturn(refreshToken);
+        when(userRepository.findByEmail(username)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userAuthServiceImpl.reissue(refreshToken))
+            .isInstanceOf(AppException.class)
+            .extracting("errorCode")
+            .isEqualTo(AuthErrorCode.USER_NOT_FOUND);
     }
 
 }

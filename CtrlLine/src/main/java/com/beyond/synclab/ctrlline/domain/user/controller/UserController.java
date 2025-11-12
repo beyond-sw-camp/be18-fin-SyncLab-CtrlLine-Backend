@@ -8,7 +8,7 @@ import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
-import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import com.beyond.synclab.ctrlline.domain.user.service.UserAuthServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,14 +35,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    private final UserAuthService userAuthService;
+    private final UserAuthServiceImpl userAuthServiceImpl;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponse<UserSignupResponseDto>> enroll(
             @Validated @RequestBody UserSignupRequestDto request
     ) {
-        UserSignupResponseDto response = userAuthService.enroll(request);
+        UserSignupResponseDto response = userAuthServiceImpl.enroll(request);
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(BaseResponse.of(HttpStatus.CREATED.value(), response));
