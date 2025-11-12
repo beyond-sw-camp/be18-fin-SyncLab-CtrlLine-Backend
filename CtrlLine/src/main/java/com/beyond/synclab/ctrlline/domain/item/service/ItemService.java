@@ -29,5 +29,5 @@ public interface ItemService {
     GetItemDetailResponseDto updateItem(final Long itemId, final UpdateItemRequestDto request);
 
     // 품목 활성/비활성 처리 (다건)
-    void updateItemAct(final UpdateItemActRequestDto request);
+    Boolean updateItemAct(final UpdateItemActRequestDto request);
 }

@@ -95,18 +95,20 @@ public class ItemServiceImpl implements ItemService {
     // 품목 활성/비활성 처리 (다건)
     @Override
     @Transactional
-    public void updateItemAct(final UpdateItemActRequestDto request) {
+    public Boolean updateItemAct(final UpdateItemActRequestDto request) {
         if (request.getItemIds() == null || request.getItemIds().isEmpty()) {
             throw new ItemNotFoundException("No itemIds provided");
         }
 
         request.getItemIds().forEach(id -> {
-            Items item = itemRepository.findById(id)
-                    .orElseThrow(() -> new ItemNotFoundException(String.valueOf(id)));
+            final Items item = itemRepository.findById(id)
+                    .orElseThrow(() -> new ItemNotFoundException("Item not found with id=" + id));
             item.updateItemAct(request.getIsActive());
         });
 
         log.info("[ITEM-ACT] {}건 isActive 변경 완료 (isActive={})",
                 request.getItemIds().size(), request.getIsActive());
+
+        return request.getIsActive();
     }
 }

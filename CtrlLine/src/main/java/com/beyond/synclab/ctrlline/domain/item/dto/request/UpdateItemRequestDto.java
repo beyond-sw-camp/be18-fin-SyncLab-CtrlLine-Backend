@@ -2,14 +2,11 @@ package com.beyond.synclab.ctrlline.domain.item.dto.request;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UpdateItemRequestDto {
 

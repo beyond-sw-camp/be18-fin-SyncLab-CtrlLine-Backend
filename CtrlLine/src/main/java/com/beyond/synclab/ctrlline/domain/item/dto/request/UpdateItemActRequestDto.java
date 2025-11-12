@@ -1,17 +1,14 @@
 package com.beyond.synclab.ctrlline.domain.item.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UpdateItemActRequestDto {
-    private List<Long> itemIds;     // 변경 대상 품목 PK 목록
+    private List<Long> itemIds;
     private Boolean isActive;
 }

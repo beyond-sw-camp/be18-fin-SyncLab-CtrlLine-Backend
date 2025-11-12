@@ -6,6 +6,7 @@ import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemActRequestD
 import com.beyond.synclab.ctrlline.domain.item.dto.request.UpdateItemRequestDto;
 import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.item.dto.response.GetItemListResponseDto;
+import com.beyond.synclab.ctrlline.domain.item.dto.response.UpdateItemActResponseDto;
 import com.beyond.synclab.ctrlline.domain.item.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,8 +62,9 @@ public class ItemController {
     }
 
     @PatchMapping
-    public ResponseEntity<BaseResponse<Void>> updateItemAct(@RequestBody UpdateItemActRequestDto request) {
-        itemService.updateItemAct(request);
-        return ResponseEntity.ok(ok(null));
+    public ResponseEntity<BaseResponse<UpdateItemActResponseDto>> updateItemAct(
+            @RequestBody UpdateItemActRequestDto request) {
+        Boolean updated = itemService.updateItemAct(request);
+        return ResponseEntity.ok(ok(UpdateItemActResponseDto.of(updated)));
     }
 }
