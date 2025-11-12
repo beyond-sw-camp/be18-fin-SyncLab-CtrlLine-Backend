@@ -1,0 +1,50 @@
+jwt:
+  access-token:
+    expired: 3600000
+    secret-key: "AccessTokenSecretDummy"
+  refresh-token:
+    expired: 86400000
+    secret-key: "RefreshTokenSecretDummy"
+
+cors:
+  allowed-origins:
+    - "*"
+  allowed-headers:
+    - "*"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+
+app:
+  redis:
+    prefix:
+      refresh: "dummyRefresh"
+      blacklist: "dummyBlacklist"
+
+spring:
+  datasource:
+    url: "jdbc:h2:mem:testdb"        # 단위 테스트용 메모리 DB
+    username: sa                      # H2 기본 사용자
+    password: ""                      # H2 기본 비밀번호
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: false                     # 단위 테스트에서는 Flyway 실행 안 함
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: localhost                   # 더미 값
+      port: 6379
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop           # 테스트 후 테이블 삭제
+    show-sql: true
+
+logging:
+  level:
+    com.beyond.synclab.ctrlline.**: debug
+

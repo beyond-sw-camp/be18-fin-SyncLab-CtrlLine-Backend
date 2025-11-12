@@ -38,6 +38,7 @@ out/
 .vscode/
 
 application*
+!application.yaml
 !application-prod.yaml
 !application-staging-prod.yaml
 
