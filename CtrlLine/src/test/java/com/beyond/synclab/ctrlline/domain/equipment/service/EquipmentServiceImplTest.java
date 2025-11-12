@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -88,4 +90,24 @@ class EquipmentServiceImplTest {
                 .hasMessageContaining("이미 존재하는 설비코드입니다.");
 
     }
+
+    @Test
+    @DisplayName("설비 ID로 상세 조회에 성공한다.")
+    void getEquipmentDetail_success() {
+        // given
+        Users user = buildTestUser("홍길동", Users.UserRole.ADMIN);
+        Equipments equipment = buildTestEquipment(user, true);
+
+        when(equipmentRepository.findByEquipmentCode("E001"))
+                .thenReturn(Optional.of(equipment));
+
+        // when
+        var result = equipmentService.getEquipmentDetail("E001");
+
+        // then
+        assertThat(result.getEquipmentCode()).isEqualTo("E001");
+        assertThat(result.getEquipmentName()).isEqualTo("절단기-01");
+        assertThat(result.getUserName()).isEqualTo("홍길동");
+    }
+
 }

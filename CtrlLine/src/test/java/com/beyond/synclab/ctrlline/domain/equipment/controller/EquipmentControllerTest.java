@@ -1,9 +1,9 @@
 package com.beyond.synclab.ctrlline.domain.equipment.controller;
 
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
@@ -14,16 +14,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,6 +66,7 @@ class EquipmentControllerTest {
     }
 
     // 현원에몽이 WithCustomUser와 WithCustiomUserSecurityContextFactory 추가로 작성해서 해결됨.
+    // 설비 등록
     // 201
     @Test
     @DisplayName("설비 등록 성공 - 201 CREATED 반환")
@@ -129,29 +133,37 @@ class EquipmentControllerTest {
                 .andDo(print());
     }
 
-    // 403
-//    @Test
-//    @WithMockUser(roles = "USER")
-//    @DisplayName("USER 역할은 설비를 등록할 수 없다.")
-//    void registerEquipment_fail_UserRole() throws Exception {
-//        // given
-//        Users user = buildTestUser("김철수", Users.UserRole.USER);
-//
-//        EquipmentRegisterRequestDto requestDto = EquipmentRegisterRequestDto.builder()
-//                .equipmentCode("EQP-0001")
-//                .equipmentName("각형전지 조립라인")
-//                .equipmentType("생산설비")
-//                .equipmentPpm(new BigDecimal("35"))
-//                .empNo(user.getEmpNo())
-//                .isActive(true)
-//                .build();
-//
-//        // when & then
-//        mockMvc.perform(post("/api/v1/equipments")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(new ObjectMapper().writeValueAsString(requestDto)))
-//                .andExpect(status().isForbidden())   // USER는 등록 권한 없음
-//                .andDo(print());
-//    }
+    // 설비 상세 조회
+    // 200
+    @Test
+    @DisplayName("설비코드로 상세 조회 호출에 성공한다.")
+    void getEquipmentDetail_success() throws Exception {
+        // given
+        EquipmentDetailResponseDto dto = EquipmentDetailResponseDto.builder()
+                .equipmentCode("EQ001")
+                .equipmentName("절단기-01")
+                .equipmentType("절단기")
+                .equipmentPpm(BigDecimal.valueOf(98.5))
+                .userDepartment("생산1팀")
+                .userName("홍길동")
+                .empNo("A1001")
+                .operatingDate(LocalDateTime.of(2025, 11, 10, 9, 0))
+                .maintenanceDate(LocalDateTime.of(2025, 11, 9, 9, 0))
+                .totalCount(BigDecimal.valueOf(5000))
+                .defectiveCount(BigDecimal.valueOf(5))
+                .build();
+
+        given(equipmentService.getEquipmentDetail("EQ001"))
+                .willReturn(dto);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/equipments/EQ001")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.equipmentCode", is("EQ001")))
+                .andExpect(jsonPath("$.data.equipmentName", is("절단기-01")))
+                .andExpect(jsonPath("$.data.userName", is("홍길동")));
+    }
+
 
 }
