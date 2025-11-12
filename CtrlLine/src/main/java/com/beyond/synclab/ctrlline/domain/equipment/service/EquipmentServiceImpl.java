@@ -30,21 +30,23 @@ public class EquipmentServiceImpl implements EquipmentService {
             throw new AppException(EquipmentErrorCode.EQUIPMENT_CONFLICT);
         }
 
-        // (2) 필수 입력값 누락 검사 (400)
-        if (requestDto.getEquipmentCode() == null || requestDto.getEquipmentName() == null ||
-                requestDto.getEquipmentType() == null || requestDto.getEquipmentPpm() == null ||
-                requestDto.getEmpNo() == null) {
-            throw new AppException(EquipmentErrorCode.BAD_REQUEST);
-        }
+          // RequestDto에 NotNull 어노테이션 붙여서, 서비스 코드에서 필요 없음.
+//        // (2) 필수 입력값 누락 검사 (400)
+//        if (requestDto.getEquipmentCode() == null || requestDto.getEquipmentName() == null ||
+//                requestDto.getEquipmentType() == null || requestDto.getEquipmentPpm() == null ||
+//                requestDto.getEmpNo() == null) {
+//            throw new AppException(EquipmentErrorCode.BAD_REQUEST);
+//        }
 
         // (3) 사용자 존재 여부 검사 (404)
         Users user = userRepository.findByEmpNo(requestDto.getEmpNo())
                 .orElseThrow(() -> new AppException(CommonErrorCode.USER_NOT_FOUND));
 
-        // (4) 관리자가 아닌 경우 등록 제한
-        if (user.getRole() != Users.UserRole.ADMIN) {
-            throw new AppException(EquipmentErrorCode.UNAUTHORIZED);
-        }
+        // 이것또한, @PreAuthorize("hasRole('ADMIN')") 작성했어서, 없어도 됨.
+//        // (4) 관리자가 아닌 경우 등록 제한
+//        if (user.getRole() != Users.UserRole.ADMIN) {
+//            throw new AppException(EquipmentErrorCode.FORBIDDEN);
+//        }
 
         // 설비 엔티티 생성
         Equipments equipments = requestDto.toEntity(user);

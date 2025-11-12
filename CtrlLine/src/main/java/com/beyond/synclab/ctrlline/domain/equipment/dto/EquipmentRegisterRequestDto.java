@@ -20,13 +20,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class EquipmentRegisterRequestDto {
 
-    @NotBlank(message = "설비 코드는 필수입니다.")
+    @NotNull(message = "설비 코드는 필수입니다.")
     private String equipmentCode;
 
-    @NotBlank(message = "설비명은 필수입니다.")
+    @NotNull(message = "설비명은 필수입니다.")
     private String equipmentName;
 
-    @NotBlank(message = "설비유형은 필수입니다.")
+    @NotNull(message = "설비유형은 필수입니다.")
     private String equipmentType;
 
     @NotNull(message = "PPM 값은 필수입니다.")
@@ -39,7 +39,7 @@ public class EquipmentRegisterRequestDto {
 //    private String userName;
 
     // 사번으로 담당자, 담당부서 찾음.
-    @NotBlank(message = "사번은 필수입니다.")
+    @NotNull(message = "사번은 필수입니다.")
     private String empNo;
 
     @NotNull(message = "설비 사용 여부는 필수입니다.")

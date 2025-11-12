@@ -8,9 +8,10 @@ import org.springframework.http.HttpStatus;
 public enum EquipmentErrorCode implements ErrorCode {
         // 400
         BAD_REQUEST(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "필수 입력 값이 누락되었거나 요청 형식이 올바르지 않습니다."),
-        // 질문) 401은 HttpStatus에 없는데 얘는 어떻게 추가하죠?
+        // 401
+        UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증 토큰이 없거나 유효하지 않습니다."),
         // 403
-        UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "관리자 권한이 아닙니다."),
+        FORBIDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "관리자 권한이 아닙니다."),
         // 404
         EQUIPMENT_NOT_FOUND(HttpStatus.NOT_FOUND,"EQUIPMENT_NOT_FOUND" , "해당 설비를 찾을 수 없습니다."),
         // 409
