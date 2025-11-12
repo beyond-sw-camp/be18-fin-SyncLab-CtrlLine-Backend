@@ -1,26 +1,25 @@
-name: CtrlLine-CI
+name: Pull Request Staging CI (Test + Sonar)
 
 on:
-  push:
-    branches: [develop]
-    paths: ['CtrlLine/**']
   pull_request:
     branches: [develop]
-    paths: ['CtrlLine/**']
+    paths: 
+      - 'CtrlLine/**'
 
 concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test-sonar:
+  test-and-analyze:
     runs-on: self-hosted
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -43,10 +42,10 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
 
-      - name: Build & Analyze
+      - name: Build & Test
         working-directory: CtrlLine
-        run: .\gradlew.bat build sonar --parallel --configure-on-demand -x test
+        run: .\gradlew.bat clean build test --parallel --configure-on-demand
 
-      - name: Run Tests
+      - name: Run SonarQube Analysis
         working-directory: CtrlLine
-        run: .\gradlew.bat test
+        run: .\gradlew.bat sonar

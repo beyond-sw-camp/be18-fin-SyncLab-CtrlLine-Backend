@@ -2,7 +2,6 @@ package com.beyond.synclab.ctrlline.domain.user.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,22 +15,30 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.user.dto.ReissueResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthServiceImpl;
 import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
+import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
+import com.beyond.synclab.ctrlline.domain.user.service.UserAuthService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 @WebMvcTest(UserAuthController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import(TestSecurityConfig.class)
 class UserAuthControllerTest {
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @TestConfiguration
     static class UserAuthControllerTestContextConfiguration {
         @Bean
@@ -46,6 +53,7 @@ class UserAuthControllerTest {
 
     @Test
     @DisplayName("로그아웃 성공 - 200")
+    @WithMockUser
     void logout_success() throws Exception {
         // given
         doNothing().when(userAuthServiceImpl).logout(any(HttpServletRequest.class), any(

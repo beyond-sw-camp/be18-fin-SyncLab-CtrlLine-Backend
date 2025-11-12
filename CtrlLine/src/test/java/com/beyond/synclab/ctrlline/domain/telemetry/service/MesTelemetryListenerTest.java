@@ -2,27 +2,32 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.List;
+import java.math.BigDecimal;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
 class MesTelemetryListenerTest {
 
-    private final MesKafkaProperties properties = new MesKafkaProperties(
-            List.of("localhost:29092"),
-            "mes-machine-telemetry",
-            "ctrlline-client",
-            "ctrlline-group",
-            "earliest",
-            java.time.Duration.ofSeconds(5)
-    );
+    @Mock
+    private MesPowerConsumptionService mesPowerConsumptionService;
 
-    private final MesTelemetryListener listener = new MesTelemetryListener(new ObjectMapper(), properties);
+    private MesTelemetryListener listener;
+
+    @BeforeEach
+    void setUp() {
+        listener = new MesTelemetryListener(new ObjectMapper(), mesPowerConsumptionService);
+    }
 
     @Test
     void parsePayload_returnsJsonNode_whenValidJson() {
@@ -55,5 +60,30 @@ class MesTelemetryListenerTest {
 
         assertThatCode(() -> listener.onTelemetry(telemetryRecord))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void onTelemetry_aggregatesEnergyUsagePerTimestamp() {
+        String firstPayload = """
+                {"records":[
+                    {"value":{"machine":"M-01","tag":"energy_usage","value":0.5,"timestamp":1762756823000}},
+                    {"value":{"machine":"M-02","tag":"energy_usage","value":1.0,"timestamp":1762756823000}}
+                ]}
+                """;
+        String triggerFlushPayload = """
+                {"records":[
+                    {"value":{"machine":"M-03","tag":"energy_usage","value":2.0,"timestamp":1762756825000}}
+                ]}
+                """;
+
+        listener.onTelemetry(consumerRecord(firstPayload));
+        listener.onTelemetry(consumerRecord(triggerFlushPayload));
+
+        verify(mesPowerConsumptionService, times(1))
+                .savePowerConsumption(BigDecimal.valueOf(1.50).setScale(2));
+    }
+
+    private ConsumerRecord<String, String> consumerRecord(String payload) {
+        return new ConsumerRecord<>("mes-machine-telemetry", 0, 0L, "key", payload);
     }
 }

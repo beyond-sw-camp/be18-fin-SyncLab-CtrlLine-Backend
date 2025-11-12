@@ -1,0 +1,81 @@
+name: Develop Push Staging CI (Build + Test + Docker)
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'CtrlLine/**'
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-docker:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Gradle 캐시 적용
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            C:\Users\Playdata\.gradle\caches
+            C:\Users\Playdata\.gradle\wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*') }}
+
+      - name: Build & Test
+        working-directory: CtrlLine
+        run: .\gradlew.bat clean build test
+
+      - name: Docker Build & Push
+        shell: cmd
+        working-directory: CtrlLine
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_STAGING_REPO }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          set TAG=%GITHUB_SHA:~0,6%
+          echo Building image with tag %TAG%
+          docker build -t %DOCKER_REPO%:%TAG% .
+          echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+          docker push %DOCKER_REPO%:%TAG%
+          echo TAG=%TAG%>> %GITHUB_ENV%
+
+      - name: Checkout manifest repo (Windows SSH)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.MANIFEST_REPO }}   # 매니페스트 레포
+          ssh-key: ${{ secrets.STAGING_DEPLOY_KEY }}      # SSH Private Key
+          ref: develop                            # ✅ develop 브랜치 지정
+          path: manifest-repo
+
+      - name: Update image tag in manifest
+        shell: powershell
+        run: |
+          $TAG = "${{ env.TAG }}"
+          $manifestFile = "manifest-repo\ctrlline\deploy.yaml"
+          (Get-Content $manifestFile) -replace '(image:\s*.+):.+', "`$1:$TAG" | Set-Content $manifestFile
+
+      - name: Commit & Push manifest update
+        shell: powershell
+        run: |
+          cd manifest-repo\ctrlline
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add deploy.yaml
+          if ((git diff --cached --quiet) -eq $false) {
+            git commit -m "[Chore] update image tag to $env:TAG"
+            git push origin develop
+          } else {
+            Write-Host "No changes to commit."
+          }
