@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8088
 
 jwt:
   access-token:
@@ -9,12 +9,11 @@ jwt:
     expired: ${REFRESH_TOKEN_EXPIRED}
     secret-key: ${REFRESH_TOKEN_SECRET}
 
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS} # 운영 프론트 주소
   allowed-headers:
-    - Authorization
-    - Content-Type
-    - Accept
+    - "*"
   allowed-methods:
     - GET
     - POST
@@ -35,13 +34,15 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver
+  # Flyway
   flyway:
     enabled: true
+    clean-disabled: false   # 스테이징에서는 필요 시 초기화 가능
+    out-of-order: true      # 버전 순서가 꼬여도 적용 가능 (테스트 환경)
     locations: classpath:db/migration
-    clean-disabled: true     # 절대 DB 초기화 금지
-    out-of-order: false      # 순서 보장 강제
-    validate-on-migrate: true
-    baseline-on-migrate: false
+    baseline-on-migrate: true
+    baseline-version: 0
+  # Redis
   data:
     redis:
       host: ${REDIS_HOST}
@@ -53,14 +54,19 @@ spring:
       ddl-auto: validate # Flyway로 테이블 관리하므로 JPA는 validate로
     show-sql: true
 
+logging:
+  level:
+    com.beyond.synclab.ctrlline.**: debug
+
 mes:
   kafka:
     bootstrap-servers: ${MES_KAFKA_BOOTSTRAP_SERVERS}
     topic: ${MES_KAFKA_TOPIC:mes-machine-telemetry}
-    client-id: ${MES_KAFKA_CLIENT_ID:ctrlline-prod-client}
-    group-id: ${MES_KAFKA_GROUP_ID:ctrlline-prod-group}
+    client-id: ${MES_KAFKA_CLIENT_ID:ctrlline-staging-client}
+    group-id: ${MES_KAFKA_GROUP_ID:ctrlline-staging-group}
     auto-offset-reset: ${MES_KAFKA_AUTO_OFFSET_RESET:earliest}
     poll-interval: ${MES_KAFKA_POLL_INTERVAL:5s}
+
 
 milo:
   client:

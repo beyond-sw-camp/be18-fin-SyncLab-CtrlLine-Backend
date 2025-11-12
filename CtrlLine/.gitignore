@@ -39,3 +39,5 @@ out/
 
 application*
 !application-prod.yaml
+!application-staging-prod.yaml
+
