@@ -104,7 +104,6 @@ public class Users {
         updateIfPresent(dto.getStatus(), v -> this.status = v);
         updateIfPresent(dto.getAddress(), v -> this.address = v);
         updateIfPresent(dto.getTerminationDate(), v -> this.terminationDate = v);
-        updateIfPresent(dto.getHiredDate(), v -> this.hiredDate = v);
         updateIfPresent(dto.getExtension(), v -> this.extension = v);
     }
 

@@ -47,9 +47,6 @@ public class UserUpdateRequestDto {
     @JsonProperty("userTerminationDate")
     private LocalDate terminationDate;
 
-    @JsonProperty("userHiredDate")
-    private LocalDate hiredDate;
-
     @JsonProperty("userExtension")
     private String extension;
 }
