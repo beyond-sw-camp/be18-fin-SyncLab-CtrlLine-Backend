@@ -67,7 +67,6 @@ public class EquipmentServiceImpl implements EquipmentService {
         Page<EquipmentSearchResponseDto> dtoPage = page.map(equipment ->
                 EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUsers())
         );
-
         return PageResponse.from(dtoPage);
     }
 

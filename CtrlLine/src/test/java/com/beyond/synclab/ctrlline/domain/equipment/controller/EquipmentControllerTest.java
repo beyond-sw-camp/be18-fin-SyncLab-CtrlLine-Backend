@@ -1,18 +1,23 @@
 package com.beyond.synclab.ctrlline.domain.equipment.controller;
 
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -147,6 +153,52 @@ class EquipmentControllerTest {
                 .andExpect(jsonPath("$.data.equipmentCode", is("EQ001")))
                 .andExpect(jsonPath("$.data.equipmentName", is("절단기-01")))
                 .andExpect(jsonPath("$.data.userName", is("홍길동")));
+    }
+
+    @Test
+    @DisplayName("설비 목록 조회 성공")
+    @WithCustomUser(username = "user", roles = {"USER"})
+    void get_equipment_list_success() throws Exception {
+        // given - 서비스가 반환할 가짜 DTO 준비
+        EquipmentSearchResponseDto dto1 = EquipmentSearchResponseDto.builder()
+                .equipmentCode("EQP-0001")
+                .equipmentName("절단기-01")
+                .equipmentType("공정설비")
+                .userName("홍길동")
+                .userDepartment("생산1팀")
+                .isActive(true)
+                .build();
+
+        EquipmentSearchResponseDto dto2 = EquipmentSearchResponseDto.builder()
+                .equipmentCode("EQP-0002")
+                .equipmentName("포장기-03")
+                .equipmentType("포장설비")
+                .userName("이영희")
+                .userDepartment("품질팀")
+                .isActive(true)
+                .build();
+
+        PageResponse<EquipmentSearchResponseDto> pageResponse =
+                PageResponse.from(new PageImpl<>(
+                        List.of(dto1, dto2),
+                        PageRequest.of(0, 10),
+                        2
+                ));
+
+        // service mock
+        Mockito.when(equipmentService.getEquipmentsList(any(), any(), any()))
+                .thenReturn(pageResponse);
+
+        // when & then - GET 요청 후 JSON 응답 검증
+        mockMvc.perform(get("/api/v1/equipments")
+                        .param("equipmentCode", "EQP")   // 검색 조건
+                        .param("page", "0")
+                        .param("size", "10")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content[0].equipmentCode").value("EQP-0001"))
+                .andExpect(jsonPath("$.data.content[1].equipmentCode").value("EQP-0002"));
     }
 
 

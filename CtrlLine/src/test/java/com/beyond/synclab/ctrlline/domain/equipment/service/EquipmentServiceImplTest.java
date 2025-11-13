@@ -127,6 +127,7 @@ class EquipmentServiceImplTest {
         EquipmentSearchDto searchDto = EquipmentSearchDto.builder()
                 .build();
 
+        // 한 페이지에 10개씩 조회됨. 현재 페이지는 0번
         Pageable pageable = PageRequest.of(0, 10);
 
         Equipments equipment1 = Equipments.builder()
@@ -156,6 +157,8 @@ class EquipmentServiceImplTest {
         assertThat(response.getContent()).hasSize(2);
         assertThat(response.getContent().get(0).getEquipmentCode()).isEqualTo("EQP-0001");
         assertThat(response.getContent().get(1).getEquipmentCode()).isEqualTo("EQP-0002");
+        assertThat(response.getPageInfo().getCurrentPage()).isEqualTo(1);
+
 
         Mockito.verify(equipmentRepository, Mockito.times(1))
                 .searchEquipmentList(eq(searchDto), eq(pageable));
