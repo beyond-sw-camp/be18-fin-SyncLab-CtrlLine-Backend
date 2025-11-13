@@ -120,7 +120,7 @@
 
 ## 6. 시스템 아키텍처
 
-![시스템 아키텍쳐](docs/images/Ctrlline_SystemArchitecture.png)
+![시스템 아키텍쳐](docs/images/Ctrlline_SystemArchitecture_v2.png)
 
 <br/>
 
