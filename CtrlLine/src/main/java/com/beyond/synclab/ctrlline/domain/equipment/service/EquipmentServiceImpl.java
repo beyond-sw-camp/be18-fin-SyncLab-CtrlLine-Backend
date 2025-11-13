@@ -1,17 +1,26 @@
 package com.beyond.synclab.ctrlline.domain.equipment.service;
 
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.factory.dto.FactoryResponseDto;
+import com.beyond.synclab.ctrlline.domain.factory.dto.FactorySearchDto;
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -48,4 +57,18 @@ public class EquipmentServiceImpl implements EquipmentService {
         Users user = equipment.getUsers();
         return EquipmentDetailResponseDto.fromEntity(equipment, user);
     }
+
+    // 설비 목록 조회
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<EquipmentSearchResponseDto> getEquipmentsList(Users users, EquipmentSearchDto searchDto, Pageable pageable) {
+        Page<Equipments> page = equipmentRepository.searchEquipmentList(searchDto, pageable);
+
+        Page<EquipmentSearchResponseDto> dtoPage = page.map(equipment ->
+                EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUsers())
+        );
+
+        return PageResponse.from(dtoPage);
+    }
+
 }
