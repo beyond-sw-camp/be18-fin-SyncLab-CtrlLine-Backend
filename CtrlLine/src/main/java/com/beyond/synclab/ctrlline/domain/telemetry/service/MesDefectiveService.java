@@ -100,7 +100,7 @@ public class MesDefectiveService {
         if (!StringUtils.hasText(documentNo) || documentNo.length() <= prefix.length()) {
             return 0;
         }
-        String suffix = documentNo.substring(prefix.length()).replaceFirst("^[^0-9]*", "");
+        String suffix = documentNo.substring(prefix.length()).replaceFirst("^\\D*", "");
         if (!StringUtils.hasText(suffix)) {
             return 0;
         }
