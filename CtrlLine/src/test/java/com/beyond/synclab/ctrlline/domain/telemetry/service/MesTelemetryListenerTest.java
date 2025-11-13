@@ -110,6 +110,63 @@ class MesTelemetryListenerTest {
         assertThat(savedPayload.status()).isEqualTo("NG");
     }
 
+    @Test
+    void onTelemetry_savesOrderNgPayloadWithoutStatus() {
+        String payload = """
+                {"order_ng_type":4,"order_ng_qty":6,"order_ng_name":"코팅 두께 불량"}
+                """;
+
+        JsonNode node = ReflectionTestUtils.invokeMethod(listener, "parsePayload", payload);
+        Boolean identified = ReflectionTestUtils.invokeMethod(listener, "isNgDefectiveRecord", node);
+        assertThat(identified).isTrue();
+        DefectiveTelemetryPayload builtPayload = ReflectionTestUtils.invokeMethod(listener, "buildDefectivePayload", node);
+        assertThat(builtPayload).isNotNull();
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
+        DefectiveTelemetryPayload savedPayload = captor.getValue();
+        assertThat(savedPayload.defectiveCode()).isEqualTo("4");
+        assertThat(savedPayload.defectiveName()).isEqualTo("코팅 두께 불량");
+        assertThat(savedPayload.defectiveQuantity()).isEqualByComparingTo("6");
+        assertThat(savedPayload.status()).isEqualTo("NG");
+    }
+
+    @Test
+    void onTelemetry_savesNgPayloadWithSnakeCaseFields() {
+        String payload = """
+                {"equipmentId":15,"ng_type":2,"ng_qty":3,"ng_name":"셀 정렬 불량"}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
+        DefectiveTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentId()).isEqualTo(15L);
+        assertThat(saved.defectiveCode()).isEqualTo("2");
+        assertThat(saved.defectiveName()).isEqualTo("셀 정렬 불량");
+        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("3");
+        assertThat(saved.status()).isEqualTo("NG");
+    }
+
+    @Test
+    void onTelemetry_handlesOrderNgEventMapString() {
+        String payload = """
+                {"order_ng_event":"{equipmentId=F0001.CL0001.ModuleAndPackUnit01, ng_type=4, ng_name=체결 토크 불량, ng_qty=7}"}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
+        DefectiveTelemetryPayload saved = captor.getValue();
+        assertThat(saved.defectiveCode()).isEqualTo("4");
+        assertThat(saved.defectiveName()).isEqualTo("체결 토크 불량");
+        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("7");
+    }
+
     private ConsumerRecord<String, String> consumerRecord(String payload) {
         return new ConsumerRecord<>("mes-machine-telemetry", 0, 0L, "key", payload);
     }

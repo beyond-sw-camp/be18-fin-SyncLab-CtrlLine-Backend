@@ -15,6 +15,15 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.EQUIPMENT_CODE_FIELD_SNAKE;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.EQUIPMENT_ID_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.EQUIPMENT_ID_FIELD_SNAKE;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.NG_NAME_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.NG_QTY_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.NG_TYPE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_CODE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_EVENT_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_NAME_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_QTY_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_STATUS_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_TYPE_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.STATUS_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
@@ -22,6 +31,7 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -66,21 +76,29 @@ public class MesTelemetryListener {
             return;
         }
         JsonNode recordsNode = payload.path("records");
-        if (!recordsNode.isArray()) {
+        if (recordsNode.isArray()) {
+            for (JsonNode recordNode : recordsNode) {
+                JsonNode valueNode = recordNode.has(VALUE_FIELD) ? recordNode.get(VALUE_FIELD) : recordNode;
+                handleTelemetryValue(valueNode);
+            }
             return;
         }
+        handleTelemetryValue(payload);
+    }
 
-        for (JsonNode recordNode : recordsNode) {
-            JsonNode valueNode = recordNode.path(VALUE_FIELD);
-            if (isEnergyUsageRecord(valueNode)) {
-                double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
-                long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
-                accumulateEnergyUsage(timestamp, energyUsage);
-                continue;
-            }
-            if (isNgDefectiveRecord(valueNode)) {
-                persistDefectiveRecord(valueNode);
-            }
+    private void handleTelemetryValue(JsonNode valueNode) {
+        valueNode = unwrapOrderNgEvent(valueNode);
+        if (!valueNode.isObject()) {
+            return;
+        }
+        if (isEnergyUsageRecord(valueNode)) {
+            double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
+            long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
+            accumulateEnergyUsage(timestamp, energyUsage);
+            return;
+        }
+        if (isNgDefectiveRecord(valueNode)) {
+            persistDefectiveRecord(valueNode);
         }
     }
 
@@ -159,7 +177,15 @@ public class MesTelemetryListener {
         if (!valueNode.isObject()) {
             return false;
         }
-        String status = valueNode.path(STATUS_FIELD).asText(null);
+        if (hasOrderNgFields(valueNode)) {
+            return firstDecimal(valueNode,
+                    DEFECTIVE_QTY_FIELD,
+                    DEFECTIVE_QTY_FIELD_ALT,
+                    DEFECTIVE_QTY_FIELD_SNAKE,
+                    ORDER_NG_QTY_FIELD,
+                    NG_QTY_FIELD) != null;
+        }
+        String status = firstTextualValue(valueNode, STATUS_FIELD);
         if (status == null || !DEFECTIVE_STATUS_VALUE.equalsIgnoreCase(status)) {
             return false;
         }
@@ -180,15 +206,22 @@ public class MesTelemetryListener {
         BigDecimal quantity = firstDecimal(valueNode,
                 DEFECTIVE_QTY_FIELD,
                 DEFECTIVE_QTY_FIELD_ALT,
-                DEFECTIVE_QTY_FIELD_SNAKE);
-        String defectiveCode = firstNonEmptyText(valueNode,
+                DEFECTIVE_QTY_FIELD_SNAKE,
+                ORDER_NG_QTY_FIELD,
+                NG_QTY_FIELD);
+        String defectiveCode = firstNonEmptyValue(valueNode,
                 DEFECTIVE_CODE_FIELD,
                 DEFECTIVE_CODE_FIELD_ALT,
-                DEFECTIVE_CODE_FIELD_SNAKE);
-        String defectiveName = firstNonEmptyText(valueNode,
+                DEFECTIVE_CODE_FIELD_SNAKE,
+                ORDER_NG_CODE_FIELD,
+                ORDER_NG_TYPE_FIELD,
+                NG_TYPE_FIELD);
+        String defectiveName = firstNonEmptyValue(valueNode,
                 DEFECTIVE_NAME_FIELD,
                 DEFECTIVE_NAME_FIELD_ALT,
-                DEFECTIVE_NAME_FIELD_SNAKE);
+                DEFECTIVE_NAME_FIELD_SNAKE,
+                ORDER_NG_NAME_FIELD,
+                NG_NAME_FIELD);
 
         if (quantity == null || defectiveCode == null || defectiveName == null) {
             return null;
@@ -196,12 +229,20 @@ public class MesTelemetryListener {
 
         return DefectiveTelemetryPayload.builder()
                 .equipmentId(firstLong(valueNode, EQUIPMENT_ID_FIELD, EQUIPMENT_ID_FIELD_SNAKE))
-                .equipmentCode(firstNonEmptyText(valueNode, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE))
+                .equipmentCode(firstNonEmptyValue(valueNode, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE))
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQuantity(quantity)
-                .status(valueNode.path(STATUS_FIELD).asText())
+                .status(resolveStatus(valueNode))
                 .build();
+    }
+
+    private String resolveStatus(JsonNode valueNode) {
+        String status = firstNonEmptyValue(valueNode, STATUS_FIELD, ORDER_NG_STATUS_FIELD);
+        if (status == null && hasOrderNgFields(valueNode)) {
+            return DEFECTIVE_STATUS_VALUE;
+        }
+        return status;
     }
 
     private boolean hasAnyNonNull(JsonNode node, String... fieldNames) {
@@ -209,14 +250,30 @@ public class MesTelemetryListener {
                 .anyMatch(field -> node.hasNonNull(field) && node.get(field).isValueNode());
     }
 
-    private String firstNonEmptyText(JsonNode node, String... fieldNames) {
+    private String firstNonEmptyValue(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
             JsonNode field = node.get(fieldName);
-            if (field != null && field.isTextual()) {
+            if (field == null || field.isNull()) {
+                continue;
+            }
+            if (field.isTextual()) {
                 String text = field.asText().trim();
                 if (!text.isEmpty()) {
                     return text;
                 }
+            } else if (field.isNumber()) {
+                return field.asText();
+            }
+        }
+        return null;
+    }
+
+    private String firstTextualValue(JsonNode node, String fieldName) {
+        JsonNode field = node.get(fieldName);
+        if (field != null && field.isTextual()) {
+            String text = field.asText().trim();
+            if (!text.isEmpty()) {
+                return text;
             }
         }
         return null;
@@ -262,5 +319,55 @@ public class MesTelemetryListener {
             }
         }
         return null;
+    }
+
+    private boolean hasOrderNgFields(JsonNode node) {
+        return node.has(ORDER_NG_QTY_FIELD)
+                || node.has(ORDER_NG_NAME_FIELD)
+                || node.has(ORDER_NG_TYPE_FIELD)
+                || node.has(ORDER_NG_CODE_FIELD)
+                || node.has(NG_QTY_FIELD)
+                || node.has(NG_NAME_FIELD)
+                || node.has(NG_TYPE_FIELD);
+    }
+
+    private JsonNode unwrapOrderNgEvent(JsonNode valueNode) {
+        if (!valueNode.has(ORDER_NG_EVENT_FIELD)) {
+            return valueNode;
+        }
+        JsonNode eventNode = valueNode.get(ORDER_NG_EVENT_FIELD);
+        if (eventNode.isObject()) {
+            return eventNode;
+        }
+        if (eventNode.isTextual()) {
+            JsonNode parsed = parseMapLikeString(eventNode.asText());
+            return parsed != null ? parsed : valueNode;
+        }
+        return valueNode;
+    }
+
+    private JsonNode parseMapLikeString(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        String trimmed = text.trim();
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        String[] tokens = trimmed.split(",");
+        ObjectNode objectNode = objectMapper.createObjectNode();
+        for (String token : tokens) {
+            String[] pair = token.split("=", 2);
+            if (pair.length != 2) {
+                continue;
+            }
+            String key = pair[0].trim();
+            String value = pair[1].trim();
+            if (key.isEmpty()) {
+                continue;
+            }
+            objectNode.put(key, value);
+        }
+        return objectNode;
     }
 }
