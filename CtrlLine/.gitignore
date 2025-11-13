@@ -45,6 +45,3 @@ application*
 # test generated sources
 /src/test/generated/
 /src/test/generated/**
-
-# Security configuration file (local only)
-**/config/SecurityConfig.java
