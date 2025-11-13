@@ -1,15 +1,13 @@
-package com.beyond.synclab.ctrlline.domain.log;
+package com.beyond.synclab.ctrlline.domain.log.event;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.beyond.synclab.ctrlline.domain.log.entity.Logs;
+import com.beyond.synclab.ctrlline.domain.log.dto.LogCreateRequestDto;
 import com.beyond.synclab.ctrlline.domain.log.entity.Logs.ActionType;
-import com.beyond.synclab.ctrlline.domain.log.event.LogEvent;
-import com.beyond.synclab.ctrlline.domain.log.event.LogEventListener;
-import com.beyond.synclab.ctrlline.domain.log.repository.LogRepository;
+import com.beyond.synclab.ctrlline.domain.log.service.LogServiceImpl;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,11 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.AuditorAware;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Log 단위 테스트")
-class LogTest {
+@DisplayName("Log 이벤트 리스너 단위 테스트")
+class LogEventListenerTest {
 
     @Mock
-    private LogRepository logRepository;
+    private LogServiceImpl logService;
 
     @Mock
     private AuditorAware<Long> auditorAware;
@@ -37,12 +35,12 @@ class LogTest {
     void handleLogEvent_shouldSaveLogEntity() {
         // given
         when(auditorAware.getCurrentAuditor()).thenReturn(Optional.of(1L));
-        LogEvent event = new LogEvent("CREATE", 1L, ActionType.CREATE);
+        LogEvent event = new LogEvent("user", 1L, ActionType.CREATE);
 
         // when
         logEventListener.handleLogEvent(event);
 
         // then
-        verify(logRepository, times(1)).save(any(Logs.class));
+        verify(logService, times(1)).createLog(any(LogCreateRequestDto.class));
     }
 }
