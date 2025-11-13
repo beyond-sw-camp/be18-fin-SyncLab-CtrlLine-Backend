@@ -24,4 +24,13 @@ public final class TelemetryConstants {
     public static final String DEFECTIVE_QTY_FIELD = "quantity";
     public static final String DEFECTIVE_QTY_FIELD_ALT = "defectiveQty";
     public static final String DEFECTIVE_QTY_FIELD_SNAKE = "defective_qty";
+    public static final String ORDER_NG_TYPE_FIELD = "order_ng_type";
+    public static final String ORDER_NG_CODE_FIELD = "order_ng_code";
+    public static final String ORDER_NG_NAME_FIELD = "order_ng_name";
+    public static final String ORDER_NG_QTY_FIELD = "order_ng_qty";
+    public static final String ORDER_NG_STATUS_FIELD = "order_ng_status";
+    public static final String ORDER_NG_EVENT_FIELD = "order_ng_event";
+    public static final String NG_TYPE_FIELD = "ng_type";
+    public static final String NG_NAME_FIELD = "ng_name";
+    public static final String NG_QTY_FIELD = "ng_qty";
 }
