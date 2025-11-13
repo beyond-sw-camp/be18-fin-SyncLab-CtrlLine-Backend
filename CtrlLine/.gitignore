@@ -38,6 +38,10 @@ out/
 .vscode/
 
 application*
+!application.yaml
 !application-prod.yaml
 !application-staging-prod.yaml
 
+# test generated sources
+/src/test/generated/
+/src/test/generated/**
