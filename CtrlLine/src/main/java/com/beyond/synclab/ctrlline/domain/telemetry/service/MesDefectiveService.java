@@ -61,16 +61,29 @@ public class MesDefectiveService {
     }
 
     private Equipments findEquipment(DefectiveTelemetryPayload payload) {
-        if (payload.equipmentId() != null) {
-            Optional<Equipments> equipment = equipmentRepository.findById(payload.equipmentId());
-            if (equipment.isPresent()) {
-                return equipment.get();
-            }
+        Equipments equipment = findByNumericEquipmentId(payload.equipmentId());
+        if (equipment != null) {
+            return equipment;
         }
         if (StringUtils.hasText(payload.equipmentCode())) {
-            return equipmentRepository.findByEquipmentCode(payload.equipmentCode()).orElse(null);
+            equipment = equipmentRepository.findByEquipmentCode(payload.equipmentCode()).orElse(null);
+            if (equipment != null) {
+                return equipment;
+            }
+        }
+        String fallbackCode = payload.equipmentId() != null ? payload.equipmentId().toString() : null;
+        if (StringUtils.hasText(fallbackCode)) {
+            return equipmentRepository.findByEquipmentCode(fallbackCode).orElse(null);
         }
         return null;
+    }
+
+    private Equipments findByNumericEquipmentId(Long equipmentId) {
+        if (equipmentId == null) {
+            return null;
+        }
+        Optional<Equipments> equipment = equipmentRepository.findById(equipmentId);
+        return equipment.orElse(null);
     }
 
     private String nextDocumentNo() {
