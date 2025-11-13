@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -62,7 +63,7 @@ class LogServiceImplTest {
             .actionType(ActionType.CREATE)
             .build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(logs));
 
         // when
@@ -86,7 +87,7 @@ class LogServiceImplTest {
             .actionType(ActionType.UPDATE)
             .build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(log));
 
         List<LogListResponseDto> result = logService.getLogsList(dto);
@@ -109,7 +110,7 @@ class LogServiceImplTest {
             .createdAt(baseDate.plusDays(1).atStartOfDay())
             .build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(log));
 
         List<LogListResponseDto> result = logService.getLogsList(dto);
@@ -132,7 +133,7 @@ class LogServiceImplTest {
             .actionType(ActionType.DELETE)
             .build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(log));
 
         List<LogListResponseDto> result = logService.getLogsList(dto);
@@ -153,7 +154,7 @@ class LogServiceImplTest {
             .createdAt(baseDate.atTime(12, 0))
             .build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(log));
 
         List<LogListResponseDto> result = logService.getLogsList(dto);
@@ -169,7 +170,7 @@ class LogServiceImplTest {
             .entityName("inventory")
             .build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of());
 
         List<LogListResponseDto> result = logService.getLogsList(dto);
@@ -182,7 +183,7 @@ class LogServiceImplTest {
     void getLogsList_nullSafe() {
         LogSearchDto dto = LogSearchDto.builder().build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(Collections.emptyList());
 
         List<LogListResponseDto> result = logService.getLogsList(dto);
@@ -196,7 +197,7 @@ class LogServiceImplTest {
         Logs log1 = Logs.builder().createdAt(baseDate.atTime(9, 0)).build();
         Logs log2 = Logs.builder().createdAt(baseDate.atTime(12, 0)).build();
 
-        when(logRepository.findAll(any(Specification.class), any(Sort.class)))
+        when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(log1, log2));
 
         List<LogListResponseDto> result = logService.getLogsList(LogSearchDto.builder().build());
