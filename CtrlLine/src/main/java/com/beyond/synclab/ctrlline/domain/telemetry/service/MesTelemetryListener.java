@@ -367,15 +367,13 @@ public class MesTelemetryListener {
         ObjectNode objectNode = objectMapper.createObjectNode();
         for (String token : tokens) {
             String[] pair = token.split("=", 2);
-            if (pair.length != 2) {
-                continue;
+            if (pair.length == 2) {
+                String key = pair[0].trim();
+                String value = pair[1].trim();
+                if (!key.isEmpty()) {
+                    objectNode.put(key, value);
+                }
             }
-            String key = pair[0].trim();
-            String value = pair[1].trim();
-            if (key.isEmpty()) {
-                continue;
-            }
-            objectNode.put(key, value);
         }
         return objectNode;
     }
