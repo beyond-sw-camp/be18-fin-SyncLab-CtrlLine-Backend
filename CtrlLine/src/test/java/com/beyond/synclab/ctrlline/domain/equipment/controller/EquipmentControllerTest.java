@@ -49,22 +49,6 @@ class EquipmentControllerTest {
     @MockitoBean
     private JwtUtil jwtUtil;
 
-    private Users buildTestUser(String name, Users.UserRole userRole) {
-        return Users.builder()
-                .name(name)
-                .empNo("202511123")
-                .email("kim@test.com")
-                .password("12345678")
-                .status(Users.UserStatus.ACTIVE)
-                .phoneNumber("010-1111-2222")
-                .address("서울시 강남구")
-                .department("영업 2팀")
-                .position(Users.UserPosition.DIRECTOR)
-                .role(userRole)
-                .hiredDate(LocalDate.of(2025, 1, 10))
-                .build();
-    }
-
     // 현원에몽이 WithCustomUser와 WithCustiomUserSecurityContextFactory 추가로 작성해서 해결됨.
     // 설비 등록
     // 201

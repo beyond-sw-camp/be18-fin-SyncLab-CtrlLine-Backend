@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
-   // private final JwtUtil jwtUtil;
 
     // 설비 등록 API
     // 관리자만 설비를 등록할 수 있다.

@@ -123,7 +123,7 @@ class EquipmentServiceImplTest {
     void success_get_equipment_list() {
 
         // given
-        Users user = buildTestUser("홍길동", Users.UserRole.ADMIN);
+        Users user = buildTestUser("홍길동", Users.UserRole.USER);
         EquipmentSearchDto searchDto = EquipmentSearchDto.builder()
                 .build();
 

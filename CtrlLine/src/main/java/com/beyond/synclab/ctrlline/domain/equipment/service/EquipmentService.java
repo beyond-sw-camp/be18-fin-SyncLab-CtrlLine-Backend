@@ -7,9 +7,6 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRespons
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
-import org.apache.catalina.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 public interface EquipmentService {
