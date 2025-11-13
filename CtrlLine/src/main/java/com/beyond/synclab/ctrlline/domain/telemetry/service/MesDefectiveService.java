@@ -29,6 +29,7 @@ public class MesDefectiveService {
     @Transactional
     public void saveNgTelemetry(DefectiveTelemetryPayload payload) {
         if (payload == null) {
+            log.warn("NG telemetry payload is null. Skipping save operation.");
             return;
         }
         Equipments equipment = findEquipment(payload);
@@ -42,14 +43,10 @@ public class MesDefectiveService {
             return;
         }
 
-        Defectives defective = Defectives.builder()
-                .equipment(equipment)
-                .documentNo(nextDocumentNo())
-                .defectiveCode(payload.defectiveCode())
-                .defectiveName(payload.defectiveName())
-                .defectiveQty(payload.defectiveQuantity())
-                .defectiveStatus(payload.status())
-                .build();
+        Defectives defective = payload.toEntity(
+                Defectives.builder().equipment(equipment),
+                nextDocumentNo()
+        );
         defectiveRepository.save(defective);
     }
 

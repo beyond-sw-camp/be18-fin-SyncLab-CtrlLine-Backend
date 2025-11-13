@@ -1,5 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.dto;
 
+import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import java.math.BigDecimal;
 import lombok.Builder;
 
@@ -12,4 +13,13 @@ public record DefectiveTelemetryPayload(
         BigDecimal defectiveQuantity,
         String status
 ) {
+    public Defectives toEntity(Defectives.DefectivesBuilder builder, String documentNo) {
+        return builder
+                .documentNo(documentNo)
+                .defectiveCode(defectiveCode)
+                .defectiveName(defectiveName)
+                .defectiveQty(defectiveQuantity)
+                .defectiveStatus(status)
+                .build();
+    }
 }
