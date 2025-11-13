@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -86,46 +87,25 @@ public class Users {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void update(UserUpdateRequestDto dto) {
-        if (dto.getDepartment() != null && !dto.getDepartment().isBlank()) {
-            this.department = dto.getDepartment();
-        }
+    private <T> void updateIfPresent(T value, Consumer<T> consumer) {
+        if (value == null) return;
+        if (value instanceof String s && s.isBlank()) return;
+        consumer.accept(value);
+    }
 
-        if (dto.getPosition() != null) {
-            this.position = dto.getPosition();
-        }
-
-        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-            this.email = dto.getEmail();
-        }
-
-        if (dto.getName() != null && !dto.getName().isBlank()) {
-            this.name = dto.getName();
-        }
-
-        if (dto.getRole() != null) {
-            this.role = dto.getRole();
-        }
-
-        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().isBlank()) {
-            this.phoneNumber = dto.getPhoneNumber();
-        }
-
-        if (dto.getStatus() != null) {
-            this.status = dto.getStatus();
-        }
-
-        if (dto.getAddress() != null) {
-            this.address = dto.getAddress();
-        }
-
-        if (dto.getTerminationDate() != null) {
-            this.terminationDate = dto.getTerminationDate();
-        }
-
-        if (dto.getExtension() != null && !dto.getExtension().isBlank()) {
-            this.extension = dto.getExtension();
-        }
+    public void update(UserUpdateRequestDto dto, String password) {
+        updateIfPresent(dto.getDepartment(), v -> this.department = v);
+        updateIfPresent(dto.getPosition(), v -> this.position = v);
+        updateIfPresent(dto.getEmail(), v -> this.email = v);
+        updateIfPresent(dto.getName(), v -> this.name = v);
+        updateIfPresent(dto.getRole(), v -> this.role = v);
+        updateIfPresent(dto.getPhoneNumber(), v -> this.phoneNumber = v);
+        updateIfPresent(password, v -> this.password = v);
+        updateIfPresent(dto.getStatus(), v -> this.status = v);
+        updateIfPresent(dto.getAddress(), v -> this.address = v);
+        updateIfPresent(dto.getTerminationDate(), v -> this.terminationDate = v);
+        updateIfPresent(dto.getHiredDate(), v -> this.hiredDate = v);
+        updateIfPresent(dto.getExtension(), v -> this.extension = v);
     }
 
     public enum UserRole {
