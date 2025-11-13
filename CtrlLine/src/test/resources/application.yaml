@@ -27,7 +27,7 @@ app:
 
 spring:
   datasource:
-    url: "jdbc:h2:mem:testdb;MODE=MYSQL"        # 단위 테스트용 메모리 DB
+    url: "jdbc:h2:mem:testdb"        # 단위 테스트용 메모리 DB
     username: sa                      # H2 기본 사용자
     password: ""                      # H2 기본 비밀번호
     driver-class-name: org.h2.Driver

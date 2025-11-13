@@ -42,7 +42,6 @@ spring:
     out-of-order: false      # 순서 보장 강제
     validate-on-migrate: true
     baseline-on-migrate: false
-    baseline-version: 0
   data:
     redis:
       host: ${REDIS_HOST}
