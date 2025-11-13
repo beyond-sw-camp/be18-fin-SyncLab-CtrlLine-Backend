@@ -301,6 +301,7 @@ public class MesTelemetryListener {
                 try {
                     return Long.parseLong(field.asText().trim());
                 } catch (NumberFormatException ignored) {
+                    // ignore malformed number text
                 }
             }
         }
@@ -310,20 +311,19 @@ public class MesTelemetryListener {
     private BigDecimal firstDecimal(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
             JsonNode field = node.get(fieldName);
-            if (field == null || field.isNull()) {
-                continue;
-            }
-            if (field.isNumber()) {
-                return field.decimalValue();
-            }
-            if (field.isTextual()) {
-                String text = field.asText().trim();
-                if (text.isEmpty()) {
-                    continue;
+            if (field != null && !field.isNull()) {
+                if (field.isNumber()) {
+                    return field.decimalValue();
                 }
-                try {
-                    return new BigDecimal(text);
-                } catch (NumberFormatException ignored) {
+                if (field.isTextual()) {
+                    String text = field.asText().trim();
+                    if (!text.isEmpty()) {
+                        try {
+                            return new BigDecimal(text);
+                        } catch (NumberFormatException ignored) {
+                            // ignore malformed decimal text
+                        }
+                    }
                 }
             }
         }
