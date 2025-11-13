@@ -198,7 +198,16 @@ public class MesTelemetryListener {
     private void persistDefectiveRecord(JsonNode valueNode) {
         DefectiveTelemetryPayload payload = buildDefectivePayload(valueNode);
         if (payload != null) {
+            log.info(
+                    "NG telemetry received equipmentId={}, equipmentCode={}, defectiveCode={}, defectiveName={}, qty={}",
+                    payload.equipmentId(),
+                    payload.equipmentCode(),
+                    payload.defectiveCode(),
+                    payload.defectiveName(),
+                    payload.defectiveQuantity());
             mesDefectiveService.saveNgTelemetry(payload);
+        } else {
+            log.warn("NG telemetry skipped due to missing required fields payload={}", valueNode);
         }
     }
 
