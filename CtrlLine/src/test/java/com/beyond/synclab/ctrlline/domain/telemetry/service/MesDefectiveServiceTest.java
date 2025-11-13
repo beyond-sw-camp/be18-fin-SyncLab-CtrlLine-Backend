@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
-import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defective;
+import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import com.beyond.synclab.ctrlline.domain.telemetry.repository.DefectiveRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -32,7 +32,7 @@ class MesDefectiveServiceTest {
     private EquipmentRepository equipmentRepository;
 
     @Captor
-    private ArgumentCaptor<Defective> defectiveCaptor;
+    private ArgumentCaptor<Defectives> defectiveCaptor;
 
     private MesDefectiveService mesDefectiveService;
 
@@ -63,7 +63,7 @@ class MesDefectiveServiceTest {
         mesDefectiveService.saveNgTelemetry(payload);
 
         verify(defectiveRepository).save(defectiveCaptor.capture());
-        Defective saved = defectiveCaptor.getValue();
+        Defectives saved = defectiveCaptor.getValue();
         assertThat(saved.getDocumentNo()).isEqualTo("202411-0001");
         assertThat(saved.getDefectiveCode()).isEqualTo("DF-01");
         assertThat(saved.getDefectiveQty()).isEqualByComparingTo("4");
@@ -82,7 +82,7 @@ class MesDefectiveServiceTest {
 
         when(equipmentRepository.findById(8L)).thenReturn(Optional.of(sampleEquipment(8L)));
         when(defectiveRepository.findTopByDocumentNoStartingWithOrderByDocumentNoDesc("202411"))
-                .thenReturn(Optional.of(Defective.builder().documentNo("202411-0004").build()));
+                .thenReturn(Optional.of(Defectives.builder().documentNo("202411-0004").build()));
 
         mesDefectiveService.saveNgTelemetry(payload);
 
