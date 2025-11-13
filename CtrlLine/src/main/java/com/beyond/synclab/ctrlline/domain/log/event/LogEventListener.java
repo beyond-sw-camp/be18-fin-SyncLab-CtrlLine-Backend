@@ -1,8 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.log.event;
 
 import com.beyond.synclab.ctrlline.domain.log.dto.LogCreateRequestDto;
-import com.beyond.synclab.ctrlline.domain.log.entity.Logs;
-import com.beyond.synclab.ctrlline.domain.log.repository.LogRepository;
 import com.beyond.synclab.ctrlline.domain.log.service.LogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
