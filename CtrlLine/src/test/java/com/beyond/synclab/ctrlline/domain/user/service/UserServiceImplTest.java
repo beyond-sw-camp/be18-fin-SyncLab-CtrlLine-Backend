@@ -266,7 +266,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("비밀번호 불일치로 예외 발생")
+    @DisplayName("유저 수정 실패 - 비밀번호 불일치로 예외 발생")
     void updateUserById_passwordMismatch_fail() {
         // given
         Long userId = 1L;
@@ -284,7 +284,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("이메일 중복으로 예외 발생")
+    @DisplayName("유저 수정 실패 -이메일 중복으로 예외 발생")
     void updateUserById_duplicateEmail_fail() {
         // given
         Long userId = 1L;
