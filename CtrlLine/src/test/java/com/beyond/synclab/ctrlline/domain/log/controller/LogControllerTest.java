@@ -17,8 +17,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -31,9 +34,10 @@ import org.springframework.test.web.servlet.ResultActions;
 @WebMvcTest(controllers = LogController.class)
 @Import(TestSecurityConfig.class)
 class LogControllerTest {
+
     @TestConfiguration
     static class LogControllerTestContextConfiguration {
-        @Bean
+        @Bean("mockLogService")
         public LogServiceImpl logService() {
             return mock(LogServiceImpl.class);
         }
@@ -42,15 +46,21 @@ class LogControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-
     @Autowired
+    @Qualifier("mockLogService")
     private LogServiceImpl logsServiceImpl;
+
+    private LocalDate localDate;
+
+    @BeforeEach
+    void setUp() {
+        localDate = LocalDate.ofInstant(Instant.parse("2099-01-01T00:00:00Z"),  ZoneId.systemDefault());
+    }
 
     @Test
     @WithMockUser(roles = {"ADMIN"})
     void getLogsList() throws Exception {
         // given
-        LocalDate localDate = LocalDate.ofInstant(Instant.parse("2099-01-01T00:00:00Z"),  ZoneId.systemDefault());
         LogListResponseDto logListResponseDto = LogListResponseDto
             .builder()
             .logId(1L)
@@ -81,5 +91,23 @@ class LogControllerTest {
             .andExpect(jsonPath("$.data[0].entityId").value(1))
             .andExpect(jsonPath("$.data[0].createdAt").value("2099-01-02T00:00:00"))
             .andExpect(jsonPath("$.data[0].actionType").value(ActionType.CREATE.name()));
+    }
+
+    @Test
+    @DisplayName("로그 현황 User가 조회 - 403 Forbidden")
+    @WithMockUser
+    void getLogsList_whenUser_forbidden() throws Exception {
+        //given
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/api/v1/logs")
+            .param("entityName", "user")
+            .param("userId", "1")
+            .param("fromDate", localDate.toString())
+            .param("toDate", localDate.plusDays(2).toString())
+            .param("actionType", ActionType.CREATE.name())
+            .contentType(MediaType.APPLICATION_JSON));
+
+        resultActions.andExpect(status().isForbidden());
     }
 }
