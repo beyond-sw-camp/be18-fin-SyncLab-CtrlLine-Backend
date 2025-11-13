@@ -310,21 +310,30 @@ public class MesTelemetryListener {
 
     private BigDecimal firstDecimal(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
-            JsonNode field = node.get(fieldName);
-            if (field != null && !field.isNull()) {
-                if (field.isNumber()) {
-                    return field.decimalValue();
-                }
-                if (field.isTextual()) {
-                    String text = field.asText().trim();
-                    if (!text.isEmpty()) {
-                        try {
-                            return new BigDecimal(text);
-                        } catch (NumberFormatException ignored) {
-                            // ignore malformed decimal text
-                        }
-                    }
-                }
+            BigDecimal decimal = toBigDecimal(node.get(fieldName));
+            if (decimal != null) {
+                return decimal;
+            }
+        }
+        return null;
+    }
+
+    private BigDecimal toBigDecimal(JsonNode field) {
+        if (field == null || field.isNull()) {
+            return null;
+        }
+        if (field.isNumber()) {
+            return field.decimalValue();
+        }
+        if (field.isTextual()) {
+            String text = field.asText().trim();
+            if (text.isEmpty()) {
+                return null;
+            }
+            try {
+                return new BigDecimal(text);
+            } catch (NumberFormatException ignored) {
+                // ignore malformed decimal text
             }
         }
         return null;
