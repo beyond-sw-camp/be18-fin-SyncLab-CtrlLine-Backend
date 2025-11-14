@@ -1,27 +1,35 @@
 package com.beyond.synclab.ctrlline.domain.equipment.service;
 
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.assertj.core.api.Assertions.assertThat;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -109,5 +117,53 @@ class EquipmentServiceImplTest {
         assertThat(result.getEquipmentName()).isEqualTo("절단기-01");
         assertThat(result.getUserName()).isEqualTo("홍길동");
     }
+
+    // 설비 목록 조회
+    @Test
+    void success_get_equipment_list() {
+
+        // given
+        Users user = buildTestUser("홍길동", Users.UserRole.USER);
+        EquipmentSearchDto searchDto = EquipmentSearchDto.builder()
+                .build();
+
+        // 한 페이지에 10개씩 조회됨. 현재 페이지는 0번
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Equipments equipment1 = Equipments.builder()
+                .equipmentCode("EQP-0001")
+                .users(user)
+                .build();
+
+        Equipments equipment2 = Equipments.builder()
+                .equipmentCode("EQP-0002")
+                .users(user)
+                .build();
+
+        Page<Equipments> page = new PageImpl<>(
+                List.of(equipment1, equipment2),
+                pageable,
+                2
+        );
+
+        Mockito.when(equipmentRepository.searchEquipmentList(eq(searchDto), eq(pageable)))
+                .thenReturn(page);
+
+        // when
+        PageResponse<EquipmentSearchResponseDto> response =
+                equipmentService.getEquipmentsList(user, searchDto, pageable);
+
+        // then
+        assertThat(response.getContent()).hasSize(2);
+        assertThat(response.getContent().get(0).getEquipmentCode()).isEqualTo("EQP-0001");
+        assertThat(response.getContent().get(1).getEquipmentCode()).isEqualTo("EQP-0002");
+        assertThat(response.getPageInfo().getCurrentPage()).isEqualTo(1);
+
+
+        Mockito.verify(equipmentRepository, Mockito.times(1))
+                .searchEquipmentList(eq(searchDto), eq(pageable));
+    }
+
+
 
 }

@@ -3,7 +3,6 @@ package com.beyond.synclab.ctrlline.domain.equipment.dto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -32,12 +31,6 @@ public class EquipmentRegisterRequestDto {
     @NotNull(message = "PPM 값은 필수입니다.")
     private BigDecimal equipmentPpm;
 
-//    @NotNull(message = "담당부서는 필수입니다.")
-//    private String userDepartment;
-
-//    @NotNull(message = "담당자는 필수입니다.")
-//    private String userName;
-
     // 사번으로 담당자, 담당부서 찾음.
     @NotNull(message = "사번은 필수입니다.")
     private String empNo;
@@ -63,7 +56,7 @@ public class EquipmentRegisterRequestDto {
                 .equipmentPpm(this.equipmentPpm != null ? this.equipmentPpm : BigDecimal.ZERO)
                 .totalCount(BigDecimal.ZERO)               // ✅ 기본값
                 .defectiveCount(BigDecimal.ZERO)           // ✅ 기본값
-                .isActive(this.isActive != null ? this.isActive : true)
+                .isActive(this.isActive)
                 .users(users)
                 .build();
     }
