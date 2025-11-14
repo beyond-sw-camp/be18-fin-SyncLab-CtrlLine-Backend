@@ -11,10 +11,10 @@ import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOr
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
-import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans.PlanStatus;
-import com.beyond.synclab.ctrlline.domain.production.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import java.time.Clock;
 import java.time.Instant;

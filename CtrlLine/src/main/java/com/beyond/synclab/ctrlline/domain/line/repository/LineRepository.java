@@ -1,6 +1,6 @@
-package com.beyond.synclab.ctrlline.domain.production.repository;
+package com.beyond.synclab.ctrlline.domain.line.repository;
 
-import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
