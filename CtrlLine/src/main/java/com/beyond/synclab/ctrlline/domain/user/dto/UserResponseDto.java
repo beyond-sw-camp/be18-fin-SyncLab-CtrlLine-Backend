@@ -23,7 +23,10 @@ public class UserResponseDto {
     private UserPosition userPosition;
     private String userPhoneNumber;
     private String userEmail;
+    private String userAddress;
+    private String userExtension;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static UserResponseDto fromEntity(Users user) {
         return UserResponseDto.builder()
@@ -36,7 +39,10 @@ public class UserResponseDto {
             .userPosition(user.getPosition())
             .userPhoneNumber(user.getPhoneNumber())
             .userEmail(user.getEmail())
+            .userAddress(user.getAddress())
+            .userExtension(user.getExtension())
             .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
             .build();
     }
 }

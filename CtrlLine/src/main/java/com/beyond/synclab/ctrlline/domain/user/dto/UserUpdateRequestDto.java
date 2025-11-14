@@ -10,9 +10,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserUpdateRequestDto {
     @JsonProperty("userName")
     private String name;
@@ -34,6 +34,12 @@ public class UserUpdateRequestDto {
 
     @JsonProperty("userStatus")
     private Users.UserStatus status;
+
+    @JsonProperty("userPassword")
+    private String password;
+
+    @JsonProperty("userPasswordConfirm")
+    private String passwordConfirm;
 
     @JsonProperty("userAddress")
     private String address;
