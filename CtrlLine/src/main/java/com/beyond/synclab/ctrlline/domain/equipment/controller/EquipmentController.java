@@ -56,7 +56,7 @@ public class EquipmentController {
     @GetMapping("/{equipmentCode}")
     public ResponseEntity<BaseResponse<EquipmentDetailResponseDto>> getEquipmentDetail(
             @AuthenticationPrincipal CustomUserDetails user,
-            @PathVariable ("equipmentCode") String equipmentCode) {
+            @PathVariable("equipmentCode") String equipmentCode) {
 
         EquipmentDetailResponseDto responseDto = equipmentService.getEquipmentDetail(equipmentCode);
         BaseResponse<EquipmentDetailResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
@@ -65,13 +65,12 @@ public class EquipmentController {
     }
 
 
-
     // 설비 목록 조회
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<EquipmentSearchResponseDto>>> getEquipmentList(
             @AuthenticationPrincipal CustomUserDetails user,
             EquipmentSearchDto searchDto,
-            @PageableDefault(size=10, sort="equipmentCode", direction=Sort.Direction.ASC)
+            @PageableDefault(size = 10, sort = "equipmentCode", direction = Sort.Direction.ASC)
             Pageable pageable
     ) {
         PageResponse<EquipmentSearchResponseDto> response =
@@ -80,6 +79,5 @@ public class EquipmentController {
         BaseResponse<PageResponse<EquipmentSearchResponseDto>> baseResponse = BaseResponse.of(HttpStatus.OK.value(), response);
         return ResponseEntity.ok(baseResponse);
     }
-
 }
 
