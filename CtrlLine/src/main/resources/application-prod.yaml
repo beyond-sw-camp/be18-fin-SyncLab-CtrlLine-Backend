@@ -61,3 +61,8 @@ mes:
     group-id: ${MES_KAFKA_GROUP_ID:ctrlline-prod-group}
     auto-offset-reset: ${MES_KAFKA_AUTO_OFFSET_RESET:earliest}
     poll-interval: ${MES_KAFKA_POLL_INTERVAL:5s}
+
+milo:
+  client:
+    base-url: ${MILO_URL}
+    secret-key: ${MILO_SECRET_KEY}
