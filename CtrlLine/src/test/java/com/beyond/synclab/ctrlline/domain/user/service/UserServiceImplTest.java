@@ -53,9 +53,6 @@ class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
     private Users createTestUser(Long id, String empNo, String department, UserStatus status) {
         LocalDate nowDate = LocalDate.now();
         LocalDateTime nowDateTime = LocalDateTime.now();
@@ -445,6 +442,9 @@ class UserServiceImplTest {
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(user.getPassword()).isEqualTo("encodedPw");
         verify(passwordEncoder, times(1)).encode("newPassword");
+    }
+
+    @Test
     @DisplayName("유저 수정 실패 - 비밀번호 불일치로 예외 발생")
     void updateUserById_passwordMismatch_fail() {
         // given
