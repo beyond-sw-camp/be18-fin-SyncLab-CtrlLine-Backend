@@ -15,18 +15,17 @@ public final class QuerydslUtils {
     private QuerydslUtils() {}
 
     // Pageable Sort → QueryDSL OrderSpecifier 변환 메서드
-    public static List<OrderSpecifier<?>> getSort(
+    public static <T extends Comparable<? super T>>
+    List<OrderSpecifier<?>> getSort(
             Sort sort,
             Map<String, ? extends Path<? extends Comparable<?>>> mapping
     ) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
-        // 정렬 정보가 없으면 빈 리스트 반환
         if (sort == null || sort.isUnsorted()) {
             return orders;
         }
 
-        // Sort 객체를 순회하면서 QueryDSL OrderSpecifier로 변환
         sort.forEach(order -> {
             Path<? extends Comparable<?>> path = mapping.get(order.getProperty());
             if (path != null) {
