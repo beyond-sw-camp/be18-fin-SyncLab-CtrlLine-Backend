@@ -29,6 +29,7 @@ public class EquipmentDetailResponseDto {
     private LocalDateTime maintenanceDate;
     private BigDecimal totalCount;
     private BigDecimal defectiveCount;
+    private Boolean isActive;
 
     public static EquipmentDetailResponseDto fromEntity(Equipments equipment, Users user) {
         return EquipmentDetailResponseDto.builder()
@@ -43,6 +44,7 @@ public class EquipmentDetailResponseDto {
                 .maintenanceDate(equipment.getMaintenanceHistory())
                 .totalCount(equipment.getTotalCount())
                 .defectiveCount(equipment.getDefectiveCount())
+                .isActive(equipment.getIsActive())
                 .build();
     }
 }
