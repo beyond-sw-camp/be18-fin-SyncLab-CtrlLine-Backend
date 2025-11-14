@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
@@ -33,6 +36,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
@@ -42,6 +46,9 @@ class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     private Users createTestUser(Long id, String empNo, String department, UserStatus status) {
         LocalDate nowDate = LocalDate.now();
@@ -249,6 +256,181 @@ class UserServiceImplTest {
         assertThatThrownBy(() -> userService.updateUserById(mock(UserUpdateRequestDto.class), userId))
             .isInstanceOf(AppException.class)
             .hasMessageContaining(UserErrorCode.USER_NOT_FOUND.getMessage());
+    }
 
+    @Test
+    @DisplayName("유저 개인 정보 수정 성공")
+    void updateUser_success() {
+        // given
+        UserUpdateMeRequestDto userUpdateMeRequestDto = UserUpdateMeRequestDto.builder()
+                .userAddress("서울")
+                .userPassword("1234")
+                .userPasswordConfirm("1234")
+                .userPhoneNumber("010-1234-1234")
+                .userEmail("test@test.com")
+                .userName("홍길동")
+                .build();
+
+        Users users = Users.builder()
+                .id(1L)
+                .email("old@old.com")
+                .password("oldPassword")
+                .phoneNumber("010-0000-0000")
+                .address("예전 거주지")
+                .name("홍올드")
+                .build();
+        when(passwordEncoder.encode("1234")).thenReturn("newPassword");
+
+        // when
+        UserResponseDto responseDto = userService.updateMyInfo(userUpdateMeRequestDto, users);
+
+
+        // then
+        assertThat(responseDto).isNotNull();
+        assertThat(responseDto.getUserPhoneNumber()).isEqualTo("010-1234-1234");
+        assertThat(responseDto.getUserEmail()).isEqualTo("test@test.com");
+    }
+
+    @Test
+    @DisplayName("유저 개인 정보 수정 실패 - 비밀번호 불일치")
+    void updateUser_passwordMismatch_fail() {
+        // given
+        UserUpdateMeRequestDto dto = UserUpdateMeRequestDto.builder()
+            .userPassword("1234")
+            .userPasswordConfirm("5678")
+            .build();
+
+        Users user = Users.builder().id(1L).password("old").build();
+
+        // when & then
+        assertThatThrownBy(() -> userService.updateMyInfo(dto, user))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(UserErrorCode.PASSWORD_MISMATCH.getMessage());
+    }
+
+    @Test
+    @DisplayName("유저 개인 정보 수정 성공 - 비밀번호가 null인 경우")
+    void updateUser_noPasswordUpdate_success() {
+        // given
+        UserUpdateMeRequestDto dto = UserUpdateMeRequestDto.builder()
+            .userAddress("부산")
+            .userEmail("new@test.com")
+            .build();
+
+        Users user = Users.builder()
+            .id(1L)
+            .email("old@test.com")
+            .address("서울")
+            .password("oldPassword")
+            .build();
+
+        // when
+        UserResponseDto result = userService.updateMyInfo(dto, user);
+
+        // then
+        assertThat(result.getUserEmail()).isEqualTo("new@test.com");
+        assertThat(user.getPassword()).isEqualTo("oldPassword"); // 기존 유지
+    }
+
+    @Test
+    @DisplayName("유저 개인 정보 수정 성공 - 비밀번호 공백 입력 시 비번 변경 제외")
+    void updateUser_blankPassword_success() {
+        // given
+        UserUpdateMeRequestDto dto = UserUpdateMeRequestDto.builder()
+            .userPassword("")
+            .userPasswordConfirm("")
+            .userName("새이름")
+            .build();
+
+        Users user = Users.builder()
+            .id(1L)
+            .name("기존이름")
+            .password("oldPassword")
+            .build();
+
+        // when
+        UserResponseDto result = userService.updateMyInfo(dto, user);
+
+        // then
+        assertThat(result.getUserName()).isEqualTo("새이름");
+        assertThat(user.getPassword()).isEqualTo("oldPassword"); // 변경 X
+    }
+
+    @Test
+    @DisplayName("유저 개인 정보 수정 성공 - 비밀번호 없음, confirm만 들어온 경우")
+    void updateUser_onlyConfirmProvided_success() {
+        // given
+        UserUpdateMeRequestDto dto = UserUpdateMeRequestDto.builder()
+            .userPassword(null)
+            .userPasswordConfirm("1234")
+            .userPhoneNumber("010-2222-3333")
+            .build();
+
+        Users user = Users.builder()
+            .id(1L)
+            .password("oldPassword")
+            .phoneNumber("010-0000-0000")
+            .build();
+
+        // when
+        UserResponseDto result = userService.updateMyInfo(dto, user);
+
+        // then
+        assertThat(result.getUserPhoneNumber()).isEqualTo("010-2222-3333");
+        assertThat(user.getPassword()).isEqualTo("oldPassword"); // 변경되지 않아야 함
+    }
+
+    @Test
+    @DisplayName("유저 개인 정보 수정 성공 - 모든 필드가 null 또는 blank인 경우 변경 없음")
+    void updateUser_noFieldsToUpdate_success() {
+        // given
+        UserUpdateMeRequestDto dto = UserUpdateMeRequestDto.builder()
+            .userAddress(null)
+            .userEmail("")
+            .userName(null)
+            .userPhoneNumber("   ")
+            .build();
+
+        Users user = Users.builder()
+            .id(1L)
+            .email("old@test.com")
+            .name("홍길동")
+            .address("서울")
+            .phoneNumber("010-0000-0000")
+            .password("oldPassword")
+            .build();
+
+        // when
+        UserResponseDto result = userService.updateMyInfo(dto, user);
+
+        // then
+        assertThat(result.getUserEmail()).isEqualTo("old@test.com");
+        assertThat(result.getUserName()).isEqualTo("홍길동");
+        assertThat(user.getPassword()).isEqualTo("oldPassword");
+    }
+
+    @Test
+    @DisplayName("유저 개인 정보 수정 성공 - 비밀번호 정상 변경")
+    void updateUser_passwordUpdate_success() {
+        // given
+        UserUpdateMeRequestDto dto = UserUpdateMeRequestDto.builder()
+            .userPassword("newPassword")
+            .userPasswordConfirm("newPassword")
+            .build();
+
+        Users user = Users.builder()
+            .id(1L)
+            .password("oldPassword")
+            .build();
+
+        when(passwordEncoder.encode("newPassword")).thenReturn("encodedPw");
+
+        // when
+        UserResponseDto result = userService.updateMyInfo(dto, user);
+
+        // then
+        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(user.getPassword()).isEqualTo("encodedPw");
+        verify(passwordEncoder, times(1)).encode("newPassword");
     }
 }
