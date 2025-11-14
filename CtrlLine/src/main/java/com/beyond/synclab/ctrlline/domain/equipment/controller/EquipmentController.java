@@ -86,17 +86,26 @@ public class EquipmentController {
     @PatchMapping("/{equipmentCode}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponse<EquipmentResponseDto>> updateEquipment(
+            // 현재 로그인 한, 사용자 정보를 가져옴.
             @AuthenticationPrincipal CustomUserDetails users,
+            // {equipmentCode} 값으로 매핑해줌.
             @PathVariable String equipmentCode,
+            // Body를 자바 객체로 매핑해줌.
             @RequestBody UpdateEquipmentRequestDto request
 
     ) {
+        System.out.println(">>> authorities = " + users.getAuthorities());
+        System.out.println(">>> role = " + users.getUser().getRole());
         EquipmentResponseDto responseDto = equipmentService.updateEquipment(
+                // 요청 보내는 사람의 정보 가져오기 위함.
                 users.getUser(),
+                // 수정 요청 데이터
                 request,
+                // 설비 코드로, 설비 찾음.
                 equipmentCode
         );
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
+
     }
 }
 
