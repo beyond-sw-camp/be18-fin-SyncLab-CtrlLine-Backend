@@ -10,6 +10,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.user.spec.UserSpecification;
+import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -56,10 +57,20 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDto updateUserById(UserUpdateRequestDto dto, Long userId) {
+        if (dto.getPassword() != null && dto.getPasswordConfirm() != null && !dto.getPassword().equals(dto.getPasswordConfirm())) {
+            throw new AppException(UserErrorCode.PASSWORD_MISMATCH);
+        }
+
         Users user = userRepository.findById(userId)
             .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
-        user.update(dto);
+        if(dto.getEmail() != null && userRepository.existsByEmail(dto.getEmail())) {
+            throw new AppException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
+
+        String newPassword = dto.getPassword() != null ? passwordEncoder.encode(dto.getPassword()) : null;
+
+        user.update(dto, newPassword);
 
         userRepository.save(user);
 

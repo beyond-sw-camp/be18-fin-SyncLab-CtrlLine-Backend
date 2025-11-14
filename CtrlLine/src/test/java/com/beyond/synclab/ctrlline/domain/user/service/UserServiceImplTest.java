@@ -2,9 +2,11 @@ package com.beyond.synclab.ctrlline.domain.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +22,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import com.beyond.synclab.ctrlline.security.exception.AuthErrorCode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +46,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @Mock
     private UserRepository userRepository;
@@ -230,22 +236,28 @@ class UserServiceImplTest {
             .status(UserStatus.ACTIVE)
             .address("한화로123")
             .terminationDate(LocalDate.now())
+            .password("1234")
+            .passwordConfirm("1234")
             .extension("01123")
             .build();
 
-        // when
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmail(userUpdateRequestDto.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(userUpdateRequestDto.getPassword())).thenReturn("encoded1234");
 
+        // when
         UserResponseDto responseDto = userService.updateUserById(userUpdateRequestDto, userId);
 
         assertThat(responseDto).isNotNull();
+        assertThat(responseDto.getUserEmail()).isEqualTo("hong1234@test.com");
         assertThat(responseDto.getEmpNo()).isEqualTo("209912001");
         assertThat(responseDto.getUserDepartment()).isEqualTo("updateDepartment");
 
+        verify(userRepository).save(any(Users.class));
     }
 
     @Test
-    @DisplayName("유저 수정 성공 - 없는 유저 조회")
+    @DisplayName("유저 수정 실패 - 없는 유저 조회")
     void patchUser_notFound_fail() {
         //given
         Long userId = 1L;
@@ -433,5 +445,42 @@ class UserServiceImplTest {
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(user.getPassword()).isEqualTo("encodedPw");
         verify(passwordEncoder, times(1)).encode("newPassword");
+    @DisplayName("유저 수정 실패 - 비밀번호 불일치로 예외 발생")
+    void updateUserById_passwordMismatch_fail() {
+        // given
+        Long userId = 1L;
+        UserUpdateRequestDto dto = UserUpdateRequestDto.builder()
+            .password("1234")
+            .passwordConfirm("5678")
+            .build();
+
+        // when & then
+        assertThatThrownBy(() -> userService.updateUserById(dto, userId))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(UserErrorCode.PASSWORD_MISMATCH.getMessage());
+
+        verify(userRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("유저 수정 실패 -이메일 중복으로 예외 발생")
+    void updateUserById_duplicateEmail_fail() {
+        // given
+        Long userId = 1L;
+        Users user = createTestUser(userId, "209912001", "testDept", UserStatus.ACTIVE);
+        UserUpdateRequestDto dto = UserUpdateRequestDto.builder()
+            .email("dup@test.com")
+            .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> userService.updateUserById(dto, userId))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(AuthErrorCode.DUPLICATE_EMAIL.getMessage());
+
+        verify(userRepository, never()).save(any());
+    }
+
 }

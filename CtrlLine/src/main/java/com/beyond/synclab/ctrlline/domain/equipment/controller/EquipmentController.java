@@ -1,16 +1,19 @@
 package com.beyond.synclab.ctrlline.domain.equipment.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
-import com.beyond.synclab.ctrlline.domain.factory.dto.FactoryResponseDto;
-import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
-import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,7 +34,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
-   // private final JwtUtil jwtUtil;
 
     // 설비 등록 API
     // 관리자만 설비를 등록할 수 있다.
@@ -60,6 +62,23 @@ public class EquipmentController {
         BaseResponse<EquipmentDetailResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
 
         return ResponseEntity.ok(response);
+    }
+
+
+
+    // 설비 목록 조회
+    @GetMapping
+    public ResponseEntity<BaseResponse<PageResponse<EquipmentSearchResponseDto>>> getEquipmentList(
+            @AuthenticationPrincipal CustomUserDetails user,
+            EquipmentSearchDto searchDto,
+            @PageableDefault(size=10, sort="equipmentCode", direction=Sort.Direction.ASC)
+            Pageable pageable
+    ) {
+        PageResponse<EquipmentSearchResponseDto> response =
+                equipmentService.getEquipmentsList(user.getUser(), searchDto, pageable);
+
+        BaseResponse<PageResponse<EquipmentSearchResponseDto>> baseResponse = BaseResponse.of(HttpStatus.OK.value(), response);
+        return ResponseEntity.ok(baseResponse);
     }
 
 }
