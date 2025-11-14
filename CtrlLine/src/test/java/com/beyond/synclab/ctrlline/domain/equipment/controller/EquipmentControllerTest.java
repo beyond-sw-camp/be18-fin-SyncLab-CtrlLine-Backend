@@ -3,8 +3,8 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -23,7 +23,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,7 +62,7 @@ class EquipmentControllerTest {
     @WithCustomUser(username = "admin", roles = {"ADMIN"})
     void registerEquipment_success() throws Exception {
         // given
-        EquipmentRegisterRequestDto requestDto = EquipmentRegisterRequestDto.builder()
+        CreateEquipmentRequestDto requestDto = CreateEquipmentRequestDto.builder()
                 .equipmentCode("EQP-0001")
                 .equipmentName("각형전지 조립라인")
                 .equipmentType("생산설비")
@@ -72,7 +71,7 @@ class EquipmentControllerTest {
                 .isActive(true)
                 .build();
 
-        EquipmentRegisterResponseDto responseDto = EquipmentRegisterResponseDto.builder()
+        EquipmentResponseDto responseDto = EquipmentResponseDto.builder()
                 .equipmentCode("EQP-0001")
                 .equipmentName("각형전지 조립라인")
                 .equipmentType("생산설비")
@@ -84,7 +83,7 @@ class EquipmentControllerTest {
                 .build();
 
         // when
-        when(equipmentService.register(any(Users.class), any(EquipmentRegisterRequestDto.class)))
+        when(equipmentService.register(any(Users.class), any(CreateEquipmentRequestDto.class)))
                 .thenReturn(responseDto);
 
         // then
@@ -109,7 +108,7 @@ class EquipmentControllerTest {
     @WithCustomUser(username = "admin", roles = {"ADMIN"})
     void registerEquipment_fail_invalidRequest() throws Exception {
         // given : 필수값 누락
-        EquipmentRegisterRequestDto invalidRequest = EquipmentRegisterRequestDto.builder()
+        CreateEquipmentRequestDto invalidRequest = CreateEquipmentRequestDto.builder()
                 .equipmentCode(null) // 설비 코드 누락
                 .equipmentName("생산설비")
                 .build();

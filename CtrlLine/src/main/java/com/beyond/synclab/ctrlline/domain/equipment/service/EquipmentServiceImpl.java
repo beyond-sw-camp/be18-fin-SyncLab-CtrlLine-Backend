@@ -4,17 +4,16 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
-import com.beyond.synclab.ctrlline.domain.factory.dto.FactoryResponseDto;
-import com.beyond.synclab.ctrlline.domain.factory.dto.FactorySearchDto;
-import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,7 +28,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     private final UserRepository userRepository;
 
     // 설비 등록
-    public EquipmentRegisterResponseDto register(Users users, EquipmentRegisterRequestDto requestDto) {
+    public EquipmentResponseDto register(Users users, CreateEquipmentRequestDto requestDto) {
 
         // (1) 설비코드 중복 검사 (409)
         if (equipmentRepository.existsByEquipmentCode(requestDto.getEquipmentCode())) {
@@ -46,7 +45,7 @@ public class EquipmentServiceImpl implements EquipmentService {
         // DB 저장
         equipmentRepository.save(equipments);
 
-        return EquipmentRegisterResponseDto.fromEntity(equipments, user);
+        return EquipmentResponseDto.fromEntity(equipments, user);
     }
 
     // 설비 상세 조회
@@ -68,6 +67,36 @@ public class EquipmentServiceImpl implements EquipmentService {
                 EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUsers())
         );
         return PageResponse.from(dtoPage);
+    }
+
+    // 설비 업데이트 (사용여부, 담당자만 변경 가능하다.)
+    @Override
+    @Transactional
+    public EquipmentResponseDto updateEquipment(Users users, UpdateEquipmentRequestDto request, String equipmentCode) {
+
+        if(users.getRole() != Users.UserRole.ADMIN){
+            throw new AppException(UserErrorCode.FORBIDDEN);
+        }
+
+        // 설비 코드로, 설비 조회
+        Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
+                .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
+
+        // 1) 사용 여부 변경
+        if (request.getIsActive() != null) {
+            equipment.updateStatus(request.getIsActive());
+        }
+
+        // 2) 담당자 변경
+        if (request.getUserName() != null) {
+            Users newManager = userRepository.findByName(request.getUserName())
+                    .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
+            equipment.updateManager(newManager);
+        }
+
+        return EquipmentResponseDto.fromEntity(
+                equipment, equipment.getUsers()
+        );
     }
 
 }

@@ -3,8 +3,8 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
@@ -39,11 +39,11 @@ public class EquipmentController {
     // 관리자만 설비를 등록할 수 있다.
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BaseResponse<EquipmentRegisterResponseDto>> registerEquipment(
+    public ResponseEntity<BaseResponse<EquipmentResponseDto>> registerEquipment(
             @AuthenticationPrincipal CustomUserDetails user,
-            @Validated @RequestBody EquipmentRegisterRequestDto requestDto) {
+            @Validated @RequestBody CreateEquipmentRequestDto requestDto) {
 
-        EquipmentRegisterResponseDto responseDto =
+        EquipmentResponseDto responseDto =
                 equipmentService.register(user.getUser(), requestDto);
 
         // 이거 BaseResponse로 받다보니까, 201이 아니라, 200으로 뜨더라고요?
