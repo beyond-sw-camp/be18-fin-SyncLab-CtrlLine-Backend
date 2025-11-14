@@ -9,10 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("all")
 public final class QuerydslUtils {
 
     // 인스턴스화 방지 (유틸 클래스)
-    private QuerydslUtils() {}
+    private QuerydslUtils() {
+    }
 
     // Pageable Sort → QueryDSL OrderSpecifier 변환 메서드
     public static <T extends Comparable<? super T>>
@@ -35,7 +37,6 @@ public final class QuerydslUtils {
                 ));
             }
         });
-
         return orders;
     }
 }

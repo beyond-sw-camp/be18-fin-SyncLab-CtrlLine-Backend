@@ -1,8 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.item.dto.request;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
