@@ -289,6 +289,7 @@ class UserServiceImplTest {
         assertThat(responseDto).isNotNull();
         assertThat(responseDto.getUserPhoneNumber()).isEqualTo("010-1234-1234");
         assertThat(responseDto.getUserEmail()).isEqualTo("test@test.com");
+        assertThat(responseDto.getUserName()).isEqualTo("홍길동");
     }
 
     @Test
