@@ -2,10 +2,11 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.security.jwt.JwtUtil;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,10 +30,12 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -200,5 +204,46 @@ class EquipmentControllerTest {
                 .andExpect(jsonPath("$.data.content[1].equipmentCode").value("EQP-0002"));
     }
 
+    // 설비 업데이트
+    @Test
+    @WithCustomUser(username = "user", roles = {"USER"})
+    @DisplayName("ADMIN 역할은 설비를 수정할 수 있다.")
+    void updateEquipment_success() throws Exception {
+
+        String equipmentCode = "EQ001";
+
+        // 요청 DTO
+        UpdateEquipmentRequestDto request = UpdateEquipmentRequestDto.builder()
+                .userName("박민수")
+                .isActive(false)
+                .build();
+
+        // 응답 DTO
+        EquipmentResponseDto response = EquipmentResponseDto.builder()
+                .equipmentCode("EQ001")
+                .equipmentName("절단기-01")
+                .equipmentType("CUTTER")
+                .equipmentPpm(BigDecimal.valueOf(210))
+                .userName("박민수")
+                .userDepartment("생산1팀")
+                .empNo("20240001")
+                .isActive(false)
+                .build();
+
+        // Mocking
+        when(equipmentService.updateEquipment(any(Users.class), any(UpdateEquipmentRequestDto.class), eq(equipmentCode)))
+                .thenReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                patch("/api/v1/equipments/{equipmentCode}", equipmentCode)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.equipmentCode").value("EQ001"))
+                .andExpect(jsonPath("$.data.userName").value("박민수"))
+                .andExpect(jsonPath("$.data.isActive").value(false))
+                .andDo(print());
+    }
 
 }

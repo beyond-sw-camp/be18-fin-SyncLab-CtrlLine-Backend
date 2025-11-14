@@ -7,6 +7,7 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDt
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,6 +80,23 @@ public class EquipmentController {
 
         BaseResponse<PageResponse<EquipmentSearchResponseDto>> baseResponse = BaseResponse.of(HttpStatus.OK.value(), response);
         return ResponseEntity.ok(baseResponse);
+    }
+
+    // 설비 업데이트 (사용여부, 담당자만 수정 가능. 권한은 관리자만!)
+    @PatchMapping("/{equipmentCode}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<EquipmentResponseDto>> updateEquipment(
+            @AuthenticationPrincipal CustomUserDetails users,
+            @PathVariable String equipmentCode,
+            @RequestBody UpdateEquipmentRequestDto request
+
+    ) {
+        EquipmentResponseDto responseDto = equipmentService.updateEquipment(
+                users.getUser(),
+                request,
+                equipmentCode
+        );
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }
 
