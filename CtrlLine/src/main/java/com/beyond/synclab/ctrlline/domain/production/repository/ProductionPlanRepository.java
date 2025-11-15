@@ -5,10 +5,12 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface ProductionPlanRepository extends JpaRepository<ProductionPlans, Long> {
 
-    List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startAt);
+    List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startTime);
 
-    List<ProductionPlans> findAllByLineCode(String lineCode);
+    List<ProductionPlans> findAllByLine_lineCode(String lineCode);
 }
