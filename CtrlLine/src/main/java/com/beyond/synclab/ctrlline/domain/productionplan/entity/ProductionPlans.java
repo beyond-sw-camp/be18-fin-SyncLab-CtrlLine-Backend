@@ -1,22 +1,10 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.entity;
 
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
-import jakarta.persistence.Column;
-import jakarta.persistence.ConstraintMode;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
+import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -31,7 +19,27 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Getter
 @Builder
 @Entity
-@Table(name = "production_plan")
+@Table(
+        name = "production_plan",
+        indexes = {
+                @Index(
+                        name = "idx_production_plan_line_id",
+                        columnList = "line_id"
+                ),
+                @Index(
+                        name = "idx_production_plan_sales_manager_id",
+                        columnList = "sales_manager_id"
+                ),
+                @Index(
+                        name = "idx_production_plan_production_manager_id",
+                        columnList = "production_manager_id"
+                ),
+                @Index(
+                        name = "idx_production_plan_due_date",
+                        columnList = "due_date"
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
@@ -43,8 +51,9 @@ public class ProductionPlans {
     @Column(name = "production_plan_id")
     private Long id;
 
-    @Column(name = "line_id", nullable = false)
-    private Long lineId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "line_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private Lines line;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sales_manager_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
@@ -84,19 +93,12 @@ public class ProductionPlans {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Transient
-    private String lineCode;
-
     public void markDispatched() {
         this.status = PlanStatus.RUNNING;
     }
 
     public void markDispatchFailed() {
         this.status = PlanStatus.RETURNED;
-    }
-
-    public void assignLineCode(String lineCode) {
-        this.lineCode = lineCode;
     }
 
     public int commandQuantity() {
