@@ -11,12 +11,11 @@ import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOr
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
-import com.beyond.synclab.ctrlline.domain.production.entity.Lines;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
-import com.beyond.synclab.ctrlline.domain.production.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -109,12 +108,12 @@ class ProductionOrderServiceTest {
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
                 .lineId(1L)
-                .startTime(now.minusMinutes(1))
-                .plannedQty(new BigDecimal("7000"))
+                .startAt(now.minusMinutes(1))
+                .plannedQty(new java.math.BigDecimal("7000"))
                 .status(PlanStatus.CONFIRMED)
                 .build();
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
+        when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
@@ -155,12 +154,12 @@ class ProductionOrderServiceTest {
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
                 .lineId(1L)
-                .startTime(now.minusMinutes(1))
+                .startAt(now.minusMinutes(1))
                 .plannedQty(new java.math.BigDecimal("7000"))
                 .status(PlanStatus.CONFIRMED)
                 .build();
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
+        when(productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));

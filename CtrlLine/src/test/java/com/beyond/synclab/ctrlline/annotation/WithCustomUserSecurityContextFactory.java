@@ -23,17 +23,17 @@ public class WithCustomUserSecurityContextFactory implements WithSecurityContext
         String[] roles = annotation.roles();
 
         Users testUser = Users.builder()
-            .email(username)
-            .build();
+                .email(username)
+                .build();
 
         CustomUserDetails customUserDetails = new CustomUserDetails(testUser);
 
         UsernamePasswordAuthenticationToken auth =
-            new UsernamePasswordAuthenticationToken(customUserDetails, null,
-                Arrays.stream(roles)
-                    .map(SimpleGrantedAuthority::new)
-                    .toList()
-            );
+                new UsernamePasswordAuthenticationToken(customUserDetails, null,
+                        Arrays.stream(roles)
+                                .map(SimpleGrantedAuthority::new)
+                                .toList()
+                );
 
         context.setAuthentication(auth);
         return context;

@@ -22,8 +22,8 @@ jobs:
 
           # 규칙 1: develop으로 향하는 PR의 브랜치명 확인
           if [[ "$TARGET_BRANCH" == "develop" ]]; then
-            if [[ ! "$SOURCE_BRANCH" =~ ^(feature|fix|refactor|docs)/.+$ ]]; then
-              echo "❌ 브랜치명 규칙 위반: 'feature/', 'fix/', 'refactor/', 'docs/' 로 시작해야 합니다."
+            if [[ ! "$SOURCE_BRANCH" =~ ^(feature|hotfix|fix|refactor|docs)/.+$ ]]; then
+              echo "❌ 브랜치명 규칙 위반: 'feature/', 'fix/', 'hotfix/', 'refactor/', 'docs/' 로 시작해야 합니다."
               exit 1
             fi
           fi
