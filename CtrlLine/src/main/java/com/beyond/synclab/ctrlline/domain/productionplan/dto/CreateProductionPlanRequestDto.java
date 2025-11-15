@@ -1,18 +1,16 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.dto;
 
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
@@ -26,13 +24,11 @@ public class CreateProductionPlanRequestDto {
     @NotNull(message = "상태는 필수입니다.")
     private ProductionPlans.PlanStatus status;
 
-    @NotNull(message = "Sales Manager 번호는 필수입니다.")
-    @Positive(message = "Sales Manager 번호는 양수여야 합니다.")
-    private Long salesManagerNo;
+    @NotNull(message = "Sales Manager 사번은 필수입니다.")
+    private String salesManagerNo;
 
-    @NotNull(message = "Production Manager 번호는 필수입니다.")
-    @Positive(message = "Production Manager 번호는 양수여야 합니다.")
-    private Long productionManagerNo;
+    @NotNull(message = "Production Manager 사번은 필수입니다.")
+    private String productionManagerNo;
 
     @NotNull(message = "시작 시간은 필수입니다.")
     private LocalDateTime startTime;
@@ -54,4 +50,19 @@ public class CreateProductionPlanRequestDto {
 
     @Size(max = 500, message = "비고는 최대 500자까지 가능합니다.")
     private String remark;
+
+    public ProductionPlans toEntity(Users salesManager, Users productionManager, Lines line, String documentNo) {
+        return ProductionPlans.builder()
+                .line(line)
+                .salesManager(salesManager)
+                .productionManager(productionManager)
+                .documentNo(documentNo)
+                .status(status)
+                .dueDate(this.dueDate)
+                .plannedQty(this.plannedQty)
+                .startTime(this.startTime)
+                .endTime(this.endTime)
+                .remark(this.remark)
+                .build();
+    }
 }
