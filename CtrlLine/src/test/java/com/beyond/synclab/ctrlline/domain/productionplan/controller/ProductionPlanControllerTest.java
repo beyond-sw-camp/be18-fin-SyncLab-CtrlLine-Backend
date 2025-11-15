@@ -59,8 +59,8 @@ class ProductionPlanControllerTest {
         CreateProductionPlanRequestDto createRequestDto = CreateProductionPlanRequestDto.builder()
             .dueDate(LocalDate.now())
             .plannedQty(BigDecimal.valueOf(100))
-            .productionManagerNo(1L)
-            .salesManagerNo(2L)
+            .productionManagerNo("209910001")
+            .salesManagerNo("209910002")
             .factoryCode("F001")
             .lineCode("L001")
             .endTime(LocalDateTime.now())
@@ -71,7 +71,7 @@ class ProductionPlanControllerTest {
             .build();
 
         ProductionPlanResponseDto responseDto = ProductionPlanResponseDto.builder()
-            .productionManagerNo(1L)
+            .productionManagerNo("209910001")
             .build();
 
         when(productionPlanService.createProductionPlan(any(CreateProductionPlanRequestDto.class), any(Users.class))).thenReturn(responseDto);
@@ -86,6 +86,6 @@ class ProductionPlanControllerTest {
         resultActions
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.code").value(201))
-            .andExpect(jsonPath("$.data.productionManagerNo").value(1L));
+            .andExpect(jsonPath("$.data.productionManagerNo").value("209910001"));
     }
 }
