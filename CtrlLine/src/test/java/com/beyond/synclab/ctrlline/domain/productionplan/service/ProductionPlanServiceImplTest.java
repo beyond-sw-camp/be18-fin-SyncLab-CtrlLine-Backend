@@ -1,10 +1,5 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
@@ -16,12 +11,6 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
-
-import java.math.BigDecimal;
-import java.time.*;
-import java.util.Collections;
-import java.util.Optional;
-
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +19,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProductionPlanServiceImplTest {
