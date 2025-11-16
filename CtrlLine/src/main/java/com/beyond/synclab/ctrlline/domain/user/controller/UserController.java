@@ -3,11 +3,14 @@ package com.beyond.synclab.ctrlline.domain.user.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import com.beyond.synclab.ctrlline.domain.user.service.UserAuthServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -76,4 +80,13 @@ public class UserController {
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 
+    @PatchMapping("/me")
+    public ResponseEntity<BaseResponse<UserResponseDto>> updateUserMe(
+        @RequestBody UserUpdateMeRequestDto dto,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user = userDetails.getUser();
+        UserResponseDto responseDto = userService.updateMyInfo(dto, user);
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
 }
