@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.user.entity;
 
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -105,6 +106,18 @@ public class Users {
         updateIfPresent(dto.getAddress(), v -> this.address = v);
         updateIfPresent(dto.getTerminationDate(), v -> this.terminationDate = v);
         updateIfPresent(dto.getExtension(), v -> this.extension = v);
+    }
+
+    private String pick(String newVal, String oldVal) {
+        return (newVal == null || newVal.isBlank()) ? oldVal : newVal;
+    }
+
+    public void update(UserUpdateMeRequestDto dto, String encodedPassword) {
+        this.address = pick(dto.getUserAddress(), this.address);
+        this.email = pick(dto.getUserEmail(), this.email);
+        this.name = pick(dto.getUserName(), this.name);
+        this.phoneNumber = pick(dto.getUserPhoneNumber(), this.phoneNumber);
+        this.password = encodedPassword != null ? encodedPassword : this.password;
     }
 
     public enum UserRole {

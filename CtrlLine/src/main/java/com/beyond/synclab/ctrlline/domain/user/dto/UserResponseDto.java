@@ -4,6 +4,8 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -25,6 +27,8 @@ public class UserResponseDto {
     private String userEmail;
     private String userAddress;
     private String userExtension;
+    private LocalDate hiredDate;
+    private LocalDate terminationDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -43,6 +47,8 @@ public class UserResponseDto {
             .userExtension(user.getExtension())
             .createdAt(user.getCreatedAt())
             .updatedAt(user.getUpdatedAt())
+            .hiredDate(user.getHiredDate())
+            .terminationDate(user.getTerminationDate())
             .build();
     }
 }
