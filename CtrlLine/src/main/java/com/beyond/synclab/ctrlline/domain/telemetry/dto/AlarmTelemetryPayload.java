@@ -6,6 +6,7 @@ import lombok.Builder;
 @Builder
 public record AlarmTelemetryPayload(
         String equipmentCode,
+        String alarmCode,
         String alarmType,
         String alarmName,
         String alarmLevel,
