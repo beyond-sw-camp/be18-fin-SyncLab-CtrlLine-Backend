@@ -82,8 +82,6 @@ class MesDefectiveServiceTest {
         return Equipments.builder()
                 .id(id)
                 // 이거 안 써서 지움.
-                // lineId(1L)
-                // .equipmentStatusId(1L)
                 .equipmentCode("EQP-" + id)
                 .equipmentName("Eqp " + id)
                 .equipmentType("TYPE")
