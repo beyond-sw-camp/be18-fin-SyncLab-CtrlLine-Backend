@@ -129,7 +129,7 @@ class ProductionPlanServiceImplTest {
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
         when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            eq("LINE01"), anyList(), any(LocalDate.class)
+            eq("LINE01"), anyList(), any(LocalDateTime.class)
         )).thenReturn(Optional.empty());
         when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
 
@@ -187,7 +187,7 @@ class ProductionPlanServiceImplTest {
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
         when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            eq("LINE01"), anyList(), any(LocalDate.class)
+            eq("LINE01"), anyList(), any(LocalDateTime.class)
         )).thenReturn(Optional.of(existingPlan));
         when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -316,7 +316,7 @@ class ProductionPlanServiceImplTest {
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
         when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            eq("LINE01"), anyList(), any(LocalDate.class)
+            eq("LINE01"), anyList(), any(LocalDateTime.class)
         )).thenReturn(Optional.empty());
         when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
         when(productionPlanRepository.save(any(ProductionPlans.class)))
