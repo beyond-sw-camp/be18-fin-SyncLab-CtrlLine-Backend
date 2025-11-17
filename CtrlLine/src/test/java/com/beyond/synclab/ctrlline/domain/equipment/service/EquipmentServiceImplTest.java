@@ -248,15 +248,16 @@ class EquipmentServiceImplTest {
 
         // 기존 담당자
         Users oldManager = Users.builder()
-                .name("김철수")
-                .department("생산팀")
-                .empNo("12345678")
+                .name("이인화")
+                .department("생산 1팀")
+                .empNo("M001")
                 .build();
 
         // 새로운 담당자
         Users newManager = Users.builder()
                 .name("박민수")
                 .department("관리팀")
+                .role(Users.UserRole.USER)
                 .empNo("20230001")
                 .build();
 
@@ -273,13 +274,14 @@ class EquipmentServiceImplTest {
 
         UpdateEquipmentRequestDto request = UpdateEquipmentRequestDto.builder()
                 .userName("박민수")
+                .empNo("20230001")
                 .isActive(false)
                 .build();
 
         when(equipmentRepository.findByEquipmentCode(equipmentCode))
                 .thenReturn(Optional.of(equipment));
 
-        when(userRepository.findByName("박민수"))
+        when(userRepository.findByEmpNo("20230001"))
                 .thenReturn(Optional.of(newManager));
 
         // when

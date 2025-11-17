@@ -93,7 +93,6 @@ public class EquipmentServiceImpl implements EquipmentService {
                     .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
             equipment.updateManager(newManager);
         }
-
         return EquipmentResponseDto.fromEntity(equipment, equipment.getUsers());
     }
 
