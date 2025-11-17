@@ -3,7 +3,6 @@ package com.beyond.synclab.ctrlline.domain.production.repository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import jakarta.persistence.LockModeType;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +33,6 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
         ORDER BY p.createdAt DESC
         LIMIT 1
     """)
-    Optional<ProductionPlans> findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(String lineCode, List<PlanStatus> pending,
-        LocalDate now);
+    Optional<ProductionPlans> findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(String lineCode, List<PlanStatus> statuses,
+        LocalDateTime now);
 }
