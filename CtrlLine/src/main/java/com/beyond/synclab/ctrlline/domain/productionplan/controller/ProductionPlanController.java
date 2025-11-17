@@ -6,6 +6,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanRespo
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ public class ProductionPlanController {
 
     @PostMapping
     public ResponseEntity<BaseResponse<ProductionPlanResponseDto>> createProductionPlan(
-        @RequestBody CreateProductionPlanRequestDto requestDto,
+        @RequestBody @Valid CreateProductionPlanRequestDto requestDto,
         @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Users user = userDetails.getUser();
