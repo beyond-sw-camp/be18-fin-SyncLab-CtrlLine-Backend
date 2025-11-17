@@ -98,6 +98,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             requestedStatus = PlanStatus.CONFIRMED;
         }
 
+        productionPlan.updateStatus(requestedStatus);
+
         // 4. 시작 시간 계산
         LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
         log.debug("예상 시작 시간 : {}", startTime);

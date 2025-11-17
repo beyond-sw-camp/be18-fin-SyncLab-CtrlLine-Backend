@@ -114,6 +114,10 @@ public class ProductionPlans {
         this.endTime = endTime;
     }
 
+    public void updateStatus(PlanStatus requestedStatus) {
+        this.status = requestedStatus;
+    }
+
     public enum PlanStatus {
         PENDING,
         CONFIRMED,
