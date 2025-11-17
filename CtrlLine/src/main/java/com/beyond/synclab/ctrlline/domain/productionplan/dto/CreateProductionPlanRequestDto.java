@@ -3,14 +3,17 @@ package com.beyond.synclab.ctrlline.domain.productionplan.dto;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
@@ -19,6 +22,7 @@ import java.time.LocalDateTime;
 public class CreateProductionPlanRequestDto {
 
     @NotNull(message = "납기일은 필수입니다.")
+    @FutureOrPresent(message = "납기일은 오늘 포함 이후여야 합니다.")
     private LocalDate dueDate;
 
     @NotNull(message = "Sales Manager 사번은 필수입니다.")
