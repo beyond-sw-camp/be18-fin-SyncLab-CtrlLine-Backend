@@ -94,8 +94,6 @@ public class EquipmentController {
             @RequestBody UpdateEquipmentRequestDto request
 
     ) {
-        System.out.println(">>> authorities = " + users.getAuthorities());
-        System.out.println(">>> role = " + users.getUser().getRole());
         EquipmentResponseDto responseDto = equipmentService.updateEquipment(
                 // 요청 보내는 사람의 정보 가져오기 위함.
                 users.getUser(),

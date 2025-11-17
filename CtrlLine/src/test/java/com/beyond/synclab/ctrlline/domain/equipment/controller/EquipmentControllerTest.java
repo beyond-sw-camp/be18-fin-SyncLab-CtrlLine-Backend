@@ -206,7 +206,7 @@ class EquipmentControllerTest {
 
     // 설비 업데이트
     @Test
-    @WithCustomUser(username = "user", roles = {"USER"})
+    @WithCustomUser(username = "user", roles = {"ADMIN"})
     @DisplayName("ADMIN 역할은 설비를 수정할 수 있다.")
     void updateEquipment_success() throws Exception {
 
