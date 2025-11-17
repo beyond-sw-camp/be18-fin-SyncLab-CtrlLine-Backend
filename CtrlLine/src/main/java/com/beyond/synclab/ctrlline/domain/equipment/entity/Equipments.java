@@ -89,4 +89,14 @@ public class Equipments {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive; // 사용여부
+
+    // 사용 여부 업데이트
+    public void updateStatus(boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    // 담당자 업데이트
+    public void updateManager(Users manager){
+        this.users = manager;
+    }
 }

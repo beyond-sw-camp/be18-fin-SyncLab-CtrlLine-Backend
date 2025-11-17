@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class EquipmentRegisterResponseDto {
+public class EquipmentResponseDto {
         private String equipmentCode;
         private String equipmentName;
         private String equipmentType;
@@ -25,8 +25,8 @@ public class EquipmentRegisterResponseDto {
         private Boolean isActive;
 
 
-        public static EquipmentRegisterResponseDto fromEntity(Equipments equipment, Users user) {
-                return EquipmentRegisterResponseDto.builder()
+        public static EquipmentResponseDto fromEntity(Equipments equipment, Users user) {
+                return EquipmentResponseDto.builder()
                         .equipmentCode(equipment.getEquipmentCode())
                         .equipmentName(equipment.getEquipmentName())
                         .equipmentType(equipment.getEquipmentType())
