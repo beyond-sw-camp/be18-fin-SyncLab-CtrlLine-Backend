@@ -26,6 +26,7 @@ public class LogEventListener {
         LogCreateRequestDto logCreateRequestDto = LogCreateRequestDto.builder()
             .userId(userId)
             .actionType(event.actionType())
+            .entityName(event.entityName())
             .entityId(event.entityId())
             .build();
 
