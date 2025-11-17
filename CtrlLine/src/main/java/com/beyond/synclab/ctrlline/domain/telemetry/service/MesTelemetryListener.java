@@ -1,5 +1,20 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_CAUSE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_CAUSE_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_CLEARED_AT_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_CLEARED_AT_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_LEVEL_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_LEVEL_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_NAME_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_NAME_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_CODE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_CODE_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_OCCURRED_AT_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_OCCURRED_AT_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_TYPE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_TYPE_FIELD_CAMEL;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ALARM_USER_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.DEFECTIVE_CODE_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.DEFECTIVE_CODE_FIELD_ALT;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.DEFECTIVE_CODE_FIELD_SNAKE;
@@ -28,6 +43,7 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
 
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +52,9 @@ import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -46,6 +65,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -53,8 +73,11 @@ import org.springframework.stereotype.Service;
 public class MesTelemetryListener {
 
     private final ObjectMapper objectMapper;
+    private static final String ALARM_EVENT_KEY_SUFFIX = "alarm_event_payload";
+
     private final MesPowerConsumptionService mesPowerConsumptionService;
     private final MesDefectiveService mesDefectiveService;
+    private final MesAlarmService mesAlarmService;
 
     private final NavigableMap<Long, Double> energyUsageByBucket = new TreeMap<>();
     private final ReentrantLock aggregationLock = new ReentrantLock();
@@ -79,16 +102,26 @@ public class MesTelemetryListener {
         if (recordsNode.isArray()) {
             for (JsonNode recordNode : recordsNode) {
                 JsonNode valueNode = recordNode.has(VALUE_FIELD) ? recordNode.get(VALUE_FIELD) : recordNode;
-                handleTelemetryValue(valueNode);
+                handleTelemetryValue(valueNode, telemetryRecord.key());
             }
             return;
         }
-        handleTelemetryValue(payload);
+        handleTelemetryValue(payload, telemetryRecord.key());
     }
 
-    private void handleTelemetryValue(JsonNode valueNode) {
+    private void handleTelemetryValue(JsonNode valueNode, String recordKey) {
+        boolean isPotentialAlarm = recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
         valueNode = unwrapOrderNgEvent(valueNode);
+        JsonNode alarmPayloadNode = extractAlarmPayload(valueNode, recordKey);
+        if (isAlarmTelemetryRecord(recordKey, alarmPayloadNode)) {
+            persistAlarmRecord(alarmPayloadNode);
+            return;
+        }
+        valueNode = convertTextNodeToObject(valueNode);
         if (!valueNode.isObject()) {
+            if (isPotentialAlarm) {
+                log.info("알람 키를 수신했으나 JSON 객체로 파싱되지 않았습니다. key={}, rawValue={}", recordKey, valueNode);
+            }
             return;
         }
         if (isEnergyUsageRecord(valueNode)) {
@@ -211,6 +244,71 @@ public class MesTelemetryListener {
         }
     }
 
+    private void persistAlarmRecord(JsonNode valueNode) {
+        AlarmTelemetryPayload payload = buildAlarmPayload(valueNode);
+        if (payload == null) {
+            log.warn("알람 페이로드에 필수 항목이 없어 저장하지 않습니다. payload={}", valueNode);
+            return;
+        }
+        log.info("알람 텔레메트리 수신 equipmentCode={}, alarmName={}, alarmType={}, alarmLevel={}, occurredAt={}, clearedAt={}",
+                payload.equipmentCode(),
+                payload.alarmName(),
+                payload.alarmType(),
+                payload.alarmLevel(),
+                payload.occurredAt(),
+                payload.clearedAt());
+        mesAlarmService.saveAlarmTelemetry(payload);
+    }
+
+    private AlarmTelemetryPayload buildAlarmPayload(JsonNode valueNode) {
+        String equipmentCode = firstNonEmptyValue(valueNode, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
+        String alarmName = firstNonEmptyValue(valueNode, ALARM_NAME_FIELD_CAMEL, ALARM_NAME_FIELD);
+        if (!StringUtils.hasText(equipmentCode) || !StringUtils.hasText(alarmName)) {
+            return null;
+        }
+        String alarmCode = firstNonEmptyValue(valueNode, ALARM_CODE_FIELD_CAMEL, ALARM_CODE_FIELD);
+        String alarmType = firstNonEmptyValue(valueNode, ALARM_TYPE_FIELD_CAMEL, ALARM_TYPE_FIELD);
+        String alarmLevel = firstNonEmptyValue(valueNode, ALARM_LEVEL_FIELD_CAMEL, ALARM_LEVEL_FIELD);
+        LocalDateTime occurredAt = parseDateTime(firstNonEmptyValue(valueNode,
+                ALARM_OCCURRED_AT_FIELD_CAMEL,
+                ALARM_OCCURRED_AT_FIELD));
+        LocalDateTime clearedAt = parseDateTime(firstNonEmptyValue(valueNode,
+                ALARM_CLEARED_AT_FIELD_CAMEL,
+                ALARM_CLEARED_AT_FIELD));
+        String user = firstNonEmptyValue(valueNode, ALARM_USER_FIELD);
+        String alarmCause = firstNonEmptyValue(valueNode, ALARM_CAUSE_FIELD_CAMEL, ALARM_CAUSE_FIELD);
+
+        return AlarmTelemetryPayload.builder()
+                .equipmentCode(equipmentCode)
+                .alarmCode(alarmCode)
+                .alarmType(alarmType)
+                .alarmName(alarmName)
+                .alarmLevel(alarmLevel)
+                .occurredAt(occurredAt)
+                .clearedAt(clearedAt)
+                .user(user)
+                .alarmCause(alarmCause)
+                .build();
+    }
+
+    private boolean isAlarmTelemetryRecord(String recordKey, JsonNode valueNode) {
+        if (!valueNode.isObject()) {
+            return false;
+        }
+        if (hasAnyNonNull(valueNode,
+                ALARM_NAME_FIELD,
+                ALARM_NAME_FIELD_CAMEL,
+                ALARM_CODE_FIELD,
+                ALARM_CODE_FIELD_CAMEL,
+                ALARM_TYPE_FIELD,
+                ALARM_TYPE_FIELD_CAMEL,
+                ALARM_LEVEL_FIELD,
+                ALARM_LEVEL_FIELD_CAMEL)) {
+            return true;
+        }
+        return recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
+    }
+
     private DefectiveTelemetryPayload buildDefectivePayload(JsonNode valueNode) {
         BigDecimal quantity = firstDecimal(valueNode,
                 DEFECTIVE_QTY_FIELD,
@@ -275,6 +373,23 @@ public class MesTelemetryListener {
             }
         }
         return null;
+    }
+
+    private LocalDateTime parseDateTime(String text) {
+        if (!StringUtils.hasText(text)) {
+            return null;
+        }
+        String trimmed = text.trim();
+        try {
+            return OffsetDateTime.parse(trimmed).toLocalDateTime();
+        } catch (DateTimeParseException offsetEx) {
+            try {
+                return LocalDateTime.parse(trimmed);
+            } catch (DateTimeParseException localEx) {
+                log.warn("시간 값을 파싱할 수 없습니다. value={}", text, localEx);
+                return null;
+            }
+        }
     }
 
     private String firstTextualValue(JsonNode node, String fieldName) {
@@ -362,6 +477,31 @@ public class MesTelemetryListener {
             return parsed != null ? parsed : valueNode;
         }
         return valueNode;
+    }
+
+    private JsonNode convertTextNodeToObject(JsonNode valueNode) {
+        if (valueNode == null || !valueNode.isTextual()) {
+            return valueNode;
+        }
+        JsonNode parsed = parsePayload(valueNode.asText());
+        return parsed != null ? parsed : valueNode;
+    }
+
+    private JsonNode extractAlarmPayload(JsonNode valueNode, String recordKey) {
+        JsonNode node = convertTextNodeToObject(valueNode);
+        if (node == null) {
+            return null;
+        }
+        if (node.has("tag")
+                && ALARM_EVENT_KEY_SUFFIX.equals(node.get("tag").asText())
+                && node.hasNonNull(VALUE_FIELD)) {
+            return convertTextNodeToObject(node.get(VALUE_FIELD));
+        }
+        if (recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX)
+                && node.hasNonNull(VALUE_FIELD)) {
+            return convertTextNodeToObject(node.get(VALUE_FIELD));
+        }
+        return node;
     }
 
     private JsonNode parseMapLikeString(String text) {

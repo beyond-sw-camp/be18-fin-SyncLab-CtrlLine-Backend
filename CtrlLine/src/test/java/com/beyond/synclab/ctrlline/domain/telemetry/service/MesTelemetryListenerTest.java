@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -16,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 
 @ExtendWith(MockitoExtension.class)
 class MesTelemetryListenerTest {
@@ -27,11 +28,14 @@ class MesTelemetryListenerTest {
     @Mock
     private MesDefectiveService mesDefectiveService;
 
+    @Mock
+    private MesAlarmService mesAlarmService;
+
     private MesTelemetryListener listener;
 
     @BeforeEach
     void setUp() {
-        listener = new MesTelemetryListener(new ObjectMapper(), mesPowerConsumptionService, mesDefectiveService);
+        listener = new MesTelemetryListener(new ObjectMapper(), mesPowerConsumptionService, mesDefectiveService, mesAlarmService);
     }
 
     @Test
@@ -165,6 +169,49 @@ class MesTelemetryListenerTest {
         assertThat(saved.defectiveCode()).isEqualTo("4");
         assertThat(saved.defectiveName()).isEqualTo("체결 토크 불량");
         assertThat(saved.defectiveQuantity()).isEqualByComparingTo("7");
+    }
+
+    @Test
+    void onTelemetry_savesAlarmPayload() {
+        String payload = """
+                {"equipmentCode":"F1-CL1-EU001","alarm_code":"TC01","alarm_type":2,"alarm_name":"슬러리 공급 부족","alarm_level":"WARNING","occurred_at":"2025-11-17T11:33:44.456881+09:00","cleared_at":"","user":null}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<AlarmTelemetryPayload> captor = ArgumentCaptor.forClass(AlarmTelemetryPayload.class);
+        verify(mesAlarmService, times(1)).saveAlarmTelemetry(captor.capture());
+        AlarmTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("F1-CL1-EU001");
+        assertThat(saved.alarmCode()).isEqualTo("TC01");
+        assertThat(saved.alarmType()).isEqualTo("2");
+        assertThat(saved.alarmName()).isEqualTo("슬러리 공급 부족");
+        assertThat(saved.alarmLevel()).isEqualTo("WARNING");
+        assertThat(saved.occurredAt()).isNotNull();
+        assertThat(saved.clearedAt()).isNull();
+    }
+
+    @Test
+    void onTelemetry_savesAlarmPayloadWhenNestedUnderValue() {
+        String payload = """
+                {"records":[
+                    {"value":{
+                        "machine":"F0001.CL0001.AssemblyUnit01",
+                        "tag":"alarm_event_payload",
+                        "value":"{\\"equipmentCode\\":\\"F1-CL1-EU003\\",\\"alarm_code\\":\\"HOT01\\",\\"alarm_type\\":1,\\"alarm_name\\":\\"온도 상승\\",\\"alarm_level\\":\\"WARNING\\",\\"occurred_at\\":\\"2025-11-17T12:00:00+09:00\\"}"
+                    }}
+                ]}
+                """;
+
+        listener.onTelemetry(new ConsumerRecord<>("mes-machine-telemetry", 0, 0L,
+                "F0001.CL0001.AssemblyUnit01.alarm_event_payload", payload));
+
+        ArgumentCaptor<AlarmTelemetryPayload> captor = ArgumentCaptor.forClass(AlarmTelemetryPayload.class);
+        verify(mesAlarmService, times(1)).saveAlarmTelemetry(captor.capture());
+        AlarmTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("F1-CL1-EU003");
+        assertThat(saved.alarmName()).isEqualTo("온도 상승");
+        assertThat(saved.alarmCode()).isEqualTo("HOT01");
     }
 
     private ConsumerRecord<String, String> consumerRecord(String payload) {
