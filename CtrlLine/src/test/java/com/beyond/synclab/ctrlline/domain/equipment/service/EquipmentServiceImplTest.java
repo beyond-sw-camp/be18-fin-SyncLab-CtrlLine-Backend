@@ -207,31 +207,6 @@ class EquipmentServiceImplTest {
         assertEquals("김철수", response.getUserName());
     }
 
-    // 관리자 권한이 아닐 때, 업데이트 실패함.
-    @Test
-    @DisplayName("MANAGER, USER 권한은 업데이트 실패")
-    void updateEquipment_isActive_only_fail() {
-        // given
-        String equipmentCode = "EQ001";
-        UpdateEquipmentRequestDto request = UpdateEquipmentRequestDto.builder()
-                .isActive(false)
-                .build();
-
-        Users users = Users.builder()
-                .name("김철수")
-                .department("생산팀")
-                .empNo("12345678")
-                // 관리자만 수정 가능.
-                .role(Users.UserRole.USER)
-                .build();
-
-        assertThatThrownBy(() ->
-                equipmentService.updateEquipment(users, request, equipmentCode)
-        )
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining("관리자 권한이 아닙니다.");
-    }
-
     @Test
     @DisplayName("업데이트 했을 때, 다른 값들은 그대로 반환된다.")
     void updateEquipment_changeOnlyManager_otherValuesRemain() {

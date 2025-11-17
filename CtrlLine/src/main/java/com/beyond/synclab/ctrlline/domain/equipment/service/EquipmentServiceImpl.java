@@ -73,11 +73,6 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     @Transactional
     public EquipmentResponseDto updateEquipment(Users users, UpdateEquipmentRequestDto request, String equipmentCode) {
-        // 여기서 권한 확인함.
-        if(users.getRole() != Users.UserRole.ADMIN){
-            throw new AppException(UserErrorCode.FORBIDDEN);
-        }
-
         // 설비 코드로, 설비 조회
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
