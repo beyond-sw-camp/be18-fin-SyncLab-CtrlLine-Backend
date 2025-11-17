@@ -9,6 +9,8 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseD
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -109,7 +111,33 @@ class EquipmentServiceImplTest {
     void getEquipmentDetail_success() {
         // given
         Users user = buildTestUser("홍길동", Users.UserRole.ADMIN);
-        Equipments equipment = buildTestEquipment(user, true);
+
+        // ⭐ Status 엔티티 생성
+        EquipmentStatuses status = EquipmentStatuses.builder()
+                .equipmentStatusCode("RUNNING")
+                .equipmentStatusName("가동중")
+                .build();
+
+        // ⭐ Line 엔티티 생성
+        Lines line = Lines.builder()
+                .lineCode("L001")
+                .lineName("1라인")
+                .build();
+
+        // ⭐ Equipment 엔티티 생성 (status, line, user 다 넣어야 함)
+        Equipments equipment = Equipments.builder()
+                .id(1L)
+                .equipmentCode("E001")    // <--- 테스트 Assertion과 일치해야 함
+                .equipmentName("절단기-01")
+                .equipmentType("Type-A")
+                .equipmentPpm(BigDecimal.ZERO)
+                .user(user)
+                .equipmentStatus(status)
+                .line(line)
+                .isActive(true)
+                .totalCount(BigDecimal.ZERO)
+                .defectiveCount(BigDecimal.ZERO)
+                .build();
 
         when(equipmentRepository.findByEquipmentCode("E001"))
                 .thenReturn(Optional.of(equipment));
@@ -121,6 +149,8 @@ class EquipmentServiceImplTest {
         assertThat(result.getEquipmentCode()).isEqualTo("E001");
         assertThat(result.getEquipmentName()).isEqualTo("절단기-01");
         assertThat(result.getUserName()).isEqualTo("홍길동");
+        assertThat(result.getEquipmentStatus()).isEqualTo("RUNNING");
+        assertThat(result.getLine()).isEqualTo("L001");
     }
 
     // 설비 목록 조회

@@ -58,7 +58,7 @@ public class Processes {
 
     // <======== 일반 컬럼들 ==========>
 
-    @Column(name = "process_code", nullable = false, length = 32)
+    @Column(name = "process_code", nullable = false, length = 32, unique = true)
     // 공정코드
     private String processCode;
 

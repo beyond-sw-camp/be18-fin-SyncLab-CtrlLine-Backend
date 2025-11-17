@@ -61,7 +61,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         // DB 저장
         equipmentRepository.save(equipments);
-
+        //Equipments equipment, Users user, EquipmentStatuses status, Lines line
         return EquipmentResponseDto.fromEntity(equipments, user);
     }
 
@@ -71,7 +71,10 @@ public class EquipmentServiceImpl implements EquipmentService {
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
         Users user = equipment.getUser();
-        return EquipmentDetailResponseDto.fromEntity(equipment, user);
+        EquipmentStatuses status = equipment.getEquipmentStatus();
+        Lines line = equipment.getLine();
+
+        return EquipmentDetailResponseDto.fromEntity(equipment, user, status, line);
     }
 
     // 설비 목록 조회
