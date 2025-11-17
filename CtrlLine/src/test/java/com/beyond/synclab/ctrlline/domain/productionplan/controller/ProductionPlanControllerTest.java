@@ -11,14 +11,12 @@ import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,10 +61,7 @@ class ProductionPlanControllerTest {
             .salesManagerNo("209910002")
             .factoryCode("F001")
             .lineCode("L001")
-            .endTime(LocalDateTime.now())
-            .startTime(LocalDateTime.now())
             .remark("testRemark")
-            .status(PlanStatus.PENDING)
             .itemCode("I001")
             .build();
 
