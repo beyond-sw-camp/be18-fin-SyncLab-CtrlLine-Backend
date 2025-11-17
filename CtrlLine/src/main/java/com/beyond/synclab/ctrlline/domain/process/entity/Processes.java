@@ -48,14 +48,14 @@ public class Processes {
     @JoinColumn(name = "equipment_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     // 설비FK
-    private Equipments equipmentId;
+    private Equipments equipment;
 
     @JoinColumn(name = "user_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     // 사용자FK
-    private Users users;
+    private Users user;
 
-    // <===================>
+    // <======== 일반 컬럼들 ==========>
 
     @Column(name = "process_code", nullable = false, length = 32)
     // 공정코드

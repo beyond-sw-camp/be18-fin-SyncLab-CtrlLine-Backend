@@ -11,10 +11,14 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseD
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
-import com.beyond.synclab.ctrlline.domain.factory.dto.FactoryResponseDto;
-import com.beyond.synclab.ctrlline.domain.factory.dto.FactorySearchDto;
-import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.errorcode.EquipmentStatusErrorCode;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.repository.EquipmentStatusRepository;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
+import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class EquipmentServiceImpl implements EquipmentService {
     private final EquipmentRepository equipmentRepository;
     private final UserRepository userRepository;
+    private final LineRepository lineRepository;
+    private final EquipmentStatusRepository equipmentStatusRepository;
+
 
     // 설비 등록
     public EquipmentRegisterResponseDto register(Users users, EquipmentRegisterRequestDto requestDto) {
@@ -36,12 +43,18 @@ public class EquipmentServiceImpl implements EquipmentService {
             throw new AppException(EquipmentErrorCode.EQUIPMENT_CONFLICT);
         }
 
+        Lines line = lineRepository.findById(requestDto.getLine())
+                .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+
+        EquipmentStatuses status = equipmentStatusRepository.findByequipmentStatusCode(requestDto.getEquipmentStatus())
+                .orElseThrow(() -> new AppException(EquipmentStatusErrorCode.EQUIPMENT_STATUS_NOT_FOUND));
+
         // (2) 사용자 존재 여부 검사 (404)
         Users user = userRepository.findByEmpNo(requestDto.getEmpNo())
                 .orElseThrow(() -> new AppException(CommonErrorCode.USER_NOT_FOUND));
 
         // 설비 엔티티 생성
-        Equipments equipments = requestDto.toEntity(user);
+        Equipments equipments = requestDto.toEntity(user, line, status);
 
         // DB 저장
         equipmentRepository.save(equipments);
@@ -54,7 +67,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     public EquipmentDetailResponseDto getEquipmentDetail(String equipmentCode){
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
-        Users user = equipment.getUsers();
+        Users user = equipment.getUser();
         return EquipmentDetailResponseDto.fromEntity(equipment, user);
     }
 
@@ -65,7 +78,7 @@ public class EquipmentServiceImpl implements EquipmentService {
         Page<Equipments> page = equipmentRepository.searchEquipmentList(searchDto, pageable);
 
         Page<EquipmentSearchResponseDto> dtoPage = page.map(equipment ->
-                EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUsers())
+                EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUser())
         );
         return PageResponse.from(dtoPage);
     }

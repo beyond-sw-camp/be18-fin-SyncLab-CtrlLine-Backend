@@ -19,7 +19,6 @@ public record DefectiveTelemetryPayload(
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQty(defectiveQuantity)
-                .defectiveStatus(status)
                 .build();
     }
 }

@@ -24,7 +24,6 @@ public class EquipmentRegisterResponseDto {
         private String empNo;
         private Boolean isActive;
 
-
         public static EquipmentRegisterResponseDto fromEntity(Equipments equipment, Users user) {
                 return EquipmentRegisterResponseDto.builder()
                         .equipmentCode(equipment.getEquipmentCode())

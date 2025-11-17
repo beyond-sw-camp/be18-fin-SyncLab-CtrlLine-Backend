@@ -1,5 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.equipment.entity;
 
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.persistence.Column;
@@ -41,15 +43,17 @@ public class Equipments {
     private Long id; // 설비 PK
 
     // ───────── FK 영역 ─────────
-    @Column(name = "line_id", nullable = false)
-    private Long lineId; // 라인 FK
+    @JoinColumn(name = "line_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Lines line; // 라인 FK
 
-    @Column(name = "equipment_status_id", nullable = false)
-    private Long equipmentStatusId; // 설비상태 FK
+    @JoinColumn(name = "equipment_status_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    private EquipmentStatuses equipmentStatus; // 설비상태 FK
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private Users users; // 사용자 FK
+    private Users user; // 사용자 FK
 
     // ───────── 기본 정보 ─────────
     @Column(name = "equipment_code", nullable = false, length = 32)

@@ -1,6 +1,8 @@
 package com.beyond.synclab.ctrlline.domain.equipment.dto;
 
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 
 import jakarta.validation.constraints.NotNull;
@@ -38,17 +40,17 @@ public class EquipmentRegisterRequestDto {
     @NotNull(message = "설비 사용 여부는 필수입니다.")
     private Boolean isActive;
 
-    private Long lineId;
+    private Long line;
 
-    private Long equipmentStatusId;
+    private String equipmentStatus;
 
     private LocalDateTime operatingTime;
 
     // Post할 때, 아무런 값도 안 넣으면 Null이라고 생각해서, 0으로 기본값 넣어줌.
-    public Equipments toEntity(Users users) {
+    public Equipments toEntity(Users user, Lines line, EquipmentStatuses status) {
         return Equipments.builder()
-                .lineId(this.lineId)                       // ✅ FK 1
-                .equipmentStatusId(this.equipmentStatusId) // ✅ FK 2
+                .line(line)                       // ✅ FK 1
+                .equipmentStatus(status) // ✅ FK 2
                 .equipmentCode(this.equipmentCode)
                 .equipmentName(this.equipmentName)
                 .equipmentType(this.equipmentType)
@@ -57,7 +59,7 @@ public class EquipmentRegisterRequestDto {
                 .totalCount(BigDecimal.ZERO)               // ✅ 기본값
                 .defectiveCount(BigDecimal.ZERO)           // ✅ 기본값
                 .isActive(this.isActive)
-                .users(users)
+                .user(user)
                 .build();
     }
 }

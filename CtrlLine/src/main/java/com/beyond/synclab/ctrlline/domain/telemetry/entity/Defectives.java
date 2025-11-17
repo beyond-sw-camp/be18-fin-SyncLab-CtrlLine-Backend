@@ -51,9 +51,6 @@ public class Defectives {
     @Column(name = "defective_qty", nullable = false, precision = 10, scale = 2)
     private BigDecimal defectiveQty;
 
-    @Column(name = "defective_status", nullable = false, length = 32)
-    private String defectiveStatus;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

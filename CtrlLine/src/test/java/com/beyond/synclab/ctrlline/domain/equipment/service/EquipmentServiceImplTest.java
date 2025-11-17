@@ -28,7 +28,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -68,7 +67,7 @@ class EquipmentServiceImplTest {
                 .equipmentCode("E001")
                 .equipmentName("절단기-01")
                 .equipmentType("절단기")
-                .users(user)
+                .user(user)
                 .equipmentPpm(BigDecimal.valueOf(108))
                 .isActive(isActive)
                 .build();
@@ -132,12 +131,12 @@ class EquipmentServiceImplTest {
 
         Equipments equipment1 = Equipments.builder()
                 .equipmentCode("EQP-0001")
-                .users(user)
+                .user(user)
                 .build();
 
         Equipments equipment2 = Equipments.builder()
                 .equipmentCode("EQP-0002")
-                .users(user)
+                .user(user)
                 .build();
 
         Page<Equipments> page = new PageImpl<>(
@@ -146,7 +145,7 @@ class EquipmentServiceImplTest {
                 2
         );
 
-        Mockito.when(equipmentRepository.searchEquipmentList(eq(searchDto), eq(pageable)))
+        when(equipmentRepository.searchEquipmentList(eq(searchDto), eq(pageable)))
                 .thenReturn(page);
 
         // when

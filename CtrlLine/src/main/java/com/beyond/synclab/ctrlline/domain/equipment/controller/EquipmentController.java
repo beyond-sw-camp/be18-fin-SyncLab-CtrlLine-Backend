@@ -64,8 +64,6 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-
-
     // 설비 목록 조회
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<EquipmentSearchResponseDto>>> getEquipmentList(
