@@ -38,6 +38,8 @@ public final class TelemetryConstants {
     public static final String ALARM_TYPE_FIELD_CAMEL = "alarmType";
     public static final String ALARM_NAME_FIELD = "alarm_name";
     public static final String ALARM_NAME_FIELD_CAMEL = "alarmName";
+    public static final String ALARM_CODE_FIELD = "alarm_code";
+    public static final String ALARM_CODE_FIELD_CAMEL = "alarmCode";
     public static final String ALARM_LEVEL_FIELD = "alarm_level";
     public static final String ALARM_LEVEL_FIELD_CAMEL = "alarmLevel";
     public static final String ALARM_OCCURRED_AT_FIELD = "occurred_at";
