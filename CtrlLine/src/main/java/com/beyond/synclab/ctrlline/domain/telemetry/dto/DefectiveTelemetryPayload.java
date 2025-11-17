@@ -11,15 +11,15 @@ public record DefectiveTelemetryPayload(
         String defectiveCode,
         String defectiveName,
         BigDecimal defectiveQuantity,
-        String status
+        String status,
+        String defectiveType
 ) {
-    public Defectives toEntity(Defectives.DefectivesBuilder builder, String documentNo) {
+    public Defectives toEntity(Defectives.DefectivesBuilder builder) {
         return builder
-                .documentNo(documentNo)
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQty(defectiveQuantity)
-                .defectiveStatus(status)
+                .defectiveType(defectiveType)
                 .build();
     }
 }

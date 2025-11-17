@@ -36,7 +36,7 @@ public class ProductionPlans {
     @Column(name = "production_plan_id")
     private Long id;
 
-    @Column(name = "document_no", nullable = false, unique = true)
+    @Column(name = "plan_document_no", nullable = false, unique = true)
     private String documentNo;
 
     @Column(name = "line_id", nullable = false)
