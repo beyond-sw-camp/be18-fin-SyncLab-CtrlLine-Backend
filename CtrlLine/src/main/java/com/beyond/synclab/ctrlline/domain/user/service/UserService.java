@@ -17,4 +17,6 @@ public interface UserService {
     UserResponseDto updateUserById(UserUpdateRequestDto dto, Long userId);
 
     UserResponseDto updateMyInfo(UserUpdateMeRequestDto dto, Users user);
+
+    UserResponseDto getMyInfo(Users user);
 }
