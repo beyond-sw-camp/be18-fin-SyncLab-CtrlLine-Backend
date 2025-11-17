@@ -17,6 +17,9 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final LineRepository lineRepository;
     private final FactoryRepository factoryRepository;
     private final ItemRepository itemRepository;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -73,11 +77,25 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         productionPlanRepository.save(productionPlan);
 
-
         return ProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }
 
-    private String createDocumentNo() {
-        return null;
+    String createDocumentNo() {
+        LocalDate today = LocalDate.now(clock);
+        // 1️⃣ 현재날짜 기준 prefix 생성
+        String prefix = String.format("%04d/%02d/%02d", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
+
+        // 기존 전표 번호 조회 + Lock
+        List<String> productionPlansDocNos = productionPlanRepository.findByDocumentNoByPrefix(prefix);
+        int nextSeq = 1;
+
+        if (!productionPlansDocNos.isEmpty()) {
+            String lastDocNo = productionPlansDocNos.getFirst();
+            String lastSeqStr = lastDocNo.substring(lastDocNo.indexOf("-") + 1); // YYYY/MM/DD-X 중 X
+            nextSeq = Integer.parseInt(lastSeqStr) + 1;
+        }
+
+        return prefix + String.format("-%d", nextSeq);
     }
+
 }
