@@ -89,14 +89,12 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         // 2) 담당자 변경
         if (request.getUserName() != null) {
-            Users newManager = userRepository.findByName(request.getUserName())
+            Users newManager = userRepository.findByEmpNo(request.getEmpNo())
                     .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
             equipment.updateManager(newManager);
         }
 
-        return EquipmentResponseDto.fromEntity(
-                equipment, equipment.getUsers()
-        );
+        return EquipmentResponseDto.fromEntity(equipment, equipment.getUsers());
     }
 
 }

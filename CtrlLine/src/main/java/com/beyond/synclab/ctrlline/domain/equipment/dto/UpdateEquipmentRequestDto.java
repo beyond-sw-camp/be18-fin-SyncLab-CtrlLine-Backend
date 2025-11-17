@@ -14,5 +14,6 @@ import lombok.NoArgsConstructor;
 // 설비에서 변경 가능한 파라미터: 담당자, 사용여부
 public class UpdateEquipmentRequestDto {
     private String userName;
+    private String empNo;
     private Boolean isActive;
 }
