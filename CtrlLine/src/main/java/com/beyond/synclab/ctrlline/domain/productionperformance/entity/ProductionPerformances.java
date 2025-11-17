@@ -1,63 +1,52 @@
 package com.beyond.synclab.ctrlline.domain.productionperformance.entity;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import jakarta.persistence.Column;
-import jakarta.persistence.ConstraintMode;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import com.beyond.synclab.ctrlline.domain.productionplans.entity.ProductionPlans;
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-@Getter
-@Builder
+import java.time.LocalDateTime;
+
 @Entity
-@Table(name = "production_performance")
-@EqualsAndHashCode(of = "id")
+@Table(
+        name = "production_performance",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_performance_document_no",
+                        columnNames = "performance_document_no"
+                )
+        }
+)
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@EntityListeners(com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger.class)
+@Builder
+@EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(of = "id")
 public class ProductionPerformances {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "production_performance_id")
+    @Column(name = "production_performance_id", updatable = false)
     private Long id;
 
-    @Column(name = "production_plan_id", nullable = false)
-    private Long productionPlanId;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "production_plan_id", insertable = false, updatable = false,
-            foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "production_plan_id", nullable = false)
     private ProductionPlans productionPlan;
 
-    @Column(name = "performance_document_no", nullable = false, unique = true)
+    @Column(name = "performance_document_no", length = 32, nullable = false)
     private String performanceDocumentNo;
 
-    @Column(name = "total_qty", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalQty;
+    @Column(name = "total_qty", precision = 10, scale = 2, nullable = false)
+    private Double totalQty;
 
-    @Column(name = "performance_qty", nullable = false, precision = 10, scale = 2)
-    private BigDecimal performanceQty;
+    @Column(name = "performance_qty", precision = 10, scale = 2, nullable = false)
+    private Double performanceQty;
 
-    @Column(name = "performance_defective_rate", precision = 10, scale = 2)
-    private BigDecimal performanceDefectiveRate;
+    @Column(name = "performance_defective_rate", precision = 10, scale = 2, nullable = false)
+    private Double performanceDefectiveRate;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
@@ -65,7 +54,7 @@ public class ProductionPerformances {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @Column(name = "remark")
+    @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
     @CreationTimestamp
@@ -75,8 +64,4 @@ public class ProductionPerformances {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Column(name = "is_deleted", nullable = false)
-    @Builder.Default
-    private Boolean isDeleted = Boolean.FALSE;
 }
