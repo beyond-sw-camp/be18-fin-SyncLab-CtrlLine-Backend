@@ -68,7 +68,8 @@ public class ProductionPlans {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "production_plan_status", nullable = false)
-    private PlanStatus status;
+    @Builder.Default
+    private PlanStatus status = PlanStatus.PENDING;
 
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
@@ -103,6 +104,10 @@ public class ProductionPlans {
 
     public int commandQuantity() {
         return plannedQty != null ? plannedQty.intValue() : 0;
+    }
+
+    public void updateStartTime(LocalDateTime localDateTime) {
+        this.startTime = localDateTime;
     }
 
     public enum PlanStatus {
