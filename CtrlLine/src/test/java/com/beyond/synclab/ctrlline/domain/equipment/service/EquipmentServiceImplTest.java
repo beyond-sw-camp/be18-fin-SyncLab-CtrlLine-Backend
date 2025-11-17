@@ -30,13 +30,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-<<<<<<< HEAD
-import static org.mockito.ArgumentMatchers.eq;
-=======
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.times;
->>>>>>> e16a39c9ce4734a5bb3f7902776e265d18f64ee6
+
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -154,11 +152,7 @@ class EquipmentServiceImplTest {
                 2
         );
 
-<<<<<<< HEAD
-        when(equipmentRepository.searchEquipmentList(eq(searchDto), eq(pageable)))
-=======
         Mockito.when(equipmentRepository.searchEquipmentList(searchDto, pageable))
->>>>>>> e16a39c9ce4734a5bb3f7902776e265d18f64ee6
                 .thenReturn(page);
 
         // when
@@ -199,7 +193,7 @@ class EquipmentServiceImplTest {
                 .equipmentName("프레스기")
                 .equipmentType("PRESS")
                 .equipmentPpm(null)
-                .users(users)
+                .user(users)
                 .isActive(true)
                 .build();
 
@@ -248,7 +242,7 @@ class EquipmentServiceImplTest {
                 .equipmentName("포장기-01")
                 .equipmentType("PACK")
                 .equipmentPpm(BigDecimal.valueOf(210))
-                .users(oldManager)
+                .user(oldManager)
                 .isActive(true)
                 .build();
 
