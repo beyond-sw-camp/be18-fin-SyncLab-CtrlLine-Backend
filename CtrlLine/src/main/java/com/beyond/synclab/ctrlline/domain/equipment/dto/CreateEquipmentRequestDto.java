@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class EquipmentRegisterRequestDto {
+public class CreateEquipmentRequestDto {
 
     @NotNull(message = "설비 코드는 필수입니다.")
     private String equipmentCode;

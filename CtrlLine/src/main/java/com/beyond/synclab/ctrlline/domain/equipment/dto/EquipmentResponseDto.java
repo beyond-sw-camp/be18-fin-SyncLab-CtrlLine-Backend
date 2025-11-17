@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class EquipmentRegisterResponseDto {
+public class EquipmentResponseDto {
         private String equipmentCode;
         private String equipmentName;
         private String equipmentType;
@@ -24,8 +24,14 @@ public class EquipmentRegisterResponseDto {
         private String empNo;
         private Boolean isActive;
 
+<<<<<<< HEAD:CtrlLine/src/main/java/com/beyond/synclab/ctrlline/domain/equipment/dto/EquipmentRegisterResponseDto.java
         public static EquipmentRegisterResponseDto fromEntity(Equipments equipment, Users user) {
                 return EquipmentRegisterResponseDto.builder()
+=======
+
+        public static EquipmentResponseDto fromEntity(Equipments equipment, Users user) {
+                return EquipmentResponseDto.builder()
+>>>>>>> e16a39c9ce4734a5bb3f7902776e265d18f64ee6:CtrlLine/src/main/java/com/beyond/synclab/ctrlline/domain/equipment/dto/EquipmentResponseDto.java
                         .equipmentCode(equipment.getEquipmentCode())
                         .equipmentName(equipment.getEquipmentName())
                         .equipmentType(equipment.getEquipmentType())

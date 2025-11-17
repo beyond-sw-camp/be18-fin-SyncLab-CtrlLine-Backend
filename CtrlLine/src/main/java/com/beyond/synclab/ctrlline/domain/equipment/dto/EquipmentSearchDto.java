@@ -10,9 +10,9 @@ import lombok.Getter;
 @AllArgsConstructor
 
 public class EquipmentSearchDto {
-    private final String EquipmentCode;
-    private final String EquipmentName;
-    private final String EquipmentType;
+    private final String equipmentCode;
+    private final String equipmentName;
+    private final String equipmentType;
     private final Boolean isActive;
     private final String userName;
     private final String userDepartment;

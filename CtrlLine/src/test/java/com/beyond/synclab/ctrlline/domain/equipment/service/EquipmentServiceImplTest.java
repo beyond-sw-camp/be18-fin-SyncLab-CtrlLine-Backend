@@ -2,9 +2,11 @@ package com.beyond.synclab.ctrlline.domain.equipment.service;
 
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRegisterRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -28,7 +30,13 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+<<<<<<< HEAD
 import static org.mockito.ArgumentMatchers.eq;
+=======
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.times;
+>>>>>>> e16a39c9ce4734a5bb3f7902776e265d18f64ee6
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -79,7 +87,7 @@ class EquipmentServiceImplTest {
         // given
         Users user = buildTestUser("홍길동", Users.UserRole.ADMIN);
 
-        EquipmentRegisterRequestDto requestDto = EquipmentRegisterRequestDto.builder()
+        CreateEquipmentRequestDto requestDto = CreateEquipmentRequestDto.builder()
                 .equipmentCode("E001")
                 .equipmentName("절단기-01")
                 .equipmentPpm(BigDecimal.valueOf(108))
@@ -119,6 +127,7 @@ class EquipmentServiceImplTest {
 
     // 설비 목록 조회
     @Test
+    @DisplayName("설비 목록 조회. 1페이지에, 설비 10개를 보여줌.")
     void success_get_equipment_list() {
 
         // given
@@ -145,7 +154,11 @@ class EquipmentServiceImplTest {
                 2
         );
 
+<<<<<<< HEAD
         when(equipmentRepository.searchEquipmentList(eq(searchDto), eq(pageable)))
+=======
+        Mockito.when(equipmentRepository.searchEquipmentList(searchDto, pageable))
+>>>>>>> e16a39c9ce4734a5bb3f7902776e265d18f64ee6
                 .thenReturn(page);
 
         // when
@@ -159,10 +172,110 @@ class EquipmentServiceImplTest {
         assertThat(response.getPageInfo().getCurrentPage()).isEqualTo(1);
 
 
-        Mockito.verify(equipmentRepository, Mockito.times(1))
-                .searchEquipmentList(eq(searchDto), eq(pageable));
+        Mockito.verify(equipmentRepository, times(1))
+                .searchEquipmentList(searchDto, pageable);
     }
 
+    // 설비 업데이트(사용여부, 담당자만 수정 가능한 항목임. 수정은 관리자만 가능)
+    @Test
+    @DisplayName("설비 사용 여부만 업데이트 성공")
+    void updateEquipment_isActive_only_success() {
+        // given
+        String equipmentCode = "EQ001";
+        UpdateEquipmentRequestDto request = UpdateEquipmentRequestDto.builder()
+                .isActive(false)
+                .build();
+
+        Users users = Users.builder()
+                .name("김철수")
+                .department("생산팀")
+                .empNo("12345678")
+                // 관리자만 수정 가능.
+                .role(Users.UserRole.ADMIN)
+                .build();
+
+        Equipments equipment = Equipments.builder()
+                .equipmentCode(equipmentCode)
+                .equipmentName("프레스기")
+                .equipmentType("PRESS")
+                .equipmentPpm(null)
+                .users(users)
+                .isActive(true)
+                .build();
+
+        when(equipmentRepository.findByEquipmentCode(equipmentCode))
+                .thenReturn(Optional.of(equipment));
+
+        // when
+        EquipmentResponseDto response = equipmentService.updateEquipment(users, request, equipmentCode);
+
+        // then
+        assertNotNull(response);
+        assertEquals(false, response.getIsActive());
+        assertEquals("김철수", response.getUserName());
+    }
+
+    @Test
+    @DisplayName("업데이트 했을 때, 다른 값들은 그대로 반환된다.")
+    void updateEquipment_changeOnlyManager_otherValuesRemain() {
+
+        // given: 관리자
+        Users admin = Users.builder()
+                .name("관리자")
+                .empNo("M001")
+                .role(Users.UserRole.ADMIN)
+                .build();
+
+        // 기존 담당자
+        Users oldManager = Users.builder()
+                .name("이인화")
+                .department("생산 1팀")
+                .empNo("M001")
+                .build();
+
+        // 새로운 담당자
+        Users newManager = Users.builder()
+                .name("박민수")
+                .department("관리팀")
+                .role(Users.UserRole.USER)
+                .empNo("20230001")
+                .build();
+
+        String equipmentCode = "EQ002";
+
+        Equipments equipment = Equipments.builder()
+                .equipmentCode(equipmentCode)
+                .equipmentName("포장기-01")
+                .equipmentType("PACK")
+                .equipmentPpm(BigDecimal.valueOf(210))
+                .users(oldManager)
+                .isActive(true)
+                .build();
+
+        UpdateEquipmentRequestDto request = UpdateEquipmentRequestDto.builder()
+                .userName("박민수")
+                .empNo("20230001")
+                .isActive(false)
+                .build();
+
+        when(equipmentRepository.findByEquipmentCode(equipmentCode))
+                .thenReturn(Optional.of(equipment));
+
+        when(userRepository.findByEmpNo("20230001"))
+                .thenReturn(Optional.of(newManager));
+
+        // when
+        EquipmentResponseDto response =
+                equipmentService.updateEquipment(admin, request, equipmentCode);
+
+        // then
+        assertNotNull(response);
+        assertEquals("박민수", response.getUserName(), "담당자는 변경되어야 함");
+        assertEquals(false, response.getIsActive(), "isActive는 기존 값 유지");
+        assertEquals("포장기-01", response.getEquipmentName());
+        assertEquals("PACK", response.getEquipmentType());
+        assertEquals(BigDecimal.valueOf(210), response.getEquipmentPpm());
+    }
 
 
 }

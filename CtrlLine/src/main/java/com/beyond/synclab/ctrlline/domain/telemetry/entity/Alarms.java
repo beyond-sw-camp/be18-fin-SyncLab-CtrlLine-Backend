@@ -1,14 +1,8 @@
-package com.beyond.synclab.ctrlline.domain.process.entity;
-// 공정입니다요~!
+package com.beyond.synclab.ctrlline.domain.telemetry.entity;
 
-import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
-
-import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,67 +10,63 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-
 @Entity
-@Table(name = "process")
+@Table(name = "alarm")
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
-@EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
+public class Alarms {
 
-public class Processes {
-    // PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "process_id", updatable = false)
-    // 공정PK
+    @Column(name = "alarm_id", nullable = false, updatable = false)
     private Long id;
 
-    // FK
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "equipment_id", nullable = false)
-    @ManyToOne(fetch = FetchType.LAZY)
-    // 설비FK
     private Equipments equipment;
 
-    @JoinColumn(name = "user_id", nullable = false)
-    @ManyToOne(fetch = FetchType.LAZY)
-    // 사용자FK
-    private Users user;
+    @Column(name = "user_id")
+    private Long userId;
 
-    // <======== 일반 컬럼들 ==========>
+    @Column(name = "alarm_code", nullable = false, length = 32)
+    private String alarmCode;
 
-    @Column(name = "process_code", nullable = false, length = 32)
-    // 공정코드
-    private String processCode;
+    @Column(name = "alarm_name", nullable = false, length = 32)
+    private String alarmName;
 
-    @Column(name = "process_name", nullable = false, length = 32)
-    // 공정명
-    private String processName;
+    @Column(name = "alarm_type", nullable = false, length = 32)
+    private String alarmType;
+
+    @Column(name = "alarm_level", length = 32)
+    private String alarmLevel;
+
+    @Column(name = "occurred_at")
+    private LocalDateTime occurredAt;
+
+    @Column(name = "cleared_at")
+    private LocalDateTime clearedAt;
+
+    @Column(name = "alarm_cause")
+    private String alarmCause;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
-    // 생성시각
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    // 수정시각
     private LocalDateTime updatedAt;
-
-    @Column(name = "is_active", nullable = false)
-    // 사용여부
-    private boolean isActive;
 }
