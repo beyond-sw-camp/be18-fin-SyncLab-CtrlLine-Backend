@@ -483,4 +483,27 @@ class UserServiceImplTest {
         verify(userRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("내정보 조회 - 성공")
+    void getMyInfo_success() {
+        // given
+        Long userId = 1L;
+        Users user = createTestUser(userId, "202510001", "영업1팀", UserStatus.ACTIVE);
+
+        // repository가 반환할 객체 준비
+        Users foundedUser = createTestUser(userId, "202510001", "영업1팀", UserStatus.ACTIVE);
+
+        // when
+        when(userRepository.getReferenceById(userId)).thenReturn(foundedUser);
+
+        UserResponseDto responseDto = userService.getMyInfo(user);
+
+        // then
+        assertThat(responseDto).isNotNull();
+        assertThat(responseDto.getEmpNo()).isEqualTo("202510001");
+        assertThat(responseDto.getUserDepartment()).isEqualTo("영업1팀");
+        assertThat(responseDto.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+
 }

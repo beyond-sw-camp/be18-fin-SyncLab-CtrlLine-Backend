@@ -106,4 +106,12 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         return UserResponseDto.fromEntity(user);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponseDto getMyInfo(Users user) {
+        Users foundedUser = userRepository.getReferenceById(user.getId());
+
+        return UserResponseDto.fromEntity(foundedUser);
+    }
 }

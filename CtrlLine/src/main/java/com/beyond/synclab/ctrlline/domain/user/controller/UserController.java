@@ -89,4 +89,13 @@ public class UserController {
         UserResponseDto responseDto = userService.updateMyInfo(dto, user);
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<BaseResponse<UserResponseDto>> getMyInfo(
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user = userDetails.getUser();
+        UserResponseDto userResponseDto = userService.getMyInfo(user);
+        return ResponseEntity.ok(BaseResponse.ok(userResponseDto));
+    }
 }

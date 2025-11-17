@@ -364,4 +364,40 @@ class UserControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
     }
+
+    @Test
+    @DisplayName("내정보 조회 성공 - 200")
+    @WithCustomUser
+    void getMyInfo_success() throws Exception {
+        // given
+        UserResponseDto userResponseDto = UserResponseDto.builder()
+                .id(1L)
+                .empNo("209901001")
+                .userName("홍길동")
+                .userDepartment("testDepartment")
+                .userStatus(UserStatus.ACTIVE)
+                .userRole(UserRole.USER)
+                .userPosition(UserPosition.ASSISTANT)
+                .userPhoneNumber("010-1234-1234")
+                .userEmail("hong1234@test.com")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(userService.getMyInfo(any(Users.class))).thenReturn(userResponseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/api/v1/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // then
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.userName").value("홍길동"))
+                .andExpect(jsonPath("$.data.userEmail").value("hong1234@test.com"))
+                .andExpect(jsonPath("$.data.userPhoneNumber").value("010-1234-1234"));
+    }
+
 }
