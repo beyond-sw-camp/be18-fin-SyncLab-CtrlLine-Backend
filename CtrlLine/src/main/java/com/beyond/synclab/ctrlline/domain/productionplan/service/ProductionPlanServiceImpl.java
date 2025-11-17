@@ -88,7 +88,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
         // 종료 시각이 현재 이후 중에 최근
         Optional<ProductionPlans> latestProdPlan = productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDate.now(clock)
+            line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDateTime.now(clock)
         );
 
         ProductionPlans.PlanStatus requestedStatus;
@@ -100,13 +100,14 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 4. 시작 시간 계산
         LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
-
+        log.debug("예상 시작 시간 : {}", startTime);
         productionPlan.updateStartTime(startTime);
 
         // 5. 종료시간 설정
         List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
 
         LocalDateTime endTime = calculateEndTime(processingEquips, requestDto.getPlannedQty(), startTime);
+        log.debug("예상 종료 시간 : {}", endTime);
 
         productionPlan.updateEndTime(endTime);
 
