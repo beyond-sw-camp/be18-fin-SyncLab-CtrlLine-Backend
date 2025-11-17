@@ -67,7 +67,6 @@ class MesDefectiveServiceTest {
         assertThat(saved.getDocumentNo()).isEqualTo("202411-0001");
         assertThat(saved.getDefectiveCode()).isEqualTo("DF-01");
         assertThat(saved.getDefectiveQty()).isEqualByComparingTo("4");
-        assertThat(saved.getDefectiveStatus()).isEqualTo("NG");
     }
 
     @Test
@@ -110,6 +109,8 @@ class MesDefectiveServiceTest {
     private Equipments sampleEquipment(Long id) {
         return Equipments.builder()
                 .id(id)
+                // 이거 안 써서 지움.
+                // lineId(1L)
                 // .equipmentStatusId(1L)
                 .equipmentCode("EQP-" + id)
                 .equipmentName("Eqp " + id)

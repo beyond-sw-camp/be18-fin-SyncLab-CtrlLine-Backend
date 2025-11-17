@@ -42,7 +42,7 @@ public class EquipmentRegisterRequestDto {
 
     private Long line;
 
-    private String equipmentStatus;
+    private Long equipmentStatus;
 
     private LocalDateTime operatingTime;
 

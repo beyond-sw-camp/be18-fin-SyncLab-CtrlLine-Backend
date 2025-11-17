@@ -15,7 +15,6 @@ public record DefectiveTelemetryPayload(
 ) {
     public Defectives toEntity(Defectives.DefectivesBuilder builder, String documentNo) {
         return builder
-                .documentNo(documentNo)
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQty(defectiveQuantity)
