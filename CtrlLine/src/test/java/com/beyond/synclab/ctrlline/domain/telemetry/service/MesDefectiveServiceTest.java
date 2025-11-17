@@ -9,9 +9,6 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayloa
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import com.beyond.synclab.ctrlline.domain.telemetry.repository.DefectiveRepository;
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,57 +33,31 @@ class MesDefectiveServiceTest {
 
     private MesDefectiveService mesDefectiveService;
 
-    private final Clock fixedClock = Clock.fixed(
-            Instant.parse("2024-11-15T00:00:00Z"),
-            ZoneOffset.UTC
-    );
-
     @BeforeEach
     void setUp() {
-        mesDefectiveService = new MesDefectiveService(defectiveRepository, equipmentRepository, fixedClock);
+        mesDefectiveService = new MesDefectiveService(defectiveRepository, equipmentRepository);
     }
 
     @Test
-    void saveNgTelemetry_persistsRecordWithGeneratedDocumentNo() {
+    void saveNgTelemetry_persistsRecord() {
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
                 .equipmentId(5L)
                 .defectiveCode("DF-01")
                 .defectiveName("Scratch")
                 .defectiveQuantity(BigDecimal.valueOf(4))
                 .status("NG")
+                .defectiveType("ORDER_NG")
                 .build();
 
         when(equipmentRepository.findById(5L)).thenReturn(Optional.of(sampleEquipment(5L)));
-        when(defectiveRepository.findTopByDocumentNoStartingWithOrderByDocumentNoDesc("202411"))
-                .thenReturn(Optional.empty());
 
         mesDefectiveService.saveNgTelemetry(payload);
 
         verify(defectiveRepository).save(defectiveCaptor.capture());
         Defectives saved = defectiveCaptor.getValue();
-        assertThat(saved.getDocumentNo()).isEqualTo("202411-0001");
         assertThat(saved.getDefectiveCode()).isEqualTo("DF-01");
         assertThat(saved.getDefectiveQty()).isEqualByComparingTo("4");
-    }
-
-    @Test
-    void saveNgTelemetry_usesExistingMonthlySequence() {
-        DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
-                .equipmentId(8L)
-                .defectiveCode("DF-09")
-                .defectiveName("Bent")
-                .defectiveQuantity(BigDecimal.ONE)
-                .status("NG")
-                .build();
-
-        when(equipmentRepository.findById(8L)).thenReturn(Optional.of(sampleEquipment(8L)));
-        when(defectiveRepository.findTopByDocumentNoStartingWithOrderByDocumentNoDesc("202411"))
-                .thenReturn(Optional.of(Defectives.builder().documentNo("202411-0004").build()));
-
-        mesDefectiveService.saveNgTelemetry(payload);
-
-        verify(defectiveRepository).save(defectiveCaptor.capture());
-        assertThat(defectiveCaptor.getValue().getDocumentNo()).isEqualTo("202411-0005");
+        assertThat(saved.getDefectiveType()).isEqualTo("ORDER_NG");
     }
 
     @Test
@@ -97,6 +68,7 @@ class MesDefectiveServiceTest {
                 .defectiveName("Unknown")
                 .defectiveQuantity(BigDecimal.TEN)
                 .status("NG")
+                .defectiveType("ORDER_NG")
                 .build();
 
         when(equipmentRepository.findById(999L)).thenReturn(Optional.empty());

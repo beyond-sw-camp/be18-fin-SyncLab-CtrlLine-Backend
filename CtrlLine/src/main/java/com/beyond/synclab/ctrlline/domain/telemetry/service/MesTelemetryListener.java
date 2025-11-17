@@ -329,6 +329,16 @@ public class MesTelemetryListener {
                 DEFECTIVE_NAME_FIELD_SNAKE,
                 ORDER_NG_NAME_FIELD,
                 NG_NAME_FIELD);
+        String defectiveType = firstNonEmptyValue(valueNode,
+                ORDER_NG_TYPE_FIELD,
+                NG_TYPE_FIELD,
+                STATUS_FIELD,
+                DEFECTIVE_CODE_FIELD,
+                DEFECTIVE_CODE_FIELD_ALT,
+                DEFECTIVE_CODE_FIELD_SNAKE);
+        if (!StringUtils.hasText(defectiveType)) {
+            defectiveType = DEFECTIVE_STATUS_VALUE;
+        }
 
         if (quantity == null || defectiveCode == null || defectiveName == null) {
             return null;
@@ -341,6 +351,7 @@ public class MesTelemetryListener {
                 .defectiveName(defectiveName)
                 .defectiveQuantity(quantity)
                 .status(resolveStatus(valueNode))
+                .defectiveType(defectiveType)
                 .build();
     }
 

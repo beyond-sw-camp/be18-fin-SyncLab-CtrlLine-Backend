@@ -39,9 +39,6 @@ public class Defectives {
     @JoinColumn(name = "equipment_id", nullable = false)
     private Equipments equipment;
 
-    @Column(name = "document_no", nullable = false, length = 32)
-    private String documentNo;
-
     @Column(name = "defective_code", nullable = false, length = 32)
     private String defectiveCode;
 
@@ -50,6 +47,9 @@ public class Defectives {
 
     @Column(name = "defective_qty", nullable = false, precision = 10, scale = 2)
     private BigDecimal defectiveQty;
+
+    @Column(name = "defective_type", nullable = false, length = 255)
+    private String defectiveType;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
