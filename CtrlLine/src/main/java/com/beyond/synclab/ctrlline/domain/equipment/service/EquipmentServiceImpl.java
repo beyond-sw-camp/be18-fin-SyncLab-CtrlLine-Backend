@@ -12,7 +12,7 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDt
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
-<<<<<<< HEAD
+
 import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
 import com.beyond.synclab.ctrlline.domain.equipmentstatus.errorcode.EquipmentStatusErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipmentstatus.repository.EquipmentStatusRepository;
@@ -21,10 +21,7 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 
-=======
-import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
->>>>>>> e16a39c9ce4734a5bb3f7902776e265d18f64ee6
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -108,7 +105,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                     .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
             equipment.updateManager(newManager);
         }
-        return EquipmentResponseDto.fromEntity(equipment, equipment.getUsers());
+        return EquipmentResponseDto.fromEntity(equipment, equipment.getUser());
     }
 
 }

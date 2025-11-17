@@ -101,6 +101,6 @@ public class Equipments {
 
     // 담당자 업데이트
     public void updateManager(Users manager){
-        this.users = manager;
+        this.user = manager;
     }
 }
