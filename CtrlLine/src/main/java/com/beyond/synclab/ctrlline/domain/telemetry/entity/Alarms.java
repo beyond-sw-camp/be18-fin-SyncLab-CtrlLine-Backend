@@ -10,7 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,34 +21,46 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "defective")
+@Table(name = "alarm")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@EqualsAndHashCode
-public class Defectives {
+@EqualsAndHashCode(of = "id")
+public class Alarms {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "defective_id", nullable = false, updatable = false)
+    @Column(name = "alarm_id", nullable = false, updatable = false)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "equipment_id", nullable = false)
     private Equipments equipment;
 
-    @Column(name = "defective_code", nullable = false, length = 32)
-    private String defectiveCode;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @Column(name = "defective_name", nullable = false, length = 32)
-    private String defectiveName;
+    @Column(name = "alarm_code", nullable = false, length = 32)
+    private String alarmCode;
 
-    @Column(name = "defective_qty", nullable = false, precision = 10, scale = 2)
-    private BigDecimal defectiveQty;
+    @Column(name = "alarm_name", nullable = false, length = 32)
+    private String alarmName;
 
-    @Column(name = "defective_type", nullable = false, length = 255)
-    private String defectiveType;
+    @Column(name = "alarm_type", nullable = false, length = 32)
+    private String alarmType;
+
+    @Column(name = "alarm_level", length = 32)
+    private String alarmLevel;
+
+    @Column(name = "occurred_at")
+    private LocalDateTime occurredAt;
+
+    @Column(name = "cleared_at")
+    private LocalDateTime clearedAt;
+
+    @Column(name = "alarm_cause")
+    private String alarmCause;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

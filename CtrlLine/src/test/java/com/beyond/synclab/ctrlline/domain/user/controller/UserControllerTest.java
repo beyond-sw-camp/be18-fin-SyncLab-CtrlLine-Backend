@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
@@ -19,6 +20,7 @@ import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
@@ -323,4 +325,79 @@ class UserControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200));
     }
+
+    @Test
+    @DisplayName("내정보 수정 성공 - 200")
+    @WithCustomUser
+    void updateMyUser_success() throws Exception {
+        //given
+        UserUpdateMeRequestDto userUpdateMeRequestDto = UserUpdateMeRequestDto.builder()
+            .userAddress("newAddress")
+            .userPassword("newPassword")
+            .userPasswordConfirm("newPasswordConfirm")
+            .userPhoneNumber("010-000-00000")
+            .build();
+
+        UserResponseDto userResponseDto = UserResponseDto.builder()
+            .id(1L)
+            .empNo("209901001")
+            .userName("홍길동")
+            .userDepartment("testDepartment")
+            .userStatus(UserStatus.ACTIVE)
+            .userRole(UserRole.USER)
+            .userPosition(UserPosition.ASSISTANT)
+            .userPhoneNumber("010-1234-1234")
+            .userEmail("hong1234@test.com")
+            .createdAt(LocalDateTime.now())
+            .build();
+
+        when(userService.updateMyInfo(any(UserUpdateMeRequestDto.class), any(Users.class))).thenReturn(userResponseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(patch("/api/v1/users/me")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(userUpdateMeRequestDto))
+        );
+
+        // then
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    @DisplayName("내정보 조회 성공 - 200")
+    @WithCustomUser
+    void getMyInfo_success() throws Exception {
+        // given
+        UserResponseDto userResponseDto = UserResponseDto.builder()
+                .id(1L)
+                .empNo("209901001")
+                .userName("홍길동")
+                .userDepartment("testDepartment")
+                .userStatus(UserStatus.ACTIVE)
+                .userRole(UserRole.USER)
+                .userPosition(UserPosition.ASSISTANT)
+                .userPhoneNumber("010-1234-1234")
+                .userEmail("hong1234@test.com")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(userService.getMyInfo(any(Users.class))).thenReturn(userResponseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/api/v1/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // then
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.userName").value("홍길동"))
+                .andExpect(jsonPath("$.data.userEmail").value("hong1234@test.com"))
+                .andExpect(jsonPath("$.data.userPhoneNumber").value("010-1234-1234"));
+    }
+
 }

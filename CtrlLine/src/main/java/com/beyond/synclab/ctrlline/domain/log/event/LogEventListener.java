@@ -1,7 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.log.event;
 
-import com.beyond.synclab.ctrlline.domain.log.entity.Logs;
-import com.beyond.synclab.ctrlline.domain.log.repository.LogRepository;
+import com.beyond.synclab.ctrlline.domain.log.dto.LogCreateRequestDto;
+import com.beyond.synclab.ctrlline.domain.log.service.LogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.AuditorAware;
@@ -15,20 +15,21 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 @RequiredArgsConstructor
 public class LogEventListener {
-    private final LogRepository logRepository;
     private final AuditorAware<Long> auditorAware;
+    private final LogService logService;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleLogEvent(LogEvent event) {
         log.debug("LogEventListener handleLogEvent: {}", event);
         Long userId = auditorAware.getCurrentAuditor().orElse(0L);
-        Logs logEntity = Logs.builder()
+        LogCreateRequestDto logCreateRequestDto = LogCreateRequestDto.builder()
             .userId(userId)
             .actionType(event.actionType())
             .entityName(event.entityName())
             .entityId(event.entityId())
             .build();
-        logRepository.save(logEntity);
+
+        logService.createLog(logCreateRequestDto);
     }
 }
