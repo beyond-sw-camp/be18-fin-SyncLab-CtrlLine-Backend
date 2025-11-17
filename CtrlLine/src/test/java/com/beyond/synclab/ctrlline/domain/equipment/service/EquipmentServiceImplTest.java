@@ -1,6 +1,5 @@
 package com.beyond.synclab.ctrlline.domain.equipment.service;
 
-import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
@@ -11,7 +10,6 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDt
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
-import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -153,7 +151,7 @@ class EquipmentServiceImplTest {
                 2
         );
 
-        Mockito.when(equipmentRepository.searchEquipmentList(eq(searchDto), eq(pageable)))
+        Mockito.when(equipmentRepository.searchEquipmentList(searchDto, pageable))
                 .thenReturn(page);
 
         // when
