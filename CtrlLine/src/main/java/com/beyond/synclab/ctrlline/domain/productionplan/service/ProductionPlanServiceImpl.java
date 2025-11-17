@@ -1,6 +1,8 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
+import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.errorcode.FactoryErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
@@ -18,6 +20,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,6 +42,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final LineRepository lineRepository;
     private final FactoryRepository factoryRepository;
     private final ItemRepository itemRepository;
+    private final EquipmentRepository equipmentRepository;
     private final Clock clock;
 
     @Override
@@ -74,13 +79,13 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
                     return new AppException(ItemErrorCode.ITEM_NOT_FOUND);
                 });
 
-        // 전표 번호 생성
+        // 1. 전표 번호 생성
         String documentNo = createDocumentNo();
 
-        // 요청 DTO 정보로 생산계획 생성
+        // 2. 요청 DTO 정보로 생산계획 생성
         ProductionPlans productionPlan = requestDto.toEntity(salesManager, productionManager, line, documentNo);
 
-        // 동일한 라인에서 가장 최근에 생성된 생산계획 조회
+        // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
         // 종료 시각이 현재 이후 중에 최근
         Optional<ProductionPlans> latestProdPlan = productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
             line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDate.now(clock)
@@ -93,9 +98,67 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             requestedStatus = PlanStatus.CONFIRMED;
         }
 
-        LocalDateTime startTime;
+        // 4. 시작 시간 계산
+        LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
 
-        // 조회된게 없을때, confirmed 인거면 10분뒤로 pending 이면 30분 뒤로 설정
+        productionPlan.updateStartTime(startTime);
+
+        // 5. 종료시간 설정
+        List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
+
+        LocalDateTime endTime = calculateEndTime(processingEquips, requestDto.getPlannedQty(), startTime);
+
+        productionPlan.updateEndTime(endTime);
+
+        productionPlanRepository.save(productionPlan);
+
+        return ProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+    }
+
+    // 설비별 유효 PPM 계산
+    private BigDecimal calculateEffectivePPM(Equipments equipment) {
+        BigDecimal ppm = equipment.getEquipmentPpm();
+        BigDecimal defectiveRate = BigDecimal.ZERO;
+
+        if (equipment.getTotalCount() != null && equipment.getTotalCount().compareTo(BigDecimal.ZERO) > 0) {
+            defectiveRate = equipment.getDefectiveCount()
+                .divide(equipment.getTotalCount(), 4, RoundingMode.HALF_UP);
+            defectiveRate = defectiveRate.min(BigDecimal.ONE); // 최대 1
+            defectiveRate = defectiveRate.max(BigDecimal.ZERO); // 최소 0
+        }
+
+        return ppm.multiply(BigDecimal.ONE.subtract(defectiveRate));
+    }
+
+    private LocalDateTime calculateEndTime(List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
+        if (equipments == null || equipments.isEmpty()) {
+            throw new AppException(LineErrorCode.NO_EQUIPMENT_FOUND);
+        }
+
+        // 1. 라인 전체 유효 PPM 계산
+        BigDecimal totalEffectivePPM = equipments.stream()
+            .map(this::calculateEffectivePPM)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (totalEffectivePPM.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new AppException(LineErrorCode.INVALID_EQUIPMENT_PPM);
+        }
+
+        // 2. 예상 소요 시간 (분 단위)
+        BigDecimal minutes = plannedQty.divide(totalEffectivePPM, 2, RoundingMode.CEILING);
+
+        // 3. 소요 시간 계산 (분 단위)
+        long minutesToAdd = minutes
+            .setScale(0, RoundingMode.CEILING)
+            .longValue();
+
+        // 4. 종료 시간 계산
+        return startTime.plusMinutes(minutesToAdd);
+    }
+
+    private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
+        LocalDateTime startTime;
+        // 조회된게 없을때, confirmed 면 10분뒤로 pending 이면 30분 뒤로 설정
         if (latestProdPlan.isEmpty()) {
             if (requestedStatus.equals(PlanStatus.PENDING)) {
                 startTime = LocalDateTime.now(clock).plusMinutes(30);
@@ -105,12 +168,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         } else {
             startTime = latestProdPlan.get().getEndTime().plusMinutes(30);
         }
-
-        productionPlan.updateStartTime(startTime);
-
-        productionPlanRepository.save(productionPlan);
-
-        return ProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+        return startTime;
     }
 
     String createDocumentNo() {
