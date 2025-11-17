@@ -14,12 +14,15 @@ import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -71,9 +74,39 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
                     return new AppException(ItemErrorCode.ITEM_NOT_FOUND);
                 });
 
+        // 전표 번호 생성
         String documentNo = createDocumentNo();
 
+        // 요청 DTO 정보로 생산계획 생성
         ProductionPlans productionPlan = requestDto.toEntity(salesManager, productionManager, line, documentNo);
+
+        // 동일한 라인에서 가장 최근에 생성된 생산계획 조회
+        // 종료 시각이 현재 이후 중에 최근
+        Optional<ProductionPlans> latestProdPlan = productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
+            line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDate.now(clock)
+        );
+
+        ProductionPlans.PlanStatus requestedStatus;
+        if (user.isUserRole()) {
+            requestedStatus = PlanStatus.PENDING;
+        } else {
+            requestedStatus = PlanStatus.CONFIRMED;
+        }
+
+        LocalDateTime startTime;
+
+        // 조회된게 없을때, confirmed 인거면 10분뒤로 pending 이면 30분 뒤로 설정
+        if (latestProdPlan.isEmpty()) {
+            if (requestedStatus.equals(PlanStatus.PENDING)) {
+                startTime = LocalDateTime.now(clock).plusMinutes(30);
+            } else {
+                startTime = LocalDateTime.now(clock).plusMinutes(10);
+            }
+        } else {
+            startTime = latestProdPlan.get().getEndTime().plusMinutes(30);
+        }
+
+        productionPlan.updateStartTime(startTime);
 
         productionPlanRepository.save(productionPlan);
 
