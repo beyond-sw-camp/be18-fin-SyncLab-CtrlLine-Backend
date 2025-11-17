@@ -63,7 +63,7 @@ public class ProductionPlans {
     @JoinColumn(name = "production_manager_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Users productionManager;
 
-    @Column(name = "document_no", nullable = false, unique = true)
+    @Column(name = "plan_document_no", nullable = false, unique = true)
     private String documentNo;
 
     @Enumerated(EnumType.STRING)
@@ -108,6 +108,10 @@ public class ProductionPlans {
 
     public void updateStartTime(LocalDateTime localDateTime) {
         this.startTime = localDateTime;
+    }
+
+    public void updateEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
     }
 
     public enum PlanStatus {
