@@ -166,7 +166,7 @@ class EquipmentServiceImplTest {
 
 
         Mockito.verify(equipmentRepository, times(1))
-                .searchEquipmentList(eq(searchDto), eq(pageable));
+                .searchEquipmentList(searchDto, pageable);
     }
 
     // 설비 업데이트(사용여부, 담당자만 수정 가능한 항목임. 수정은 관리자만 가능)
