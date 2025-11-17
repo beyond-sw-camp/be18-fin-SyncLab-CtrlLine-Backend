@@ -44,6 +44,7 @@ class MesAlarmServiceTest {
     void saveAlarmTelemetry_persistsAlarmWhenEquipmentFound() {
         AlarmTelemetryPayload payload = AlarmTelemetryPayload.builder()
                 .equipmentCode("F1-CL1-EU001")
+                .alarmCode("TC01")
                 .alarmType("2")
                 .alarmName("슬러리 공급 부족")
                 .alarmLevel("WARNING")
@@ -61,6 +62,7 @@ class MesAlarmServiceTest {
         assertThat(saved.getEquipment().getEquipmentCode()).isEqualTo("F1-CL1-EU001");
         assertThat(saved.getAlarmName()).isEqualTo("슬러리 공급 부족");
         assertThat(saved.getAlarmType()).isEqualTo("2");
+        assertThat(saved.getAlarmCode()).isEqualTo("TC01");
         assertThat(saved.getAlarmLevel()).isEqualTo("WARNING");
         assertThat(saved.getOccurredAt()).isEqualTo(LocalDateTime.of(2025, 11, 17, 11, 33, 44));
         assertThat(saved.getUserId()).isEqualTo(42L);

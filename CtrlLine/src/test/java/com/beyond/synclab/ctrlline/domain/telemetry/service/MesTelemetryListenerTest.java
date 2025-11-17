@@ -174,7 +174,7 @@ class MesTelemetryListenerTest {
     @Test
     void onTelemetry_savesAlarmPayload() {
         String payload = """
-                {"equipmentCode":"F1-CL1-EU001","alarm_type":2,"alarm_name":"슬러리 공급 부족","alarm_level":"WARNING","occurred_at":"2025-11-17T11:33:44.456881+09:00","cleared_at":"","user":null}
+                {"equipmentCode":"F1-CL1-EU001","alarm_code":"TC01","alarm_type":2,"alarm_name":"슬러리 공급 부족","alarm_level":"WARNING","occurred_at":"2025-11-17T11:33:44.456881+09:00","cleared_at":"","user":null}
                 """;
 
         listener.onTelemetry(consumerRecord(payload));
@@ -183,6 +183,7 @@ class MesTelemetryListenerTest {
         verify(mesAlarmService, times(1)).saveAlarmTelemetry(captor.capture());
         AlarmTelemetryPayload saved = captor.getValue();
         assertThat(saved.equipmentCode()).isEqualTo("F1-CL1-EU001");
+        assertThat(saved.alarmCode()).isEqualTo("TC01");
         assertThat(saved.alarmType()).isEqualTo("2");
         assertThat(saved.alarmName()).isEqualTo("슬러리 공급 부족");
         assertThat(saved.alarmLevel()).isEqualTo("WARNING");
@@ -197,7 +198,7 @@ class MesTelemetryListenerTest {
                     {"value":{
                         "machine":"F0001.CL0001.AssemblyUnit01",
                         "tag":"alarm_event_payload",
-                        "value":"{\\"equipmentCode\\":\\"F1-CL1-EU003\\",\\"alarm_type\\":1,\\"alarm_name\\":\\"온도 상승\\",\\"alarm_level\\":\\"WARNING\\",\\"occurred_at\\":\\"2025-11-17T12:00:00+09:00\\"}"
+                        "value":"{\\"equipmentCode\\":\\"F1-CL1-EU003\\",\\"alarm_code\\":\\"HOT01\\",\\"alarm_type\\":1,\\"alarm_name\\":\\"온도 상승\\",\\"alarm_level\\":\\"WARNING\\",\\"occurred_at\\":\\"2025-11-17T12:00:00+09:00\\"}"
                     }}
                 ]}
                 """;
@@ -210,6 +211,7 @@ class MesTelemetryListenerTest {
         AlarmTelemetryPayload saved = captor.getValue();
         assertThat(saved.equipmentCode()).isEqualTo("F1-CL1-EU003");
         assertThat(saved.alarmName()).isEqualTo("온도 상승");
+        assertThat(saved.alarmCode()).isEqualTo("HOT01");
     }
 
     private ConsumerRecord<String, String> consumerRecord(String payload) {
