@@ -21,20 +21,11 @@ public class CreateProductionPlanRequestDto {
     @NotNull(message = "납기일은 필수입니다.")
     private LocalDate dueDate;
 
-    @NotNull(message = "상태는 필수입니다.")
-    private ProductionPlans.PlanStatus status;
-
     @NotNull(message = "Sales Manager 사번은 필수입니다.")
     private String salesManagerNo;
 
     @NotNull(message = "Production Manager 사번은 필수입니다.")
     private String productionManagerNo;
-
-    @NotNull(message = "시작 시간은 필수입니다.")
-    private LocalDateTime startTime;
-
-    @NotNull(message = "종료 시간은 필수입니다.")
-    private LocalDateTime endTime;
 
     @NotBlank(message = "공장 코드는 필수입니다.")
     private String factoryCode;
@@ -57,11 +48,8 @@ public class CreateProductionPlanRequestDto {
                 .salesManager(salesManager)
                 .productionManager(productionManager)
                 .documentNo(documentNo)
-                .status(status)
                 .dueDate(this.dueDate)
                 .plannedQty(this.plannedQty)
-                .startTime(this.startTime)
-                .endTime(this.endTime)
                 .remark(this.remark)
                 .build();
     }
