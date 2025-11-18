@@ -4,8 +4,6 @@ import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderC
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
-import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans;
-import com.beyond.synclab.ctrlline.domain.production.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
@@ -14,6 +12,8 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,8 +45,8 @@ public class ProductionOrderService {
     @Transactional
     public void dispatchDuePlans() {
         LocalDateTime now = LocalDateTime.now(clock);
-        List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartAtLessThanEqual(
-                PlanStatus.CONFIRMED, now
+        List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
+                ProductionPlans.PlanStatus.CONFIRMED, now
         );
 
         for (ProductionPlans plan : plans) {
@@ -83,28 +83,27 @@ public class ProductionOrderService {
     }
 
     private Optional<DispatchContext> prepareDispatchContext(ProductionPlans plan) {
-        Optional<Lines> lineOptional = lineRepository.findById(plan.getLineId());
+        Long lineId = plan.getLine().getId();
+
+        Optional<Lines> lineOptional = lineRepository.findById(lineId);
         if (lineOptional.isEmpty()) {
-            log.warn("Line not found for production plan documentNo={}, lineId={}", plan.getDocumentNo(), plan.getLineId());
+            log.warn("Line not found for production plan documentNo={}, lineId={}", plan.getDocumentNo(), lineId);
             plan.markDispatchFailed();
             productionPlanRepository.save(plan);
             return Optional.empty();
         }
 
-        Lines line = lineOptional.get();
-        plan.assignLineCode(line.getLineCode());
-
-        Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(plan.getLineId());
+        Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(lineId);
         if (factoryCodeOptional.isEmpty()) {
-            log.warn("Factory code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
+            log.warn("Factory code not found for lineId={} documentNo={}", lineId, plan.getDocumentNo());
             plan.markDispatchFailed();
             productionPlanRepository.save(plan);
             return Optional.empty();
         }
 
-        Optional<String> itemCodeOptional = lineRepository.findItemCodeByLineId(plan.getLineId());
+        Optional<String> itemCodeOptional = lineRepository.findItemCodeByLineId(lineId);
         if (itemCodeOptional.isEmpty()) {
-            log.warn("Item code not found for lineId={} documentNo={}", plan.getLineId(), plan.getDocumentNo());
+            log.warn("Item code not found for lineId={} documentNo={}", lineId, plan.getDocumentNo());
             plan.markDispatchFailed();
             productionPlanRepository.save(plan);
             return Optional.empty();
@@ -120,7 +119,7 @@ public class ProductionOrderService {
 
         return Optional.of(new DispatchContext(
                 factoryCodeOptional.get(),
-                plan.getLineCode(),
+                plan.getLine().getLineCode(),
                 itemCodeOptional.get(),
                 quantity,
                 "START",

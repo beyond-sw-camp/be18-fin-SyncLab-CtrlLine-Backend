@@ -108,6 +108,18 @@ public class Users {
         updateIfPresent(dto.getExtension(), v -> this.extension = v);
     }
 
+    public boolean isAdminRole() {
+        return this.role.equals(UserRole.ADMIN);
+    }
+
+    public boolean isUserRole() {
+        return this.role.equals(UserRole.USER);
+    }
+
+    public boolean isManagerRole() {
+        return this.role.equals(UserRole.MANAGER);
+    }
+
     private String pick(String newVal, String oldVal) {
         return (newVal == null || newVal.isBlank()) ? oldVal : newVal;
     }
