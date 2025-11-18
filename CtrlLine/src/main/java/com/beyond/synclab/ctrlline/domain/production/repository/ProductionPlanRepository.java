@@ -17,8 +17,6 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
 
     List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startTime);
 
-    List<ProductionPlans> findAllByLine_lineCode(String lineCode);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT pp.documentNo FROM ProductionPlans pp WHERE pp.documentNo LIKE :prefix% ORDER BY pp.documentNo DESC")
     List<String> findByDocumentNoByPrefix(@Param("prefix") String prefix);
@@ -27,7 +25,7 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     @Query("""
         SELECT p
         FROM ProductionPlans p
-        WHERE p.line.lineCode = :lineCode
+        WHERE p.itemLine.line.lineCode = :lineCode
           AND p.status IN :statuses
           AND p.endTime > :now
         ORDER BY p.createdAt DESC

@@ -17,14 +17,18 @@ import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.repository.ItemRepository;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
@@ -58,6 +62,9 @@ class ProductionPlanServiceImplTest {
     private LineRepository lineRepository;
 
     @Mock
+    private ItemLineRepository itemLineRepository;
+
+    @Mock
     private FactoryRepository factoryRepository;
 
     @Mock
@@ -84,11 +91,47 @@ class ProductionPlanServiceImplTest {
             userRepository,
             lineRepository,
             factoryRepository,
+            itemLineRepository,
             itemRepository,
             equipmentRepository,
             fixedClock
         );
     }
+
+    private Lines line(Long id) {
+        return Lines.builder().id(id).lineCode("LINE01").build();
+    }
+
+    private Users user(String empNo) {
+        return Users.builder().empNo(empNo).build();
+    }
+
+    private Items item(Long id) {
+        return Items.builder().id(id).itemCode("ITEM001").build();
+    }
+
+    private Factories factory() {
+        return Factories.builder().factoryCode("F001").build();
+    }
+
+    private ItemsLines itemLine(Lines line, Items item) {
+        return ItemsLines.builder()
+            .id(1L)
+            .line(line)
+            .lineId(line.getId())
+            .item(item)
+            .itemId(item.getId())
+            .build();
+    }
+
+    private Equipments equipment(BigDecimal ppm) {
+        return Equipments.builder()
+            .equipmentPpm(ppm)
+            .totalCount(new BigDecimal("1000"))
+            .defectiveCount(new BigDecimal("10"))
+            .build();
+    }
+
 
     @Test
     @DisplayName("유저 권한으로 생산 계획을 성공적으로 등록합니다.")
@@ -108,25 +151,23 @@ class ProductionPlanServiceImplTest {
             .remark("테스트 생산 계획")
             .build();
 
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
+        Lines line = line(1L);
+        Items item = item(1L);
+        ItemsLines itemsLines = itemLine(line, item);
         Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
         Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
         Users requestUser = Users.builder().role(Users.UserRole.USER).build();
         Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().itemCode("ITEM001").build();
 
-        Equipments equipment = Equipments.builder()
-            .id(100L)
-            .equipmentPpm(new BigDecimal("100"))
-            .totalCount(new BigDecimal("1000"))
-            .defectiveCount(new BigDecimal("10"))
-            .build();
+        Equipments equipment = equipment(new BigDecimal("100"));
 
         when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
         when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
         when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
         when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
+            .thenReturn(Optional.of(itemsLines));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
         when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
             eq("LINE01"), anyList(), any(LocalDateTime.class)
@@ -158,18 +199,6 @@ class ProductionPlanServiceImplTest {
             .status(PlanStatus.CONFIRMED)
             .build();
 
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
-        Users salesManager = Users.builder().empNo("209901001").build();
-        Users productionManager = Users.builder().empNo("209901002").build();
-        Users requestUser = Users.builder().role(Users.UserRole.USER).build();
-        Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().itemCode("ITEM001").build();
-        Equipments equipment = Equipments.builder()
-            .equipmentPpm(new BigDecimal("100"))
-            .totalCount(new BigDecimal("1000"))
-            .defectiveCount(new BigDecimal("10"))
-            .build();
-
         CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
             .dueDate(LocalDate.now(fixedClock))
             .plannedQty(new BigDecimal("100"))
@@ -180,9 +209,24 @@ class ProductionPlanServiceImplTest {
             .itemCode("ITEM001")
             .build();
 
+        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
+        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
+        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
+        Users salesManager = Users.builder().empNo("209901001").build();
+        Users productionManager = Users.builder().empNo("209901002").build();
+        Users requestUser = Users.builder().role(Users.UserRole.USER).build();
+        Factories factory = Factories.builder().factoryCode("F001").build();
+        Equipments equipment = Equipments.builder()
+            .equipmentPpm(new BigDecimal("100"))
+            .totalCount(new BigDecimal("1000"))
+            .defectiveCount(new BigDecimal("10"))
+            .build();
+
         when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
         when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
         when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
+            .thenReturn(Optional.of(itemsLines));
         when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
@@ -202,7 +246,6 @@ class ProductionPlanServiceImplTest {
     @DisplayName("라인에 설비가 없으면 NO_EQUIPMENT_FOUND 예외 발생")
     void createProductionPlan_WhenNoEquipment_ThrowsException() {
         // given
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
         Users requestUser = Users.builder().role(Users.UserRole.USER).build();
         CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
             .dueDate(LocalDate.now(fixedClock))
@@ -214,10 +257,12 @@ class ProductionPlanServiceImplTest {
             .itemCode("ITEM001")
             .build();
 
+        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
         Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
         Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
         Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().itemCode("ITEM001").build();
+        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
+        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
 
         // repository mocking
         when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
@@ -226,6 +271,8 @@ class ProductionPlanServiceImplTest {
         when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(Collections.emptyList());
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
+            .thenReturn(Optional.of(itemsLines));
 
         // when & then
         assertThatThrownBy(() -> productionPlanService.createProductionPlan(requestDto, requestUser))
@@ -243,7 +290,8 @@ class ProductionPlanServiceImplTest {
         Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
         Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
         Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().itemCode("ITEM001").build();
+        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
+        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
 
         // 설비 PPM 0, 불량률 100%
         Equipments equipment = Equipments.builder()
@@ -269,6 +317,8 @@ class ProductionPlanServiceImplTest {
         when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
         when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
         when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
+            .thenReturn(Optional.of(itemsLines));
 
         // when & then
         assertThatThrownBy(() -> productionPlanService.createProductionPlan(requestDto, requestUser))
@@ -299,7 +349,8 @@ class ProductionPlanServiceImplTest {
         Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
         Users requestUser = Users.builder().role(Users.UserRole.MANAGER).build(); // CONFIRMED 권한
         Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().itemCode("ITEM001").build();
+        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
+        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
 
         Equipments equipment = Equipments.builder()
             .id(100L)
@@ -321,6 +372,8 @@ class ProductionPlanServiceImplTest {
         when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
         when(productionPlanRepository.save(any(ProductionPlans.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
+            .thenReturn(Optional.of(itemsLines));
 
         // when
         ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
@@ -367,5 +420,60 @@ class ProductionPlanServiceImplTest {
 
         // then
         Assertions.assertEquals("2099/01/01-4", docNo);
+    }
+
+    @Test
+    @DisplayName("생산 계획 상세 조회에 성공한다.")
+    void getProductionPlan_success() {
+        // given
+        Long planId = 1L;
+
+        Factories factory = factory();
+        Lines line = Lines.builder().id(1L).factory(factory).build();
+        Items item = item(1L);
+        ItemsLines itemLine = itemLine(line, item);
+        Users salesManager = user("209901001");
+        Users productionManager = user("209901002");
+
+        ProductionPlans productionPlans = ProductionPlans.builder()
+            .id(planId)
+            .salesManager(salesManager)
+            .productionManager(productionManager)
+            .itemLine(itemLine)
+            .documentNo("2099/01/01-1")
+            .plannedQty(new BigDecimal("500"))
+            .build();
+
+        when(productionPlanRepository.findById(planId))
+            .thenReturn(Optional.of(productionPlans));
+
+        // when
+        ProductionPlanDetailResponseDto response =
+            productionPlanService.getProductionPlan(planId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getPlanDocumentNo()).isEqualTo("2099/01/01-1");
+        assertThat(response.getItemCode()).isEqualTo("ITEM001");
+        assertThat(response.getFactoryCode()).isEqualTo("F001");
+
+        verify(productionPlanRepository, times(1)).findById(planId);
+    }
+
+    @Test
+    @DisplayName("생산 계획 ID가 존재하지 않을 경우 예외를 반환한다.")
+    void getProductionPlan_notFound() {
+        // given
+        Long planId = 999L;
+
+        when(productionPlanRepository.findById(planId))
+            .thenReturn(Optional.empty());
+
+        // expected
+        assertThatThrownBy(() -> productionPlanService.getProductionPlan(planId))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
+
+        verify(productionPlanRepository, times(1)).findById(planId);
     }
 }

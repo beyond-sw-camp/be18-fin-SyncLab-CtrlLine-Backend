@@ -69,7 +69,9 @@ class ItemLineRepositoryTest {
                 .build());
 
         itemLineRepository.save(ItemsLines.builder()
+                .lineId(line.getId())
                 .line(line)
+                .itemId(activeFinishedItem.getId())
                 .item(activeFinishedItem)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())

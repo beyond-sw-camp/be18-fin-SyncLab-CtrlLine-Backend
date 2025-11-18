@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -12,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,5 +41,14 @@ public class ProductionPlanController {
             .body(
                 BaseResponse.of(HttpStatus.CREATED.value(), responseDto)
             );
+    }
+
+    @GetMapping("/{planId}")
+    public ResponseEntity<BaseResponse<ProductionPlanDetailResponseDto>> getProductionPlan(
+        @PathVariable Long planId
+    ) {
+        ProductionPlanDetailResponseDto responseDto = productionPlanService.getProductionPlan(planId);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }
