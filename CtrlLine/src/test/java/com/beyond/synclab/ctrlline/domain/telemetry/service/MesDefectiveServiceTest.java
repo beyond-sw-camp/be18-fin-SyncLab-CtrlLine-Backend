@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import com.beyond.synclab.ctrlline.domain.telemetry.repository.DefectiveRepository;
 import java.math.BigDecimal;
@@ -45,11 +46,13 @@ class MesDefectiveServiceTest {
                 .defectiveCode("DF-01")
                 .defectiveName("Scratch")
                 .defectiveQuantity(BigDecimal.valueOf(4))
+                .producedQuantity(BigDecimal.valueOf(10))
                 .status("NG")
                 .defectiveType("ORDER_NG")
                 .build();
 
-        when(equipmentRepository.findById(5L)).thenReturn(Optional.of(sampleEquipment(5L)));
+        Equipments equipment = sampleEquipment(5L);
+        when(equipmentRepository.findById(5L)).thenReturn(Optional.of(equipment));
 
         mesDefectiveService.saveNgTelemetry(payload);
 
@@ -58,6 +61,8 @@ class MesDefectiveServiceTest {
         assertThat(saved.getDefectiveCode()).isEqualTo("DF-01");
         assertThat(saved.getDefectiveQty()).isEqualByComparingTo("4");
         assertThat(saved.getDefectiveType()).isEqualTo("ORDER_NG");
+        assertThat(equipment.getTotalCount()).isEqualByComparingTo("0");
+        assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("0");
     }
 
     @Test
@@ -76,6 +81,70 @@ class MesDefectiveServiceTest {
         mesDefectiveService.saveNgTelemetry(payload);
 
         verifyNoInteractions(defectiveRepository);
+    }
+
+    @Test
+    void saveOrderSummaryTelemetry_updatesEquipmentCounts() {
+        OrderSummaryTelemetryPayload payload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-5")
+                .producedQuantity(BigDecimal.valueOf(40))
+                .defectiveQuantity(BigDecimal.valueOf(8))
+                .build();
+
+        Equipments equipment = sampleEquipment(5L);
+        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(equipment));
+
+        mesDefectiveService.saveOrderSummaryTelemetry(payload);
+
+        assertThat(equipment.getTotalCount()).isEqualByComparingTo("40");
+        assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("8");
+        verifyNoInteractions(defectiveRepository);
+    }
+
+    @Test
+    void saveOrderSummaryTelemetry_accumulatesOnIncrease() {
+        OrderSummaryTelemetryPayload firstPayload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-5")
+                .producedQuantity(BigDecimal.valueOf(10))
+                .defectiveQuantity(BigDecimal.ZERO)
+                .build();
+        OrderSummaryTelemetryPayload secondPayload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-5")
+                .producedQuantity(BigDecimal.valueOf(15))
+                .defectiveQuantity(BigDecimal.valueOf(2))
+                .build();
+
+        Equipments equipment = sampleEquipment(5L);
+        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(equipment));
+
+        mesDefectiveService.saveOrderSummaryTelemetry(firstPayload);
+        mesDefectiveService.saveOrderSummaryTelemetry(secondPayload);
+
+        assertThat(equipment.getTotalCount()).isEqualByComparingTo("15"); // 10 + (15-10)
+        assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("2");
+    }
+
+    @Test
+    void saveOrderSummaryTelemetry_accumulatesEntireValueWhenResetDetected() {
+        OrderSummaryTelemetryPayload firstPayload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-5")
+                .producedQuantity(BigDecimal.valueOf(30))
+                .defectiveQuantity(BigDecimal.valueOf(3))
+                .build();
+        OrderSummaryTelemetryPayload resetPayload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-5")
+                .producedQuantity(BigDecimal.valueOf(5))
+                .defectiveQuantity(BigDecimal.ONE)
+                .build();
+
+        Equipments equipment = sampleEquipment(5L);
+        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(equipment));
+
+        mesDefectiveService.saveOrderSummaryTelemetry(firstPayload);
+        mesDefectiveService.saveOrderSummaryTelemetry(resetPayload);
+
+        assertThat(equipment.getTotalCount()).isEqualByComparingTo("35"); // 30 + 5 (reset)
+        assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("4");
     }
 
     private Equipments sampleEquipment(Long id) {
