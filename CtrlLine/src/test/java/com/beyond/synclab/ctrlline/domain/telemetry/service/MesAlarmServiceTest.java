@@ -85,8 +85,6 @@ class MesAlarmServiceTest {
     private Equipments sampleEquipment(Long id) {
         return Equipments.builder()
                 .id(id)
-                .lineId(1L)
-                .equipmentStatusId(1L)
                 .equipmentCode("F1-CL1-EU001")
                 .equipmentName("장비")
                 .equipmentType("TYPE")

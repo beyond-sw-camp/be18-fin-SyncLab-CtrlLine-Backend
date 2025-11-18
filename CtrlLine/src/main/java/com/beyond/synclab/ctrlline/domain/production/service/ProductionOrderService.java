@@ -83,7 +83,7 @@ public class ProductionOrderService {
     }
 
     private Optional<DispatchContext> prepareDispatchContext(ProductionPlans plan) {
-        Long lineId = plan.getLine().getId();
+        Long lineId = plan.getItemLine().getLineId();
 
         Optional<Lines> lineOptional = lineRepository.findById(lineId);
         if (lineOptional.isEmpty()) {
@@ -119,7 +119,7 @@ public class ProductionOrderService {
 
         return Optional.of(new DispatchContext(
                 factoryCodeOptional.get(),
-                plan.getLine().getLineCode(),
+                plan.getItemLine().getLine().getLineCode(),
                 itemCodeOptional.get(),
                 quantity,
                 "START",

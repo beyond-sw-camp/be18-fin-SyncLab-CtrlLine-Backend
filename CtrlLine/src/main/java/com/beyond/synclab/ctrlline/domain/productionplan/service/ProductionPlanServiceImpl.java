@@ -9,14 +9,19 @@ import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.exception.ItemErrorCode;
 import com.beyond.synclab.ctrlline.domain.item.repository.ItemRepository;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.itemline.errorcode.ItemLineErrorCode;
+import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
@@ -41,6 +46,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final UserRepository userRepository;
     private final LineRepository lineRepository;
     private final FactoryRepository factoryRepository;
+    private final ItemLineRepository itemLineRepository;
     private final ItemRepository itemRepository;
     private final EquipmentRepository equipmentRepository;
     private final Clock clock;
@@ -73,17 +79,24 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
                     return new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
                 });
 
+
         Items item = itemRepository.findByItemCode(requestDto.getItemCode())
+            .orElseThrow(() -> {
+                log.debug("Item 이 존재하지 않습니다.");
+                return new AppException(ItemErrorCode.ITEM_NOT_FOUND);
+            });
+
+        ItemsLines itemsLines = itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())
                 .orElseThrow(() -> {
-                    log.debug("Item 이 존재하지 않습니다.");
-                    return new AppException(ItemErrorCode.ITEM_NOT_FOUND);
+                    log.debug("ItemLine 이 존재하지 않습니다.");
+                    return new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND);
                 });
 
         // 1. 전표 번호 생성
         String documentNo = createDocumentNo();
 
         // 2. 요청 DTO 정보로 생산계획 생성
-        ProductionPlans productionPlan = requestDto.toEntity(salesManager, productionManager, line, documentNo);
+        ProductionPlans productionPlan = requestDto.toEntity(salesManager, productionManager, itemsLines, documentNo);
 
         // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
         // 종료 시각이 현재 이후 중에 최근
@@ -192,4 +205,16 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return prefix + String.format("-%d", nextSeq);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ProductionPlanDetailResponseDto getProductionPlan(Long planId) {
+        ProductionPlans productionPlans = productionPlanRepository.findById(planId)
+            .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
+
+        Factories factory = productionPlans.getItemLine().getLine().getFactory();
+
+        Items item = productionPlans.getItemLine().getItem();
+
+        return ProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item);
+    }
 }

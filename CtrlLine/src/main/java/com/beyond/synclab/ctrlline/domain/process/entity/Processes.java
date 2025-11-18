@@ -46,7 +46,7 @@ public class Processes {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "equipment_id", insertable = false, updatable = false)
     private Equipments equipment;
-    
+
     @Column(name = "user_id")
     private Long userId; // 사용자 FK
     @ManyToOne(fetch = FetchType.LAZY)

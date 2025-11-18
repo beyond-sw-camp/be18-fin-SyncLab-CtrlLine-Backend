@@ -31,7 +31,7 @@ public class EquipmentQueryRepositoryImpl implements EquipmentQueryRepository {
         // === 목록 조회 쿼리 ===
         List<Equipments> equipmentList = queryFactory
                 .selectFrom(equipment)
-                .leftJoin(equipment.users, user).fetchJoin()
+                .leftJoin(equipment.user, user).fetchJoin()
                 .where(
                         equipmentCodeContains(searchDto.getEquipmentCode()),
                         equipmentNameContains(searchDto.getEquipmentName()),
@@ -49,7 +49,7 @@ public class EquipmentQueryRepositoryImpl implements EquipmentQueryRepository {
         JPAQuery<Long> countQuery = queryFactory
                 .select(equipment.count())
                 .from(equipment)
-                .leftJoin(equipment.users, user)
+                .leftJoin(equipment.user, user)
                 .where(
                         equipmentCodeContains(searchDto.getEquipmentCode()),
                         equipmentNameContains(searchDto.getEquipmentName()),
