@@ -99,4 +99,15 @@ public class Equipments {
     public void updateManager(Users manager){
         this.users = manager;
     }
+
+    public void accumulateProduction(BigDecimal producedDelta, BigDecimal defectiveDelta) {
+        if (producedDelta != null) {
+            BigDecimal currentTotal = this.totalCount != null ? this.totalCount : BigDecimal.ZERO;
+            this.totalCount = currentTotal.add(producedDelta);
+        }
+        if (defectiveDelta != null) {
+            BigDecimal currentDefective = this.defectiveCount != null ? this.defectiveCount : BigDecimal.ZERO;
+            this.defectiveCount = currentDefective.add(defectiveDelta);
+        }
+    }
 }

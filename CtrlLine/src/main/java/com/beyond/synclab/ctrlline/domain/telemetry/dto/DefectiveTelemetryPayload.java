@@ -11,6 +11,7 @@ public record DefectiveTelemetryPayload(
         String defectiveCode,
         String defectiveName,
         BigDecimal defectiveQuantity,
+        BigDecimal producedQuantity,
         String status,
         String defectiveType
 ) {

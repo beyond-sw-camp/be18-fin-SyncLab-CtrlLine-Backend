@@ -39,12 +39,18 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_QTY_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_STATUS_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_TYPE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_PRODUCED_QTY_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_DEFECTIVE_QTY_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_EQUIPMENT_CODE_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_PAYLOAD_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_PRODUCED_QTY_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.STATUS_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
 
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -112,6 +118,11 @@ public class MesTelemetryListener {
     private void handleTelemetryValue(JsonNode valueNode, String recordKey) {
         boolean isPotentialAlarm = recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
         valueNode = unwrapOrderNgEvent(valueNode);
+        JsonNode summaryPayload = extractOrderSummaryPayload(valueNode);
+        if (summaryPayload != null) {
+            persistOrderSummary(summaryPayload);
+            return;
+        }
         JsonNode alarmPayloadNode = extractAlarmPayload(valueNode, recordKey);
         if (isAlarmTelemetryRecord(recordKey, alarmPayloadNode)) {
             persistAlarmRecord(alarmPayloadNode);
@@ -244,6 +255,19 @@ public class MesTelemetryListener {
         }
     }
 
+    private void persistOrderSummary(JsonNode summaryNode) {
+        OrderSummaryTelemetryPayload payload = buildOrderSummaryPayload(summaryNode);
+        if (payload == null) {
+            log.warn("Order summary payload가 유효하지 않아 저장하지 않습니다. payload={}", summaryNode);
+            return;
+        }
+        log.info("Order summary telemetry received equipmentCode={}, producedQty={}, ngQty={}",
+                payload.equipmentCode(),
+                payload.producedQuantity(),
+                payload.defectiveQuantity());
+        mesDefectiveService.saveOrderSummaryTelemetry(payload);
+    }
+
     private void persistAlarmRecord(JsonNode valueNode) {
         AlarmTelemetryPayload payload = buildAlarmPayload(valueNode);
         if (payload == null) {
@@ -316,6 +340,7 @@ public class MesTelemetryListener {
                 DEFECTIVE_QTY_FIELD_SNAKE,
                 ORDER_NG_QTY_FIELD,
                 NG_QTY_FIELD);
+        BigDecimal producedQuantity = firstDecimal(valueNode, ORDER_PRODUCED_QTY_FIELD);
         String defectiveCode = firstNonEmptyValue(valueNode,
                 DEFECTIVE_CODE_FIELD,
                 DEFECTIVE_CODE_FIELD_ALT,
@@ -350,8 +375,31 @@ public class MesTelemetryListener {
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQuantity(quantity)
+                .producedQuantity(producedQuantity)
                 .status(resolveStatus(valueNode))
                 .defectiveType(defectiveType)
+                .build();
+    }
+
+    private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode) {
+        String equipmentCode = firstNonEmptyValue(summaryNode,
+                ORDER_SUMMARY_EQUIPMENT_CODE_FIELD,
+                EQUIPMENT_CODE_FIELD,
+                EQUIPMENT_CODE_FIELD_SNAKE);
+        BigDecimal producedQuantity = firstDecimal(summaryNode,
+                ORDER_SUMMARY_PRODUCED_QTY_FIELD,
+                ORDER_PRODUCED_QTY_FIELD);
+        BigDecimal defectiveQuantity = firstDecimal(summaryNode,
+                ORDER_SUMMARY_DEFECTIVE_QTY_FIELD,
+                ORDER_NG_QTY_FIELD,
+                NG_QTY_FIELD);
+        if (!StringUtils.hasText(equipmentCode) || producedQuantity == null) {
+            return null;
+        }
+        return OrderSummaryTelemetryPayload.builder()
+                .equipmentCode(equipmentCode)
+                .producedQuantity(producedQuantity)
+                .defectiveQuantity(defectiveQuantity)
                 .build();
     }
 
@@ -488,6 +536,37 @@ public class MesTelemetryListener {
             return parsed != null ? parsed : valueNode;
         }
         return valueNode;
+    }
+
+    private JsonNode extractOrderSummaryPayload(JsonNode valueNode) {
+        if (valueNode == null) {
+            return null;
+        }
+        JsonNode directNode = parseOrderSummaryNode(valueNode.get(ORDER_SUMMARY_PAYLOAD_FIELD));
+        if (directNode != null) {
+            return directNode;
+        }
+        if (ORDER_SUMMARY_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
+            return parseOrderSummaryNode(valueNode.get(VALUE_FIELD));
+        }
+        return null;
+    }
+
+    private JsonNode parseOrderSummaryNode(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (node.isObject()) {
+            return node;
+        }
+        if (node.isTextual()) {
+            JsonNode parsed = parsePayload(node.asText());
+            if (parsed == null) {
+                parsed = parseMapLikeString(node.asText());
+            }
+            return parsed;
+        }
+        return null;
     }
 
     private JsonNode convertTextNodeToObject(JsonNode valueNode) {

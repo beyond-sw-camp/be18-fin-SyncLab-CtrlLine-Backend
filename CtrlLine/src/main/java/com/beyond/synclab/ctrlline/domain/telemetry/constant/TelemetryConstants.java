@@ -30,6 +30,11 @@ public final class TelemetryConstants {
     public static final String ORDER_NG_QTY_FIELD = "order_ng_qty";
     public static final String ORDER_NG_STATUS_FIELD = "order_ng_status";
     public static final String ORDER_NG_EVENT_FIELD = "order_ng_event";
+    public static final String ORDER_PRODUCED_QTY_FIELD = "order_produced_qty";
+    public static final String ORDER_SUMMARY_PAYLOAD_FIELD = "order_summary_payload";
+    public static final String ORDER_SUMMARY_EQUIPMENT_CODE_FIELD = "equipment_code";
+    public static final String ORDER_SUMMARY_PRODUCED_QTY_FIELD = "produced_qty";
+    public static final String ORDER_SUMMARY_DEFECTIVE_QTY_FIELD = "ng_qty";
     public static final String NG_TYPE_FIELD = "ng_type";
     public static final String NG_NAME_FIELD = "ng_name";
     public static final String NG_QTY_FIELD = "ng_qty";

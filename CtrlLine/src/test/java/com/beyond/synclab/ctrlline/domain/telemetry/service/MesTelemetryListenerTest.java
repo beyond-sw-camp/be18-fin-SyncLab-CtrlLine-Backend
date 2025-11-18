@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -169,6 +170,38 @@ class MesTelemetryListenerTest {
         assertThat(saved.defectiveCode()).isEqualTo("4");
         assertThat(saved.defectiveName()).isEqualTo("체결 토크 불량");
         assertThat(saved.defectiveQuantity()).isEqualByComparingTo("7");
+    }
+
+    @Test
+    void onTelemetry_handlesOrderSummaryPayload() {
+        String payload = """
+                {"order_summary_payload":{"equipment_code":"EQP-20","produced_qty":120,"ng_qty":5}}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<OrderSummaryTelemetryPayload> captor = ArgumentCaptor.forClass(OrderSummaryTelemetryPayload.class);
+        verify(mesDefectiveService, times(1)).saveOrderSummaryTelemetry(captor.capture());
+        OrderSummaryTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("EQP-20");
+        assertThat(saved.producedQuantity()).isEqualByComparingTo("120");
+        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("5");
+    }
+
+    @Test
+    void onTelemetry_handlesOrderSummaryTagPayload() {
+        String payload = """
+                {"records":[{"value":{"machine":"F0001.CL0001.TrayCleaner01","tag":"order_summary_payload","value":{"equipmentCode":"EQP-30","order_produced_qty":50,"order_ng_qty":4}}}]}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<OrderSummaryTelemetryPayload> captor = ArgumentCaptor.forClass(OrderSummaryTelemetryPayload.class);
+        verify(mesDefectiveService, times(1)).saveOrderSummaryTelemetry(captor.capture());
+        OrderSummaryTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("EQP-30");
+        assertThat(saved.producedQuantity()).isEqualByComparingTo("50");
+        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("4");
     }
 
     @Test
