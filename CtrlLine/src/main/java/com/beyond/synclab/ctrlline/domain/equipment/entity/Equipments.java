@@ -48,19 +48,19 @@ public class Equipments {
     @JoinColumn(name = "line_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private Lines line; // 라인 FK
-    @Column(name="line_id")
+    @Column(name = "line_id")
     private Long lineId;
 
     @JoinColumn(name = "equipment_status_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private EquipmentStatuses equipmentStatus; // 설비상태 FK
-    @Column(name="equipment_status_id")
+    @Column(name = "equipment_status_id")
     private Long equipmentStatusId;
 
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private Users user; // 사용자 FK
-    @Column(name="user_id")
+    @Column(name = "user_id")
     private Long userId;
 
     // ───────── 기본 정보 ─────────
@@ -108,7 +108,18 @@ public class Equipments {
     }
 
     // 담당자 업데이트
-    public void updateManager(Users manager){
+    public void updateManager(Users manager) {
         this.user = manager;
+    }
+
+    public void accumulateProduction(BigDecimal producedDelta, BigDecimal defectiveDelta) {
+        if (producedDelta != null) {
+            BigDecimal currentTotal = this.totalCount != null ? this.totalCount : BigDecimal.ZERO;
+            this.totalCount = currentTotal.add(producedDelta);
+        }
+        if (defectiveDelta != null) {
+            BigDecimal currentDefective = this.defectiveCount != null ? this.defectiveCount : BigDecimal.ZERO;
+            this.defectiveCount = currentDefective.add(defectiveDelta);
+        }
     }
 }
