@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.dto;
 
-import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -46,10 +46,13 @@ public class CreateProductionPlanRequestDto {
     @Size(max = 500, message = "비고는 최대 500자까지 가능합니다.")
     private String remark;
 
-    public ProductionPlans toEntity(Users salesManager, Users productionManager, Lines line, String documentNo) {
+    public ProductionPlans toEntity(Users salesManager, Users productionManager, ItemsLines itemsLines, String documentNo) {
         return ProductionPlans.builder()
-                .line(line)
+                .itemLineId(itemsLines.getId())
+                .itemLine(itemsLines)
+                .salesManagerId(salesManager.getId())
                 .salesManager(salesManager)
+                .productionManagerId(productionManager.getId())
                 .productionManager(productionManager)
                 .documentNo(documentNo)
                 .dueDate(this.dueDate)
