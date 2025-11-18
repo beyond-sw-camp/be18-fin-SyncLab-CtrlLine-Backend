@@ -49,15 +49,15 @@ public class CreateEquipmentRequestDto {
     // Post할 때, 아무런 값도 안 넣으면 Null이라고 생각해서, 0으로 기본값 넣어줌.
     public Equipments toEntity(Users user, Lines line, EquipmentStatuses status) {
         return Equipments.builder()
-                .line(line)                       // ✅ FK 1
-                .equipmentStatus(status) // ✅ FK 2
+                .line(line)
+                .equipmentStatus(status)
                 .equipmentCode(this.equipmentCode)
                 .equipmentName(this.equipmentName)
                 .equipmentType(this.equipmentType)
                 .operatingTime(this.operatingTime)
                 .equipmentPpm(this.equipmentPpm != null ? this.equipmentPpm : BigDecimal.ZERO)
-                .totalCount(BigDecimal.ZERO)               // ✅ 기본값
-                .defectiveCount(BigDecimal.ZERO)           // ✅ 기본값
+                .totalCount(BigDecimal.ZERO)
+                .defectiveCount(BigDecimal.ZERO)
                 .isActive(this.isActive)
                 .user(user)
                 .build();

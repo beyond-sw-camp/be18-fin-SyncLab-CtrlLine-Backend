@@ -111,20 +111,16 @@ class EquipmentServiceImplTest {
     void getEquipmentDetail_success() {
         // given
         Users user = buildTestUser("홍길동", Users.UserRole.ADMIN);
-
-        // ⭐ Status 엔티티 생성
         EquipmentStatuses status = EquipmentStatuses.builder()
                 .equipmentStatusCode("RUNNING")
                 .equipmentStatusName("가동중")
                 .build();
 
-        // ⭐ Line 엔티티 생성
         Lines line = Lines.builder()
                 .lineCode("L001")
                 .lineName("1라인")
                 .build();
 
-        // ⭐ Equipment 엔티티 생성 (status, line, user 다 넣어야 함)
         Equipments equipment = Equipments.builder()
                 .id(1L)
                 .equipmentCode("E001")    // <--- 테스트 Assertion과 일치해야 함
