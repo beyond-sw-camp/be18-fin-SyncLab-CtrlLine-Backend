@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
@@ -106,9 +107,10 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_sendOrderAndMarkRunning() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
+        Lines line = Lines.builder().id(1L).lineCode("PS-001").factoryId(10L).build();
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
-                .line(Lines.builder().id(1L).lineCode("PS-001").build())
+                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
                 .startTime(now.minusMinutes(1))
                 .plannedQty(new java.math.BigDecimal("7000"))
                 .status(PlanStatus.CONFIRMED)
@@ -116,7 +118,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
-        when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
@@ -152,9 +154,10 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_onFailureMarksPlanReturned() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
+        Lines line = Lines.builder().id(1L).lineCode("L001").build();
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
-                .line(Lines.builder().id(1L).lineCode("PS-001").build())
+                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
                 .startTime(now.minusMinutes(1))
                 .plannedQty(new java.math.BigDecimal("7000"))
                 .status(PlanStatus.CONFIRMED)

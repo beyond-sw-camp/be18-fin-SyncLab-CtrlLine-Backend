@@ -34,7 +34,7 @@ public class ProductionPlanResponseDto {
     public static ProductionPlanResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items) {
         return ProductionPlanResponseDto.builder()
                 .id(productionPlans.getId())
-                .lineCode(productionPlans.getLine().getLineCode())
+                .lineCode(productionPlans.getItemLine().getLine().getLineCode())
                 .salesManagerNo(productionPlans.getSalesManager().getEmpNo())
                 .productionManagerNo(productionPlans.getProductionManager().getEmpNo())
                 .documentNo(productionPlans.getDocumentNo())
