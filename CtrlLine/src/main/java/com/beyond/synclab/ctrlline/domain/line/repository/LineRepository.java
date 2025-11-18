@@ -25,4 +25,6 @@ public interface LineRepository extends JpaRepository<Lines, Long> {
             LIMIT 1
             """, nativeQuery = true)
     Optional<String> findFactoryCodeByLineId(@Param("lineId") Long lineId);
+
+    Optional<Lines> findBylineCode(String lineCode);
 }
