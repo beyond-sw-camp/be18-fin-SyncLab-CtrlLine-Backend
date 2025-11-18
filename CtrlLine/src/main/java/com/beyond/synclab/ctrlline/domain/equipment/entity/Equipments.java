@@ -5,9 +5,11 @@ import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.persistence.Column;
+import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -43,16 +45,16 @@ public class Equipments {
     private Long id; // 설비 PK
 
     // ───────── FK 영역 ─────────
-    @JoinColumn(name = "line_id", nullable = false)
+    @JoinColumn(name = "line_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     @ManyToOne(fetch = FetchType.LAZY)
     private Lines line; // 라인 FK
 
-    @JoinColumn(name = "equipment_status_id", nullable = false)
+    @JoinColumn(name = "equipment_status_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     @ManyToOne(fetch = FetchType.LAZY)
     private EquipmentStatuses equipmentStatus; // 설비상태 FK
 
+    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
     private Users user; // 사용자 FK
 
     // ───────── 기본 정보 ─────────
