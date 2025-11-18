@@ -22,7 +22,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -31,7 +30,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-// @EntityListeners(EntityActionLogger.class) 작성해야, 로그 테이블에 자동 등록됨.
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
 
@@ -43,18 +41,33 @@ public class Processes {
     private Long id;
 
     // <========FK=========>
+    @Column(name = "equipment_id")
+    private Long equipmentId; // 설비 FK
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "equipment_id")
+    @JoinColumn(name = "equipment_id", insertable = false, updatable = false)
     private Equipments equipment;
-
+    
+    @Column(name = "user_id")
+    private Long userId; // 사용자 FK
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private Users user;
 
     // <==========일반 컬럼들=========>
     @Column(name = "process_code", nullable = false, length = 32)
-    private String processCode; // 설비코드
+    private String processCode; // 공정코드
 
+    @Column(name = "process_name", nullable = false, length = 32)
+    private String processName; // 공정명
 
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt; // 생성시각
 
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt; // 수정시각
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive; // 사용여부
 }
