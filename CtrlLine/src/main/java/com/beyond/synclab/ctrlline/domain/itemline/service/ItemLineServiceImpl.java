@@ -30,8 +30,8 @@ public class ItemLineServiceImpl implements ItemLineService {
     // 조회 탭 - 특정 라인에서 생산 가능한 품목 조회
     @Override
     @Transactional(readOnly = true)
-    public List<GetItemLineListResponseDto> getItemLineList(final Long lineId) {
-        final Lines line = lineRepository.getReferenceById(lineId);
+    public List<GetItemLineListResponseDto> getItemLineList(final String lineCode) {
+        final Lines line = lineRepository.getReferenceByLineCode(lineCode);
         final List<Items> itemsList = itemLineRepository.findActiveFinishedItemsByLine(line);
 
         return itemsList.stream()
@@ -42,16 +42,16 @@ public class ItemLineServiceImpl implements ItemLineService {
     // 수정 탭 - 특정 라인의 생산 가능 품목 전체 수정
     @Override
     @Transactional
-    public void updateItemLine(final Long lineId, final UpdateItemLineRequestDto requestDto) {
-        log.info("라인({}) 생산 가능 품목 수정 요청", lineId);
+    public void updateItemLine(final String lineCode, final UpdateItemLineRequestDto requestDto) {
+        log.info("라인({}) 생산 가능 품목 수정 요청", lineCode);
 
-        final Lines line = lineRepository.getReferenceById(lineId);
+        final Lines line = lineRepository.getReferenceByLineCode(lineCode);
 
         // 기존 매핑 전체 삭제
         final List<ItemsLines> existingMappings = itemLineRepository.findByLine(line);
         if (!existingMappings.isEmpty()) {
             itemLineRepository.deleteAllInBatch(existingMappings);
-            log.debug("라인({}) 기존 매핑 {}건 삭제 완료", lineId, existingMappings.size());
+            log.debug("라인({}) 기존 매핑 {}건 삭제 완료", lineCode, existingMappings.size());
         }
 
         // 신규 매핑 생성
@@ -74,7 +74,7 @@ public class ItemLineServiceImpl implements ItemLineService {
                 .toList();
 
         itemLineRepository.saveAll(newMappings);
-        log.info("라인({})의 생산 가능 품목 {}건 신규 등록 완료", lineId, newMappings.size());
+        log.info("라인({})의 생산 가능 품목 {}건 신규 등록 완료", lineCode, newMappings.size());
     }
 }
 

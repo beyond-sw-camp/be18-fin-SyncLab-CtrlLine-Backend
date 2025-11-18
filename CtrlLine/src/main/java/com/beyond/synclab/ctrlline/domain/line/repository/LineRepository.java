@@ -33,4 +33,6 @@ public interface LineRepository extends JpaRepository<Lines, Long> {
     Optional<Lines> findBylineCode(String lineCode);
 
     Page<Lines> findAll(Specification<Lines> spec, Pageable pageable);
+
+    Lines getReferenceByLineCode(String lineCode);
 }

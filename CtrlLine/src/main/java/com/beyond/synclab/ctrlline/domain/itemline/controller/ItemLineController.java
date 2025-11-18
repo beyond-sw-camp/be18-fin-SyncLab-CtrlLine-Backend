@@ -27,30 +27,26 @@ public class ItemLineController {
 
     private final ItemLineService itemLineService;
 
-     /**
-     🔹 생산 가능 품목 목록 조회
-     */
-    @GetMapping("/{lineId}")
+    // 생산 가능 품목 목록 조회
+    @GetMapping("/{lineCode}")
     public ResponseEntity<BaseResponse<List<GetItemLineListResponseDto>>> getItemLineList(
-            @PathVariable final Long lineId
+            @PathVariable final String lineCode
     ) {
-        log.info("API 호출 - 라인({}) 생산 가능 품목 목록 조회 요청", lineId);
+        log.info("API 호출 - 라인({}) 생산 가능 품목 목록 조회 요청", lineCode);
 
-        List<GetItemLineListResponseDto> result = itemLineService.getItemLineList(lineId);
+        List<GetItemLineListResponseDto> result = itemLineService.getItemLineList(lineCode);
         return ResponseEntity.ok(ok(result));
     }
 
-     /**
-     🔹 생산 가능 품목 전체 수정
-     */
-    @PutMapping("/{lineId}")
+    // 생산 가능 품목 전체 수정
+    @PutMapping("/{lineCode}")
     public ResponseEntity<BaseResponse<Void>> updateItemLine(
-            @PathVariable final Long lineId,
+            @PathVariable final String lineCode,
             @RequestBody final UpdateItemLineRequestDto requestDto
     ) {
-        log.info("API 호출 - 라인({}) 생산 가능 품목 수정 요청", lineId);
+        log.info("API 호출 - 라인({}) 생산 가능 품목 수정 요청", lineCode);
 
-        itemLineService.updateItemLine(lineId, requestDto);
+        itemLineService.updateItemLine(lineCode, requestDto);
         return ResponseEntity.ok(BaseResponse.ok(null));
     }
 }
