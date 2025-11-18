@@ -32,7 +32,7 @@ public class EquipmentDetailResponseDto {
     private BigDecimal totalCount;
     private BigDecimal defectiveCount;
     private Boolean isActive;
-    private String equipmentStatus;
+    private String equipmentStatusCode;
     private String lineCode;
 
     public static EquipmentDetailResponseDto fromEntity(Equipments equipment, Users user, EquipmentStatuses status, Lines line) {
@@ -50,7 +50,7 @@ public class EquipmentDetailResponseDto {
                 .defectiveCount(equipment.getDefectiveCount())
                 .isActive(equipment.getIsActive())
                 // 추가
-                .equipmentStatus(status.getEquipmentStatusCode())
+                .equipmentStatusCode(status.getEquipmentStatusCode())
                 .lineCode(line.getLineCode())
                 .build();
     }

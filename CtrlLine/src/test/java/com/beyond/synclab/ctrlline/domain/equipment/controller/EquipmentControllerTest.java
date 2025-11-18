@@ -140,7 +140,7 @@ class EquipmentControllerTest {
                 .userName("홍길동")
                 .empNo("A1001")
                 // 추가함.
-                .equipmentStatus("E001")
+                .equipmentStatusCode("E001")
                 .lineCode("PL0001")
                 .operatingDate(LocalDateTime.of(2025, 11, 10, 9, 0))
                 .maintenanceDate(LocalDateTime.of(2025, 11, 9, 9, 0))
