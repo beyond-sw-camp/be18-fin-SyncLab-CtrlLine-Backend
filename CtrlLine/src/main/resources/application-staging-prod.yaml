@@ -12,6 +12,7 @@ jwt:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS} # 운영 프론트 주소
+  allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS}
   allowed-headers:
     - "*"
   allowed-methods:
