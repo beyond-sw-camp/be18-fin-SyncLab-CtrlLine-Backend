@@ -37,50 +37,56 @@ class ItemLineRepositoryTest {
     @Autowired
     private LineRepository lineRepository;
 
+
     @Test
     @DisplayName("isActive=true && itemStatus=FINISHED_PRODUCT 인 품목만 조회되어야 한다")
     void findActiveFinishedItemsByLine_shouldReturnOnlyActiveFinishedProducts() {
         // given
+        // Line 생성
         Lines line = lineRepository.save(Lines.builder()
-                .id(1L)
-                .factoryId(1L)
-                .lineCode("PL0001")
-                .lineName("각형전지생산라인")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build());
+                                              .factoryId(1L)
+                                              .userId(1L)
+                                              .lineCode("PL0001")
+                                              .lineName("각형전지생산라인")
+                                              .isActive(true)
+                                              .createdAt(LocalDateTime.now())
+                                              .updatedAt(LocalDateTime.now())
+                                              .build());
 
+        // 활성 완제품
         Items activeFinishedItem = itemRepository.save(Items.builder()
-                .itemCode("ITEM-001")
-                .itemName("3P 차단기")
-                .itemSpecification("32A/220V")
-                .itemUnit("EA")
-                .itemStatus(ItemStatus.FINISHED_PRODUCT)
-                .isActive(true)
-                .build());
+                                                            .itemCode("ITEM-001")
+                                                            .itemName("3P 차단기")
+                                                            .itemSpecification("32A/220V")
+                                                            .itemUnit("EA")
+                                                            .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                                                            .isActive(true)
+                                                            .build());
 
+        // 비활성 완제품
         Items inactiveItem = itemRepository.save(Items.builder()
-                .itemCode("ITEM-002")
-                .itemName("2P 차단기")
-                .itemSpecification("20A/220V")
-                .itemUnit("EA")
-                .itemStatus(ItemStatus.FINISHED_PRODUCT)
-                .isActive(false)
-                .build());
+                                                      .itemCode("ITEM-002")
+                                                      .itemName("2P 차단기")
+                                                      .itemSpecification("20A/220V")
+                                                      .itemUnit("EA")
+                                                      .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                                                      .isActive(false)
+                                                      .build());
+
+        // ItemLine 관계 설정 - lineId와 itemId 명시
+        itemLineRepository.save(ItemsLines.builder()
+                                          .lineId(line.getId())
+                                          .itemId(activeFinishedItem.getId())
+                                          .createdAt(LocalDateTime.now())
+                                          .updatedAt(LocalDateTime.now())
+                                          .build());
 
         itemLineRepository.save(ItemsLines.builder()
-                .line(line)
-                .item(activeFinishedItem)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build());
-
-        itemLineRepository.save(ItemsLines.builder()
-                .line(line)
-                .item(inactiveItem)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build());
+                                          .lineId(line.getId())
+                                          .itemId(inactiveItem.getId())
+                                          .createdAt(LocalDateTime.now())
+                                          .updatedAt(LocalDateTime.now())
+                                          .build());
 
         // when
         List<Items> result = itemLineRepository.findActiveFinishedItemsByLine(line);
@@ -88,7 +94,11 @@ class ItemLineRepositoryTest {
         // then
         assertThat(result)
                 .isNotEmpty()
-                .contains(activeFinishedItem)
-                .doesNotContain(inactiveItem);
+                .hasSize(1)
+                .extracting(Items::getItemCode)
+                .containsExactly("ITEM-001");
+
+        assertThat(result.getFirst().getIsActive()).isTrue();
+        assertThat(result.getFirst().getItemStatus()).isEqualTo(ItemStatus.FINISHED_PRODUCT);
     }
 }

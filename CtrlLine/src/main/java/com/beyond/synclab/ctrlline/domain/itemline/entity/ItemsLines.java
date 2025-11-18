@@ -20,12 +20,18 @@ public class ItemsLines {
     @Column(name = "item_line_id", nullable = false, updatable = false)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "item_id", nullable = false)
+    @Column(name = "item_id")
+    private Long itemId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id", updatable = false, insertable = false)
     private Items item;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "line_id", nullable = false)
+    @Column(name = "line_id")
+    private Long lineId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "line_id", updatable = false, insertable = false)
     private Lines line;
 
     @Column(name = "created_at", nullable = false,
