@@ -139,6 +139,9 @@ class EquipmentControllerTest {
                 .userDepartment("생산1팀")
                 .userName("홍길동")
                 .empNo("A1001")
+                // 추가함.
+                .equipmentStatusCode("E001")
+                .lineCode("PL0001")
                 .operatingDate(LocalDateTime.of(2025, 11, 10, 9, 0))
                 .maintenanceDate(LocalDateTime.of(2025, 11, 9, 9, 0))
                 .totalCount(BigDecimal.valueOf(5000))
@@ -225,6 +228,8 @@ class EquipmentControllerTest {
                 .equipmentPpm(BigDecimal.valueOf(210))
                 .userName("박민수")
                 .userDepartment("생산1팀")
+                .equipmentStatus("E001")
+                .line("PL0001")
                 .empNo("20240001")
                 .isActive(false)
                 .build();

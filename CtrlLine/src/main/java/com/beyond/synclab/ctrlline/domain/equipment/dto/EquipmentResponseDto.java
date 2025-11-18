@@ -19,14 +19,18 @@ public class EquipmentResponseDto {
         private String equipmentName;
         private String equipmentType;
         private BigDecimal equipmentPpm;
+        // 추가
+        private String equipmentStatus;
+        private String line;
+        // 추가
         private String userName;
         private String userDepartment;
         private String empNo;
         private Boolean isActive;
 
-
         public static EquipmentResponseDto fromEntity(Equipments equipment, Users user) {
                 return EquipmentResponseDto.builder()
+
                         .equipmentCode(equipment.getEquipmentCode())
                         .equipmentName(equipment.getEquipmentName())
                         .equipmentType(equipment.getEquipmentType())

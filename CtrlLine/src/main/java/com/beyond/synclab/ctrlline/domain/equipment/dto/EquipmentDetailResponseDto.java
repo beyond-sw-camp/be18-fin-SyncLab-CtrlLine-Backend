@@ -1,7 +1,9 @@
 package com.beyond.synclab.ctrlline.domain.equipment.dto;
-// 설비 상세 목록 조회 응답 Dto
+// 설비 상세 조회 응답 Dto
 
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -30,8 +32,10 @@ public class EquipmentDetailResponseDto {
     private BigDecimal totalCount;
     private BigDecimal defectiveCount;
     private Boolean isActive;
+    private String equipmentStatusCode;
+    private String lineCode;
 
-    public static EquipmentDetailResponseDto fromEntity(Equipments equipment, Users user) {
+    public static EquipmentDetailResponseDto fromEntity(Equipments equipment, Users user, EquipmentStatuses status, Lines line) {
         return EquipmentDetailResponseDto.builder()
                 .equipmentCode(equipment.getEquipmentCode())
                 .equipmentName(equipment.getEquipmentName())
@@ -45,6 +49,9 @@ public class EquipmentDetailResponseDto {
                 .totalCount(equipment.getTotalCount())
                 .defectiveCount(equipment.getDefectiveCount())
                 .isActive(equipment.getIsActive())
+                // 추가
+                .equipmentStatusCode(status.getEquipmentStatusCode())
+                .lineCode(line.getLineCode())
                 .build();
     }
 }
