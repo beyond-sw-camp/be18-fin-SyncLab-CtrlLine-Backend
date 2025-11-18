@@ -1,5 +1,5 @@
 package com.beyond.synclab.ctrlline.domain.equipment.dto;
-// 설비 상세 목록 조회 응답 Dto
+// 설비 상세 조회 응답 Dto
 
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
@@ -33,7 +33,7 @@ public class EquipmentDetailResponseDto {
     private BigDecimal defectiveCount;
     private Boolean isActive;
     private String equipmentStatus;
-    private String line;
+    private String lineCode;
 
     public static EquipmentDetailResponseDto fromEntity(Equipments equipment, Users user, EquipmentStatuses status, Lines line) {
         return EquipmentDetailResponseDto.builder()
@@ -51,7 +51,7 @@ public class EquipmentDetailResponseDto {
                 .isActive(equipment.getIsActive())
                 // 추가
                 .equipmentStatus(status.getEquipmentStatusCode())
-                .line(line.getLineCode())
+                .lineCode(line.getLineCode())
                 .build();
     }
 }

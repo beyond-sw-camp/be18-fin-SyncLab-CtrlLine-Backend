@@ -40,7 +40,7 @@ public class CreateEquipmentRequestDto {
     @NotNull(message = "설비 사용 여부는 필수입니다.")
     private Boolean isActive;
 
-    private Long line;
+    private Long lineId;
 
     private String equipmentStatus;
 

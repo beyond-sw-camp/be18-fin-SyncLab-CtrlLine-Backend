@@ -46,7 +46,7 @@ public class EquipmentServiceImpl implements EquipmentService {
             throw new AppException(EquipmentErrorCode.EQUIPMENT_CONFLICT);
         }
 
-        Lines line = lineRepository.findById(requestDto.getLine())
+        Lines line = lineRepository.findById(requestDto.getLineId())
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
         EquipmentStatuses status = equipmentStatusRepository.findByequipmentStatusCode(requestDto.getEquipmentStatus())

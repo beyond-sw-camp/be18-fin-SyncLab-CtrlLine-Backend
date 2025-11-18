@@ -141,7 +141,7 @@ class EquipmentControllerTest {
                 .empNo("A1001")
                 // 추가함.
                 .equipmentStatus("E001")
-                .line("PL0001")
+                .lineCode("PL0001")
                 .operatingDate(LocalDateTime.of(2025, 11, 10, 9, 0))
                 .maintenanceDate(LocalDateTime.of(2025, 11, 9, 9, 0))
                 .totalCount(BigDecimal.valueOf(5000))

@@ -146,7 +146,7 @@ class EquipmentServiceImplTest {
         assertThat(result.getEquipmentName()).isEqualTo("절단기-01");
         assertThat(result.getUserName()).isEqualTo("홍길동");
         assertThat(result.getEquipmentStatus()).isEqualTo("RUNNING");
-        assertThat(result.getLine()).isEqualTo("L001");
+        assertThat(result.getLineCode()).isEqualTo("L001");
     }
 
     // 설비 목록 조회

@@ -45,17 +45,23 @@ public class Equipments {
     private Long id; // 설비 PK
 
     // ───────── FK 영역 ─────────
-    @JoinColumn(name = "line_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "line_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private Lines line; // 라인 FK
+    @Column(name="line_id")
+    private Long lineId;
 
-    @JoinColumn(name = "equipment_status_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "equipment_status_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private EquipmentStatuses equipmentStatus; // 설비상태 FK
+    @Column(name="equipment_status_id")
+    private Long equipmentStatusId;
 
-    @JoinColumn(name = "user_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
     private Users user; // 사용자 FK
+    @Column(name="user_id")
+    private Long userId;
 
     // ───────── 기본 정보 ─────────
     @Column(name = "equipment_code", nullable = false, length = 32)
