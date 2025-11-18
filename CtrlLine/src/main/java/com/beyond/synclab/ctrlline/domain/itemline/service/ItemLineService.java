@@ -1,0 +1,15 @@
+package com.beyond.synclab.ctrlline.domain.itemline.service;
+
+import com.beyond.synclab.ctrlline.domain.itemline.dto.request.UpdateItemLineRequestDto;
+import com.beyond.synclab.ctrlline.domain.itemline.dto.response.GetItemLineListResponseDto;
+
+import java.util.List;
+
+public interface ItemLineService {
+
+    // 특정 라인에서 생산 가능한 품목 조회
+    List<GetItemLineListResponseDto> getItemLineList(Long lineId);
+
+    // 특정 라인의 생산 가능 품목 전체 수정
+    void updateItemLine(Long lineId, UpdateItemLineRequestDto requestDto);
+}

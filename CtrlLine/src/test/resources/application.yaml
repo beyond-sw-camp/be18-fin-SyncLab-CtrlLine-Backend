@@ -38,6 +38,11 @@ spring:
     redis:
       host: localhost                   # 더미 값
       port: 6379
+  jackson:
+    time-zone: Asia/Seoul
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
 
   jpa:
     hibernate:

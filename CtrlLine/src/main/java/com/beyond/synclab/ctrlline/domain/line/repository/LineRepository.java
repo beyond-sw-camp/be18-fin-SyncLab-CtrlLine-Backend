@@ -1,16 +1,12 @@
 package com.beyond.synclab.ctrlline.domain.line.repository;
 
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
-@Repository
-public interface LineRepository extends JpaRepository<Lines, Long>{
-    Optional<Lines> findByLineCode(String lineCode);
+public interface LineRepository extends JpaRepository<Lines, Long> {
 
     @Query(value = """
             SELECT i.item_code
@@ -29,4 +25,6 @@ public interface LineRepository extends JpaRepository<Lines, Long>{
             LIMIT 1
             """, nativeQuery = true)
     Optional<String> findFactoryCodeByLineId(@Param("lineId") Long lineId);
+
+    Optional<Lines> findBylineCode(String lineCode);
 }

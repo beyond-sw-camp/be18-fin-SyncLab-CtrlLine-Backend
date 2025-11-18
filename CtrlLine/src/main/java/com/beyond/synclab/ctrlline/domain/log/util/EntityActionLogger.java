@@ -27,9 +27,11 @@ public class EntityActionLogger {
         Class<?> clazz = entity.getClass();
         if (clazz.isAnnotationPresent(Table.class)) {
             var table = clazz.getAnnotation(Table.class);
-            if (!table.name().isEmpty()) return table.name();
+            if (!table.name().isEmpty()) {
+                return table.name().replaceAll("[`\"]", ""); // 백틱, 쌍따옴표 제거
+            }
         }
-        return clazz.getSimpleName();
+        return clazz.getSimpleName().replaceAll("[`\"]", ""); // fallback도 제거
     }
 
     private void publishEvent(Object entity, Logs.ActionType actionType) {

@@ -33,4 +33,20 @@ public final class TelemetryConstants {
     public static final String NG_TYPE_FIELD = "ng_type";
     public static final String NG_NAME_FIELD = "ng_name";
     public static final String NG_QTY_FIELD = "ng_qty";
+
+    public static final String ALARM_TYPE_FIELD = "alarm_type";
+    public static final String ALARM_TYPE_FIELD_CAMEL = "alarmType";
+    public static final String ALARM_NAME_FIELD = "alarm_name";
+    public static final String ALARM_NAME_FIELD_CAMEL = "alarmName";
+    public static final String ALARM_CODE_FIELD = "alarm_code";
+    public static final String ALARM_CODE_FIELD_CAMEL = "alarmCode";
+    public static final String ALARM_LEVEL_FIELD = "alarm_level";
+    public static final String ALARM_LEVEL_FIELD_CAMEL = "alarmLevel";
+    public static final String ALARM_OCCURRED_AT_FIELD = "occurred_at";
+    public static final String ALARM_OCCURRED_AT_FIELD_CAMEL = "occurredAt";
+    public static final String ALARM_CLEARED_AT_FIELD = "cleared_at";
+    public static final String ALARM_CLEARED_AT_FIELD_CAMEL = "clearedAt";
+    public static final String ALARM_USER_FIELD = "user";
+    public static final String ALARM_CAUSE_FIELD = "alarm_cause";
+    public static final String ALARM_CAUSE_FIELD_CAMEL = "alarmCause";
 }
