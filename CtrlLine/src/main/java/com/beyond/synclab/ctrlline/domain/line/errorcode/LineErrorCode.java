@@ -14,7 +14,12 @@ public enum LineErrorCode implements ErrorCode {
     // 403
     FORBIDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "관리자 권한이 아닙니다."),
     // 404
-    LINE_NOT_FOUND(HttpStatus.NOT_FOUND,"LINE_NOT_FOUND" , "해당 라인을 찾을 수 없습니다.");
+    LINE_NOT_FOUND(HttpStatus.NOT_FOUND, "LINE_NOT_FOUND", "라인을 찾을 수 없습니다."),
+    // 404
+    NO_EQUIPMENT_FOUND(HttpStatus.NOT_FOUND, "NO_EQUIPMENT_FOUND", "라인에 해당하는 설비를 찾을 수 없습니다."),
+    // 500
+    INVALID_EQUIPMENT_PPM(HttpStatus.INTERNAL_SERVER_ERROR, "INVALID_EQUIPMENT_PPM", "유효 설비 PPM계산이 불가합니다.");
+
 
     private final HttpStatus status;
     private final String code;
