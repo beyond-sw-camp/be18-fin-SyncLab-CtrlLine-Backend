@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.productionperformance.entity;
 
-import com.beyond.synclab.ctrlline.domain.productionplans.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
         name = "production_performance",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_performance_document_no",
+                        name = "uq_performance_document_no",
                         columnNames = "performance_document_no"
                 )
         }

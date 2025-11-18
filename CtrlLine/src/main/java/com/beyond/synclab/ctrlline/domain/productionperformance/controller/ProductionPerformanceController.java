@@ -2,7 +2,6 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +10,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import static com.beyond.synclab.ctrlline.common.dto.BaseResponse.ok;
 
@@ -26,13 +28,49 @@ public class ProductionPerformanceController {
     // 생산실적 목록 조회
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<GetProductionPerformanceListResponseDto>>> getProductionPerformanceList(
-            @ModelAttribute SearchProductionPerformanceRequestDto requestDto,
-            @PageableDefault(size = 10, page = 0, sort = "createdAt") Pageable pageable
+            @RequestParam(required = false) String documentNo,
+            @RequestParam(required = false) String factoryCode,
+            @RequestParam(required = false) String lineCode,
+            @RequestParam(required = false) String itemCode,
+            @RequestParam(required = false) String productionPlanDocumentNo,
+            @RequestParam(required = false) Double minTotalQty,
+            @RequestParam(required = false) Double maxTotalQty,
+            @RequestParam(required = false) Double minPerformanceQty,
+            @RequestParam(required = false) Double maxPerformanceQty,
+            @RequestParam(required = false) Double minDefectRate,
+            @RequestParam(required = false) Double maxDefectRate,
+            @RequestParam(required = false) String salesManagerName,
+            @RequestParam(required = false) String producerManagerName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String dueDate,
+            @RequestParam(required = false) String remark,
+            @RequestParam(required = false) Boolean isDeleted,
+            @PageableDefault(size = 10) Pageable pageable
     ) {
 
         Page<GetProductionPerformanceListResponseDto> result =
-                productionPerformanceService.getProductionPerformanceList(requestDto, pageable);
-
+                productionPerformanceService.getProductionPerformanceList(
+                        documentNo,
+                        factoryCode,
+                        lineCode,
+                        itemCode,
+                        productionPlanDocumentNo,
+                        minTotalQty,
+                        maxTotalQty,
+                        minPerformanceQty,
+                        maxPerformanceQty,
+                        minDefectRate,
+                        maxDefectRate,
+                        salesManagerName,
+                        producerManagerName,
+                        startDate,
+                        endDate,
+                        dueDate,
+                        remark,
+                        isDeleted,
+                        pageable
+                );
         PageResponse<GetProductionPerformanceListResponseDto> response =
                 PageResponse.from(result);
 

@@ -3,14 +3,17 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.repository.quer
 import com.beyond.synclab.ctrlline.common.util.QuerydslUtils;
 import com.beyond.synclab.ctrlline.domain.factory.entity.QFactories;
 import com.beyond.synclab.ctrlline.domain.item.entity.QItems;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.QLines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -30,17 +33,18 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<ProductionPerformances> searchProductionPerformances(
-            SearchProductionPerformanceRequestDto condition,
-            Pageable pageable
+    public Page<GetProductionPerformanceListResponseDto> searchProductionPerformanceList(
+            final SearchProductionPerformanceRequestDto condition,
+            final Pageable pageable
     ) {
         QProductionPerformances perf = QProductionPerformances.productionPerformances;
         QProductionPlans plan = QProductionPlans.productionPlans;
         QLines line = QLines.lines;
         QFactories factory = QFactories.factories;
+        QItemsLines itemLine = QItemsLines.itemsLines;
+        QItems item = QItems.items;
         QUsers salesManager = QUsers.users;
         QUsers prodManager = new QUsers("prodManager");
-        QItems item = QItems.items;
 
         // 정렬 매핑
         Map<String, Path<? extends Comparable<?>>> sortMapping = Map.of(
@@ -55,20 +59,33 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         List<OrderSpecifier<?>> orders =
                 QuerydslUtils.getSort(pageable.getSort(), sortMapping);
 
-        // 기본 정렬: startTime DESC
         if (orders.isEmpty()) {
-            orders.add(perf.startTime.desc());
+            orders.add(perf.performanceDocumentNo.desc());
         }
 
         // SELECT
-        List<ProductionPerformances> results = queryFactory
-                .selectFrom(perf)
-                .leftJoin(perf.productionPlan, plan).fetchJoin()
-                .leftJoin(plan.line, line).fetchJoin()
-                .leftJoin(line.factory, factory).fetchJoin()
-                .leftJoin(plan.salesManager, salesManager).fetchJoin()
-                .leftJoin(plan.productionManager, prodManager).fetchJoin()
-                .leftJoin(plan.item, item).fetchJoin()
+        List<GetProductionPerformanceListResponseDto> results = queryFactory
+                .select(Projections.constructor(
+                        GetProductionPerformanceListResponseDto.class,
+                        perf.performanceDocumentNo,
+                        salesManager.empNo,
+                        prodManager.empNo,
+                        factory.factoryCode,
+                        line.lineCode,
+                        item.itemCode,
+                        perf.totalQty,
+                        perf.performanceQty,
+                        perf.performanceDefectiveRate,
+                        perf.remark
+                ))
+                .from(perf)
+                .leftJoin(perf.productionPlan, plan)
+                .leftJoin(plan.line, line)
+                .leftJoin(line.itemLines, itemLine)
+                .leftJoin(itemLine.item, item)
+                .leftJoin(factory).on(factory.id.eq(line.factoryId))
+                .leftJoin(plan.salesManager, salesManager)
+                .leftJoin(plan.productionManager, prodManager)
                 .where(
                         documentNoContains(condition.getDocumentNo()),
                         planDocumentNoContains(condition.getProductionPlanDocumentNo()),
@@ -96,10 +113,11 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 .from(perf)
                 .leftJoin(perf.productionPlan, plan)
                 .leftJoin(plan.line, line)
-                .leftJoin(line.factory, factory)
+                .leftJoin(line.itemLines, itemLine)  // 연관관계 기반
+                .leftJoin(itemLine.item, item)
+                .leftJoin(factory).on(factory.id.eq(line.factoryId))
                 .leftJoin(plan.salesManager, salesManager)
                 .leftJoin(plan.productionManager, prodManager)
-                .leftJoin(plan.item, item)
                 .where(
                         documentNoContains(condition.getDocumentNo()),
                         planDocumentNoContains(condition.getProductionPlanDocumentNo()),
@@ -128,7 +146,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
 
     private BooleanExpression planDocumentNoContains(String planDocumentNo) {
         return (planDocumentNo == null || planDocumentNo.isEmpty())
-                ? null : QProductionPlans.productionPlans.planDocumentNo.contains(planDocumentNo);
+                ? null : QProductionPlans.productionPlans.documentNo.contains(planDocumentNo);
     }
 
     private BooleanExpression itemCodeContains(String itemCode) {
@@ -148,12 +166,12 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
 
     private BooleanExpression salesManagerNameContains(String name) {
         return (name == null || name.isEmpty())
-                ? null : QUsers.users.userName.contains(name);
+                ? null : QUsers.users.name.contains(name);
     }
 
     private BooleanExpression producerManagerNameContains(String name) {
         return (name == null || name.isEmpty())
-                ? null : new QUsers("prodManager").userName.contains(name);
+                ? null : new QUsers("prodManager").name.contains(name);
     }
 
     private BooleanExpression remarkContains(String remark) {
