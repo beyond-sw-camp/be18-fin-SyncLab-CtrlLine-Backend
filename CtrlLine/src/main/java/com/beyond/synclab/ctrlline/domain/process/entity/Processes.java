@@ -70,4 +70,14 @@ public class Processes {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive; // 사용여부
+
+    // 사용 여부 업데이트
+    public void updateStatus(boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    // 담당자 업데이트
+    public void updateManager(Users manager) {
+        this.user = manager;
+    }
 }

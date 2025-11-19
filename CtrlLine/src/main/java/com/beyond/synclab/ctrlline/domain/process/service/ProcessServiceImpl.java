@@ -1,18 +1,17 @@
 package com.beyond.synclab.ctrlline.domain.process.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
-
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
-import com.beyond.synclab.ctrlline.domain.user.entity.Users;
-import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
+import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
+import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
-
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -43,5 +42,26 @@ public class ProcessServiceImpl implements ProcessService {
                 .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
         return ProcessResponseDto.fromEntity(process, equipment, user);
+    }
+
+    // 공정 업데이트
+    @Override
+    @Transactional
+    public ProcessResponseDto updateProcess(Users user, UpdateProcessRequestDto request, String processCode) {
+        Processes process = processRepository.findByProcessCode(processCode)
+                .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_NOT_FOUND));
+
+        // 공정 사용여부
+        if (request.getIsActive() != null){
+            process.updateStatus(request.getIsActive());
+        }
+
+        // 공정 담당자
+        if(request.getUserName() != null){
+            Users newManager = userRepository.findByEmpNo(request.getEmpNo())
+                    .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
+            process.updateManager(newManager);
+        }
+        return ProcessResponseDto.fromEntity(process, process.getEquipment() ,process.getUser());
     }
 }
