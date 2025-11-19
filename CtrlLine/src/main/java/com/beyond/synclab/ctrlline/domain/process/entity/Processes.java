@@ -50,7 +50,7 @@ public class Processes {
     @Column(name = "user_id")
     private Long userId; // 사용자 FK
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private Users user;
 
     // <==========일반 컬럼들=========>
