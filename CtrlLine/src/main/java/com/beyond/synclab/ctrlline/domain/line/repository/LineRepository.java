@@ -10,7 +10,7 @@ public interface LineRepository extends JpaRepository<Lines, Long> {
 
     @Query(value = """
             SELECT i.item_code
-            FROM item_line_crossed_table il
+            FROM item_line il
             JOIN item i ON il.item_id = i.item_id
             WHERE il.line_id = :lineId
             LIMIT 1
