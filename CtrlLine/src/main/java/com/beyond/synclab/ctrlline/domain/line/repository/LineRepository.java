@@ -1,10 +1,14 @@
 package com.beyond.synclab.ctrlline.domain.line.repository;
 
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
-import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
 
 public interface LineRepository extends JpaRepository<Lines, Long> {
 
@@ -27,4 +31,8 @@ public interface LineRepository extends JpaRepository<Lines, Long> {
     Optional<String> findFactoryCodeByLineId(@Param("lineId") Long lineId);
 
     Optional<Lines> findBylineCode(String lineCode);
+
+    Page<Lines> findAll(Specification<Lines> spec, Pageable pageable);
+
+    Lines getReferenceByLineCode(String lineCode);
 }

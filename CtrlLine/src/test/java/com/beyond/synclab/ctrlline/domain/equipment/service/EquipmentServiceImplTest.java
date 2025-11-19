@@ -9,6 +9,8 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseD
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.equipmentstatus.entity.EquipmentStatuses;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -30,9 +32,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.times;
+
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,18 +66,6 @@ class EquipmentServiceImplTest {
                 .position(Users.UserPosition.DIRECTOR)
                 .role(role)
                 .hiredDate(LocalDate.of(2025, 10, 20))
-                .build();
-    }
-
-    // ===== 테스트용 설비 빌더 =====
-    private Equipments buildTestEquipment(Users user, boolean isActive) {
-        return Equipments.builder()
-                .equipmentCode("E001")
-                .equipmentName("절단기-01")
-                .equipmentType("절단기")
-                .users(user)
-                .equipmentPpm(BigDecimal.valueOf(108))
-                .isActive(isActive)
                 .build();
     }
 
@@ -107,7 +99,29 @@ class EquipmentServiceImplTest {
     void getEquipmentDetail_success() {
         // given
         Users user = buildTestUser("홍길동", Users.UserRole.ADMIN);
-        Equipments equipment = buildTestEquipment(user, true);
+        EquipmentStatuses status = EquipmentStatuses.builder()
+                .equipmentStatusCode("RUNNING")
+                .equipmentStatusName("가동중")
+                .build();
+
+        Lines line = Lines.builder()
+                .lineCode("L001")
+                .lineName("1라인")
+                .build();
+
+        Equipments equipment = Equipments.builder()
+                .id(1L)
+                .equipmentCode("E001")    // <--- 테스트 Assertion과 일치해야 함
+                .equipmentName("절단기-01")
+                .equipmentType("Type-A")
+                .equipmentPpm(BigDecimal.ZERO)
+                .user(user)
+                .equipmentStatus(status)
+                .line(line)
+                .isActive(true)
+                .totalCount(BigDecimal.ZERO)
+                .defectiveCount(BigDecimal.ZERO)
+                .build();
 
         when(equipmentRepository.findByEquipmentCode("E001"))
                 .thenReturn(Optional.of(equipment));
@@ -119,6 +133,8 @@ class EquipmentServiceImplTest {
         assertThat(result.getEquipmentCode()).isEqualTo("E001");
         assertThat(result.getEquipmentName()).isEqualTo("절단기-01");
         assertThat(result.getUserName()).isEqualTo("홍길동");
+        assertThat(result.getEquipmentStatusCode()).isEqualTo("RUNNING");
+        assertThat(result.getLineCode()).isEqualTo("L001");
     }
 
     // 설비 목록 조회
@@ -136,12 +152,12 @@ class EquipmentServiceImplTest {
 
         Equipments equipment1 = Equipments.builder()
                 .equipmentCode("EQP-0001")
-                .users(user)
+                .user(user)
                 .build();
 
         Equipments equipment2 = Equipments.builder()
                 .equipmentCode("EQP-0002")
-                .users(user)
+                .user(user)
                 .build();
 
         Page<Equipments> page = new PageImpl<>(
@@ -191,7 +207,7 @@ class EquipmentServiceImplTest {
                 .equipmentName("프레스기")
                 .equipmentType("PRESS")
                 .equipmentPpm(null)
-                .users(users)
+                .user(users)
                 .isActive(true)
                 .build();
 
@@ -240,7 +256,7 @@ class EquipmentServiceImplTest {
                 .equipmentName("포장기-01")
                 .equipmentType("PACK")
                 .equipmentPpm(BigDecimal.valueOf(210))
-                .users(oldManager)
+                .user(oldManager)
                 .isActive(true)
                 .build();
 

@@ -1,7 +1,11 @@
-package com.beyond.synclab.ctrlline.domain.factory.entity;
+package com.beyond.synclab.ctrlline.domain.process.entity;
+// 공정입니다요~!
+
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
-import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -18,48 +22,61 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "factory")
+@Table(name = "process")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
-public class Factories {
+
+public class Processes {
+    // PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "factory_id", updatable = false)
+    @Column(name = "process_id", updatable = false)
+    // 공정PK
     private Long id;
 
+    // FK
+    @JoinColumn(name = "equipment_id", nullable = false)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private Users users;
+    // 설비FK
+    private Equipments equipment;
 
-    @Column(name = "factory_code", nullable = false, unique = true)
-    private String factoryCode;
+    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    // 사용자FK
+    private Users user;
 
-    @Column(name = "factory_name", nullable = false)
-    private String factoryName;
+    // <======== 일반 컬럼들 ==========>
 
-    @Column(name="is_active", nullable = false)
-    private Boolean isActive;
+    @Column(name = "process_code", nullable = false, length = 32, unique = true)
+    // 공정코드
+    private String processCode;
+
+    @Column(name = "process_name", nullable = false, length = 32)
+    // 공정명
+    private String processName;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
+    // 생성시각
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
+    // 수정시각
     private LocalDateTime updatedAt;
 
-    public void updateStatus(boolean isActive) {
-        this.isActive = isActive;
-    }
-
+    @Column(name = "is_active", nullable = false)
+    // 사용여부
+    private boolean isActive;
 }

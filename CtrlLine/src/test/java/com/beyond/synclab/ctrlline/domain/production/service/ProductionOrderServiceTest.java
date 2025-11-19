@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
@@ -131,6 +132,7 @@ class ProductionOrderServiceTest {
                 .status(PlanStatus.CONFIRMED)
                 .build();
 
+
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
@@ -191,7 +193,7 @@ class ProductionOrderServiceTest {
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
 
         Mockito.doThrow(new RuntimeException("Milo down"))
-                .when(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
+               .when(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
 
         // when
         productionOrderService.dispatchDuePlans();

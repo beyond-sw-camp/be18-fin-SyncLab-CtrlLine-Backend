@@ -150,8 +150,7 @@ class MesDefectiveServiceTest {
     private Equipments sampleEquipment(Long id) {
         return Equipments.builder()
                 .id(id)
-                .lineId(1L)
-                .equipmentStatusId(1L)
+                // 이거 안 써서 지움.
                 .equipmentCode("EQP-" + id)
                 .equipmentName("Eqp " + id)
                 .equipmentType("TYPE")
