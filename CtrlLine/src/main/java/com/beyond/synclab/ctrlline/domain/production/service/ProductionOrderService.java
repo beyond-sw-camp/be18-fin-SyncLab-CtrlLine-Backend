@@ -1,5 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.production.service;
 
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
@@ -65,6 +66,12 @@ public class ProductionOrderService {
                         context.itemCode(),
                         context.ppm()
                 );
+                log.info("Dispatching production order documentNo={}, factoryCode={}, lineCode={}, itemCode={}, qty={}",
+                        context.orderNo(),
+                        context.factoryCode(),
+                        context.lineCode(),
+                        context.itemCode(),
+                        context.quantity());
 
                 miloProductionOrderClient.dispatchOrder(
                         context.factoryCode(),
@@ -82,8 +89,60 @@ public class ProductionOrderService {
         }
     }
 
+    @Transactional
+    public void sendLineAck(ProductionPlans plan) {
+        if (plan == null) {
+            return;
+        }
+        try {
+            Optional<DispatchContext> contextOptional = prepareDispatchContext(plan);
+            if (contextOptional.isEmpty()) {
+                return;
+            }
+            DispatchContext context = contextOptional.get();
+            MiloProductionOrderRequest request = new MiloProductionOrderRequest(
+                    "ACK",
+                    context.orderNo(),
+                    context.quantity(),
+                    context.itemCode(),
+                    context.ppm()
+            );
+            miloProductionOrderClient.dispatchOrder(
+                    context.factoryCode(),
+                    context.lineCode(),
+                    request
+            );
+            plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
+            productionPlanRepository.save(plan);
+        } catch (Exception ex) {
+            log.error("Failed to send ACK for production plan documentNo={}", plan.getDocumentNo(), ex);
+        }
+    }
+
     private Optional<DispatchContext> prepareDispatchContext(ProductionPlans plan) {
-        Long lineId = plan.getItemLine().getLineId();
+        ItemsLines itemLine = plan.getItemLine();
+        if (itemLine == null) {
+            log.warn("ItemLine not set for production plan documentNo={}", plan.getDocumentNo());
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        if (itemLine.getItem() == null || !org.springframework.util.StringUtils.hasText(itemLine.getItem().getItemCode())) {
+            log.warn("Item code missing for production plan documentNo={} itemLineId={}", plan.getDocumentNo(), itemLine.getId());
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        if (itemLine.getLine() == null) {
+            log.warn("Line entity missing for production plan documentNo={} itemLineId={}", plan.getDocumentNo(), itemLine.getId());
+            plan.markDispatchFailed();
+            productionPlanRepository.save(plan);
+            return Optional.empty();
+        }
+
+        Long lineId = itemLine.getLineId();
 
         Optional<Lines> lineOptional = lineRepository.findById(lineId);
         if (lineOptional.isEmpty()) {
@@ -101,14 +160,6 @@ public class ProductionOrderService {
             return Optional.empty();
         }
 
-        Optional<String> itemCodeOptional = lineRepository.findItemCodeByLineId(lineId);
-        if (itemCodeOptional.isEmpty()) {
-            log.warn("Item code not found for lineId={} documentNo={}", lineId, plan.getDocumentNo());
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
-        }
-
         int quantity = plan.commandQuantity();
         if (quantity <= 0) {
             log.warn("Invalid command quantity for documentNo={}, quantity={}", plan.getDocumentNo(), quantity);
@@ -119,8 +170,8 @@ public class ProductionOrderService {
 
         return Optional.of(new DispatchContext(
                 factoryCodeOptional.get(),
-                plan.getItemLine().getLine().getLineCode(),
-                itemCodeOptional.get(),
+                itemLine.getLine().getLineCode(),
+                itemLine.getItem().getItemCode(),
                 quantity,
                 "START",
                 plan.getDocumentNo(),
