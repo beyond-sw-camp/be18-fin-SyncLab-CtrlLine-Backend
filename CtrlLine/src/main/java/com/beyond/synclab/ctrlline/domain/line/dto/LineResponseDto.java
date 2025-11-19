@@ -19,12 +19,16 @@ public class LineResponseDto {
     private final String userName;
     private final String userDepartment;
     private final Boolean isActive;
+    private final String factoryCode;
+    private final String factoryName;
 
-    public static LineResponseDto fromEntity(Lines line, Users user) {
+    public static LineResponseDto fromEntity(Lines line, Users user, Factories factory) {
         return LineResponseDto.builder()
                                  .lineCode(line.getLineCode())
                                  .lineName(line.getLineName())
                                  .empNo(user.getEmpNo())
+                                 .factoryCode(factory.getFactoryCode())
+                                 .factoryName(factory.getFactoryName())
                                  .userName(user.getName())
                                  .userDepartment(user.getDepartment())
                                  .isActive(line.getIsActive())

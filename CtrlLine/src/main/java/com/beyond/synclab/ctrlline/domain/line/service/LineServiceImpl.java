@@ -25,7 +25,7 @@ public class LineServiceImpl implements LineService {
         Lines line = lineRepository.findBylineCode(lineCode).orElseThrow(() -> new AppException(
                 LineErrorCode.LINE_NOT_FOUND));
 
-        return LineResponseDto.fromEntity(line, line.getUser());
+        return LineResponseDto.fromEntity(line, line.getUser(), line.getFactory());
     }
 
     @Override
@@ -40,7 +40,7 @@ public class LineServiceImpl implements LineService {
         );
 
         return lineRepository.findAll(spec, pageable)
-                             .map(line -> LineResponseDto.fromEntity(line, line.getUser()));
+                             .map(line -> LineResponseDto.fromEntity(line, line.getUser(), line.getFactory()));
 
     }
 }
