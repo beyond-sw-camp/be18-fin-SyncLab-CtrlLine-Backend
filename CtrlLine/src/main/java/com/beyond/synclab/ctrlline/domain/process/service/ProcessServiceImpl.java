@@ -62,6 +62,6 @@ public class ProcessServiceImpl implements ProcessService {
                     .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
             process.updateManager(newManager);
         }
-        return ProcessResponseDto.fromEntity(process, process.getEquipment() ,process.getUser());
+        return ProcessResponseDto.fromEntity(process, process.getEquipment(), process.getUser());
     }
 }
