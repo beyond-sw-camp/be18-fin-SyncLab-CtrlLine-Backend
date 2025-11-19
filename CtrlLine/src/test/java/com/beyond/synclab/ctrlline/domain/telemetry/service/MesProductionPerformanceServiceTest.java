@@ -3,6 +3,7 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,8 +50,8 @@ class MesProductionPerformanceServiceTest {
 
     @BeforeEach
     void setUpClock() {
-        when(clock.instant()).thenReturn(fixedInstant);
-        when(clock.getZone()).thenReturn(zoneId);
+        lenient().when(clock.instant()).thenReturn(fixedInstant);
+        lenient().when(clock.getZone()).thenReturn(zoneId);
     }
 
     @Test

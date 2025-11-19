@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
@@ -108,9 +110,17 @@ class ProductionOrderServiceTest {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
         Lines line = Lines.builder().id(1L).lineCode("PS-001").factoryId(10L).build();
+        Items item = Items.builder()
+                .id(5L)
+                .itemCode("PRD-7782")
+                .itemName("Cell")
+                .itemUnit("EA")
+                .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                .isActive(true)
+                .build();
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
-                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
+                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).itemId(5L).item(item).build())
                 .startTime(now.minusMinutes(1))
                 .plannedQty(new java.math.BigDecimal("7000"))
                 .status(PlanStatus.CONFIRMED)
@@ -120,7 +130,6 @@ class ProductionOrderServiceTest {
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
-        when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
         when(miloProductionOrderClient.dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class)))
                 .thenReturn(new MiloProductionOrderResponse(
@@ -154,10 +163,18 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_onFailureMarksPlanReturned() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
-        Lines line = Lines.builder().id(1L).lineCode("L001").build();
+        Lines line = Lines.builder().id(1L).lineCode("L001").factoryId(10L).build();
+        Items item = Items.builder()
+                .id(5L)
+                .itemCode("PRD-7782")
+                .itemName("Cell")
+                .itemUnit("EA")
+                .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                .isActive(true)
+                .build();
         ProductionPlans plan = ProductionPlans.builder()
                 .documentNo("2025-10-24-1")
-                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
+                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).itemId(5L).item(item).build())
                 .startTime(now.minusMinutes(1))
                 .plannedQty(new java.math.BigDecimal("7000"))
                 .status(PlanStatus.CONFIRMED)
@@ -167,7 +184,6 @@ class ProductionOrderServiceTest {
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
-        when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
         Mockito.doThrow(new RuntimeException("Milo down"))
                 .when(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
