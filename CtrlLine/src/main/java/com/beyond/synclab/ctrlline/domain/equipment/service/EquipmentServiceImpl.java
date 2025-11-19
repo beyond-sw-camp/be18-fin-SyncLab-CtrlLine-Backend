@@ -4,7 +4,7 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
@@ -67,14 +67,14 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     // 설비 상세 조회
     @Override
-    public EquipmentDetailResponseDto getEquipmentDetail(String equipmentCode){
+    public ProcessResponseDto getEquipmentDetail(String equipmentCode){
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
         Users user = equipment.getUser();
         EquipmentStatuses status = equipment.getEquipmentStatus();
         Lines line = equipment.getLine();
 
-        return EquipmentDetailResponseDto.fromEntity(equipment, user, status, line);
+        return ProcessResponseDto.fromEntity(equipment, user, status, line);
     }
 
     // 설비 목록 조회

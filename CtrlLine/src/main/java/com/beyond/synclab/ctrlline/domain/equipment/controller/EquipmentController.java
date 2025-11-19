@@ -3,7 +3,7 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
@@ -56,12 +56,12 @@ public class EquipmentController {
 
     // 설비 상세 조회
     @GetMapping("/{equipmentCode}")
-    public ResponseEntity<BaseResponse<EquipmentDetailResponseDto>> getEquipmentDetail(
+    public ResponseEntity<BaseResponse<ProcessResponseDto>> getEquipmentDetail(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable("equipmentCode") String equipmentCode) {
 
-        EquipmentDetailResponseDto responseDto = equipmentService.getEquipmentDetail(equipmentCode);
-        BaseResponse<EquipmentDetailResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
+        ProcessResponseDto responseDto = equipmentService.getEquipmentDetail(equipmentCode);
+        BaseResponse<ProcessResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
 
         return ResponseEntity.ok(response);
     }

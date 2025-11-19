@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-// @EntityListeners(EntityActionLogger.class) 작성해야, 로그 테이블에 자동 등록됨.
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
 
@@ -51,5 +50,4 @@ public class EquipmentStatuses {
     @Column(name = "created_at", nullable = false, updatable = false)
     // 생성시각
     private LocalDateTime createdAt;
-
 }
