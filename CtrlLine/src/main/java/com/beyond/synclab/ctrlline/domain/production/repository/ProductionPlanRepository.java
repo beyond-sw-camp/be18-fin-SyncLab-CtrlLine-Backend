@@ -21,6 +21,8 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     @Query("SELECT pp.documentNo FROM ProductionPlans pp WHERE pp.documentNo LIKE :prefix% ORDER BY pp.documentNo DESC")
     List<String> findByDocumentNoByPrefix(@Param("prefix") String prefix);
 
+    Optional<ProductionPlans> findByDocumentNo(String documentNo);
+
     // lineCode + 상태(PENDING, CONFIRMED) 기준으로 최신 생성된 ProductionPlan 조회
     @Query("""
         SELECT p
