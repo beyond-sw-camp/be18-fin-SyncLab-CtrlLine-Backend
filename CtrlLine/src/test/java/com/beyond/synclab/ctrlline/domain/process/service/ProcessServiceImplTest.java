@@ -1,23 +1,21 @@
 package com.beyond.synclab.ctrlline.domain.process.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
+import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
+import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
-import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -102,27 +100,7 @@ class ProcessServiceImplTest {
     }
 
     @Test
-    @DisplayName("해당하는 설비가 없을 때, 조회 실패.")
-    void getProcess_PROCESS_EQUIPMENT_NOT_FOUND() {
-        // given
-        Processes process = Processes.builder()
-                .processCode("P001")
-                .equipmentId(999L)
-                .build();
-
-        given(processRepository.findByProcessCode("P001"))
-            .willReturn(Optional.of(process));
-
-        given(equipmentRepository.findById(999L))
-                .willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> processService.getProcess("P001"))
-                .isInstanceOf(AppException.class)
-                .hasMessage(ProcessErrorCode.PROCESS_EQUIPMENT_NOT_FOUND.getMessage());
-    }
-
-    @Test
-    @DisplayName("설비 없음 → PROCESS_EQUIPMENT_NOT_FOUND")
+    @DisplayName("공정에 해당하는 설비 없음 → PROCESS_EQUIPMENT_NOT_FOUND")
     void fail_processEquipmentNotFound() {
 
         // given
