@@ -616,23 +616,18 @@ public class MesTelemetryListener {
     }
 
     private JsonNode parseOrderSummaryNode(JsonNode node) {
-        if (node == null || node.isNull()) {
-            return null;
-        }
-        if (node.isObject()) {
-            return node;
-        }
-        if (node.isTextual()) {
-            JsonNode parsed = parsePayload(node.asText());
-            if (parsed == null) {
-                parsed = parseMapLikeString(node.asText());
-            }
-            return parsed;
-        }
-        return null;
+        return parseTelemetryPayloadNode(node);
     }
 
     private JsonNode parseProductionPerformanceNode(JsonNode node) {
+        JsonNode parsed = parseTelemetryPayloadNode(node);
+        if (parsed != null && !parsed.hasNonNull(PRODUCTION_PERFORMANCE_ORDER_NO_FIELD)) {
+            return null;
+        }
+        return parsed;
+    }
+
+    private JsonNode parseTelemetryPayloadNode(JsonNode node) {
         if (node == null || node.isNull()) {
             return null;
         }
