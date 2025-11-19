@@ -1,19 +1,27 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanSearchCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,5 +58,15 @@ public class ProductionPlanController {
         ProductionPlanDetailResponseDto responseDto = productionPlanService.getProductionPlan(planId);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<PageResponse<ProductionPlanListResponseDto>>> getProductionPlanList(
+        @ModelAttribute ProductionPlanSearchCommand searchCommand,
+        @PageableDefault(sort = "documentNo", direction = Direction.DESC) Pageable pageable
+    ) {
+        Page<ProductionPlanListResponseDto> listResponseDto = productionPlanService.getProductionPlanList(searchCommand, pageable);
+
+        return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(listResponseDto)));
     }
 }
