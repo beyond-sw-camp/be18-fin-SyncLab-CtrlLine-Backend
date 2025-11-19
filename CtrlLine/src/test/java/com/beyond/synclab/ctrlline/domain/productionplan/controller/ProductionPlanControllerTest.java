@@ -11,9 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanServiceImpl;
@@ -90,7 +90,7 @@ class ProductionPlanControllerTest {
             .itemCode("I001")
             .build();
 
-        ProductionPlanResponseDto responseDto = ProductionPlanResponseDto.builder()
+        GetProductionPlanResponseDto responseDto = GetProductionPlanResponseDto.builder()
             .productionManagerNo("209910001")
             .build();
 
@@ -115,7 +115,7 @@ class ProductionPlanControllerTest {
     void getProductionPlan_success() throws Exception {
         // given
         Long planId = 123L;
-        ProductionPlanDetailResponseDto dto = ProductionPlanDetailResponseDto.builder()
+        GetProductionPlanDetailResponseDto dto = GetProductionPlanDetailResponseDto.builder()
             .id(planId)
             .dueDate(LocalDate.of(2025, 1, 10))
             .status(ProductionPlans.PlanStatus.PENDING)
@@ -154,7 +154,7 @@ class ProductionPlanControllerTest {
     @WithMockUser
     void getProductionPlanList_success_defaultPageable() throws Exception {
         // given
-        ProductionPlanListResponseDto dto1 = ProductionPlanListResponseDto.builder()
+        GetProductionPlanListResponseDto dto1 = GetProductionPlanListResponseDto.builder()
             .documentNo("DOC001")
             .dueDate(LocalDate.now(testClock).plusDays(1))
             .status(ProductionPlans.PlanStatus.PENDING)
@@ -163,7 +163,7 @@ class ProductionPlanControllerTest {
             .plannedQty(BigDecimal.valueOf(100))
             .build();
 
-        ProductionPlanListResponseDto dto2 = ProductionPlanListResponseDto.builder()
+        GetProductionPlanListResponseDto dto2 = GetProductionPlanListResponseDto.builder()
             .documentNo("DOC002")
             .dueDate(LocalDate.now(testClock).plusDays(1))
             .status(ProductionPlans.PlanStatus.CONFIRMED)
@@ -172,7 +172,7 @@ class ProductionPlanControllerTest {
             .plannedQty(BigDecimal.valueOf(200))
             .build();
 
-        Page<ProductionPlanListResponseDto> page = new PageImpl<>(List.of(dto1, dto2));
+        Page<GetProductionPlanListResponseDto> page = new PageImpl<>(List.of(dto1, dto2));
 
         when(productionPlanService.getProductionPlanList(any(), any(Pageable.class))).thenReturn(page);
 
@@ -190,13 +190,13 @@ class ProductionPlanControllerTest {
     @WithMockUser
     void getProductionPlanList_success_withSearch() throws Exception {
         // given
-        ProductionPlanListResponseDto dto = ProductionPlanListResponseDto.builder()
+        GetProductionPlanListResponseDto dto = GetProductionPlanListResponseDto.builder()
             .documentNo("DOC001")
             .factoryName("1공장")
             .status(ProductionPlans.PlanStatus.PENDING)
             .build();
 
-        Page<ProductionPlanListResponseDto> page = new PageImpl<>(List.of(dto));
+        Page<GetProductionPlanListResponseDto> page = new PageImpl<>(List.of(dto));
 
         when(productionPlanService.getProductionPlanList(any(), any(Pageable.class))).thenReturn(page);
 
@@ -216,7 +216,7 @@ class ProductionPlanControllerTest {
     @WithMockUser
     void getProductionPlanList_emptyResult() throws Exception {
         // given
-        Page<ProductionPlanListResponseDto> emptyPage = new PageImpl<>(Collections.emptyList());
+        Page<GetProductionPlanListResponseDto> emptyPage = new PageImpl<>(Collections.emptyList());
 
         when(productionPlanService.getProductionPlanList(any(), any(Pageable.class)))
             .thenReturn(emptyPage);

@@ -3,10 +3,10 @@ package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanSearchCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
@@ -36,13 +36,13 @@ public class ProductionPlanController {
     private final ProductionPlanService productionPlanService;
 
     @PostMapping
-    public ResponseEntity<BaseResponse<ProductionPlanResponseDto>> createProductionPlan(
+    public ResponseEntity<BaseResponse<GetProductionPlanResponseDto>> createProductionPlan(
         @RequestBody @Valid CreateProductionPlanRequestDto requestDto,
         @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Users user = userDetails.getUser();
 
-        ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, user);
+        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, user);
 
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -52,20 +52,20 @@ public class ProductionPlanController {
     }
 
     @GetMapping("/{planId}")
-    public ResponseEntity<BaseResponse<ProductionPlanDetailResponseDto>> getProductionPlan(
+    public ResponseEntity<BaseResponse<GetProductionPlanDetailResponseDto>> getProductionPlan(
         @PathVariable Long planId
     ) {
-        ProductionPlanDetailResponseDto responseDto = productionPlanService.getProductionPlan(planId);
+        GetProductionPlanDetailResponseDto responseDto = productionPlanService.getProductionPlan(planId);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 
     @GetMapping
-    public ResponseEntity<BaseResponse<PageResponse<ProductionPlanListResponseDto>>> getProductionPlanList(
-        @ModelAttribute ProductionPlanSearchCommand searchCommand,
+    public ResponseEntity<BaseResponse<PageResponse<GetProductionPlanListResponseDto>>> getProductionPlanList(
+        @ModelAttribute SearchProductionPlanCommand searchCommand,
         @PageableDefault(sort = "documentNo", direction = Direction.DESC) Pageable pageable
     ) {
-        Page<ProductionPlanListResponseDto> listResponseDto = productionPlanService.getProductionPlanList(searchCommand, pageable);
+        Page<GetProductionPlanListResponseDto> listResponseDto = productionPlanService.getProductionPlanList(searchCommand, pageable);
 
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(listResponseDto)));
     }

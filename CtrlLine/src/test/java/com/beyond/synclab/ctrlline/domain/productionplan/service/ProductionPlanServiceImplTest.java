@@ -24,10 +24,10 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanSearchCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
@@ -184,7 +184,7 @@ class ProductionPlanServiceImplTest {
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
 
         // then
         assertThat(responseDto).isNotNull();
@@ -242,7 +242,7 @@ class ProductionPlanServiceImplTest {
         when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        ProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
+        GetProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
 
         // then
         assertThat(result.getStartTime()).isEqualTo(existingEndTime.plusMinutes(30));
@@ -382,7 +382,7 @@ class ProductionPlanServiceImplTest {
             .thenReturn(Optional.of(itemsLines));
 
         // when
-        ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
 
         // then
         assertThat(responseDto).isNotNull();
@@ -453,7 +453,7 @@ class ProductionPlanServiceImplTest {
             .thenReturn(Optional.of(productionPlans));
 
         // when
-        ProductionPlanDetailResponseDto response =
+        GetProductionPlanDetailResponseDto response =
             productionPlanService.getProductionPlan(planId);
 
         // then
@@ -486,7 +486,7 @@ class ProductionPlanServiceImplTest {
     @DisplayName("생산 계획 목록 조회 - Specification 정상 적용 및 DTO 매핑")
     void getProductionPlanList_success() {
         // given
-        ProductionPlanSearchCommand command = ProductionPlanSearchCommand.builder()
+        SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
             .status(PlanStatus.PENDING)
             .factoryName("1공장")
             .salesManagerName("유저")
@@ -497,7 +497,7 @@ class ProductionPlanServiceImplTest {
             .endTime(LocalDateTime.now(fixedClock).plusDays(1))
             .build();
 
-        Pageable pageable = PageRequest.of(0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "documentNo"));
 
         ProductionPlans mockEntity = ProductionPlans.builder()
             .id(1L)
@@ -517,12 +517,12 @@ class ProductionPlanServiceImplTest {
             .thenReturn(mockPage);
 
         // when
-        Page<ProductionPlanListResponseDto> result =
+        Page<GetProductionPlanListResponseDto> result =
             productionPlanService.getProductionPlanList(command, pageable);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
-        ProductionPlanListResponseDto dto = result.getContent().getFirst();
+        GetProductionPlanListResponseDto dto = result.getContent().getFirst();
 
         assertThat(dto.getId()).isEqualTo(mockEntity.getId());
         assertThat(dto.getDocumentNo()).isEqualTo(mockEntity.getDocumentNo());
@@ -537,58 +537,10 @@ class ProductionPlanServiceImplTest {
     }
 
     @Test
-    @DisplayName("생산 계획 목록 조회 - 기본 documentNo DESC 정렬 적용")
-    void getProductionPlanList_defaultSortApplied() {
-        // given
-        ProductionPlanSearchCommand command = ProductionPlanSearchCommand.builder()
-            .status(PlanStatus.PENDING)
-            .build();
-
-        // 클라이언트 Pageable에 sort 미지정
-        Pageable pageable = PageRequest.of(0, 10);
-
-        ProductionPlans mockEntity = ProductionPlans.builder()
-            .id(1L)
-            .documentNo("PP-002")
-            .status(PlanStatus.PENDING)
-            .plannedQty(BigDecimal.valueOf(100))
-            .dueDate(LocalDate.of(2099, 1, 10))
-            .itemLine(itemLine(line(1L), item(1L)))
-            .salesManager(user("209901001"))
-            .productionManager(user("209901002"))
-            .remark("비고")
-            .build();
-
-        Page<ProductionPlans> mockPage = new PageImpl<>(List.of(mockEntity), pageable, 1);
-        when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
-            .thenReturn(mockPage);
-
-        // when
-        Page<ProductionPlanListResponseDto> result =
-            productionPlanService.getProductionPlanList(command, pageable);
-
-        // then
-        // DTO 매핑 검증
-        assertThat(result.getTotalElements()).isEqualTo(1);
-        ProductionPlanListResponseDto dto = result.getContent().getFirst();
-        assertThat(dto.getId()).isEqualTo(mockEntity.getId());
-        assertThat(dto.getDocumentNo()).isEqualTo(mockEntity.getDocumentNo());
-
-        // Pageable에 기본 Sort가 documentNo DESC로 적용됐는지 검증
-        verify(productionPlanRepository).findAll(
-            ArgumentMatchers.<Specification<ProductionPlans>>any(),
-            ArgumentMatchers.<Pageable>argThat( p -> {
-                Sort.Order order = p.getSort().getOrderFor("documentNo");
-                return order != null && order.getDirection() == Sort.Direction.DESC;
-            }
-            ));
-    }
-
-    @Test
     @DisplayName("생산 계획 목록 조회 - 계획 수량 오름차순 확인")
     void getProductionPlanList_clientSortMerged() {
         // given
-        ProductionPlanSearchCommand command = ProductionPlanSearchCommand.builder()
+        SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
             .status(PlanStatus.PENDING)
             .build();
 
@@ -612,12 +564,12 @@ class ProductionPlanServiceImplTest {
             .thenReturn(mockPage);
 
         // when
-        Page<ProductionPlanListResponseDto> result =
+        Page<GetProductionPlanListResponseDto> result =
             productionPlanService.getProductionPlanList(command, pageable);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
-        ProductionPlanListResponseDto dto = result.getContent().getFirst();
+        GetProductionPlanListResponseDto dto = result.getContent().getFirst();
         assertThat(dto.getId()).isEqualTo(mockEntity.getId());
 
         // 클라이언트 Sort(plannedQty ASC)로 되었는지 확인
@@ -636,7 +588,7 @@ class ProductionPlanServiceImplTest {
     @DisplayName("생산 계획 목록 조회 - 엣지케이스: 빈 데이터")
     void getProductionPlanList_emptyResult() {
         // given
-        ProductionPlanSearchCommand command = ProductionPlanSearchCommand.builder().build();
+        SearchProductionPlanCommand command = SearchProductionPlanCommand.builder().build();
 
         Pageable pageable = PageRequest.of(0, 10);
 
@@ -645,7 +597,7 @@ class ProductionPlanServiceImplTest {
             .thenReturn(emptyPage);
 
         // when
-        Page<ProductionPlanListResponseDto> result =
+        Page<GetProductionPlanListResponseDto> result =
             productionPlanService.getProductionPlanList(command, pageable);
 
         // then

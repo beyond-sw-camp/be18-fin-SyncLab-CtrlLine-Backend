@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import lombok.Builder;
 
 @Builder
-public record ProductionPlanSearchCommand(
+public record SearchProductionPlanCommand(
     PlanStatus status,
     String factoryName,
     String salesManagerName,

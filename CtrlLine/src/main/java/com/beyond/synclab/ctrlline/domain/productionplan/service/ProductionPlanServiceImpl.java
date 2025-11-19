@@ -17,10 +17,10 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanSearchCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
@@ -60,7 +60,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     @Override
     @Transactional
-    public ProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user) {
+    public GetProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user) {
 
         Users salesManager = userRepository.findByEmpNo(requestDto.getSalesManagerNo())
                 .orElseThrow(() -> {
@@ -135,7 +135,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         productionPlanRepository.save(productionPlan);
 
-        return ProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+        return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }
 
     // 설비별 유효 PPM 계산
@@ -214,7 +214,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProductionPlanDetailResponseDto getProductionPlan(Long planId) {
+    public GetProductionPlanDetailResponseDto getProductionPlan(Long planId) {
         ProductionPlans productionPlans = productionPlanRepository.findById(planId)
             .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
 
@@ -222,13 +222,13 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         Items item = productionPlans.getItemLine().getItem();
 
-        return ProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item);
+        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductionPlanListResponseDto> getProductionPlanList(
-        ProductionPlanSearchCommand command,
+    public Page<GetProductionPlanListResponseDto> getProductionPlanList(
+        SearchProductionPlanCommand command,
         Pageable pageable
     ) {
         // size 10 고정
@@ -251,7 +251,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
 
         return productionPlanRepository.findAll(spec, finalPageable)
-            .map(ProductionPlanListResponseDto::fromEntity);
+            .map(GetProductionPlanListResponseDto::fromEntity);
     }
 
 }
