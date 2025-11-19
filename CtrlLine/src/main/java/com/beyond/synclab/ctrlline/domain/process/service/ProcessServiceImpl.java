@@ -2,12 +2,16 @@ package com.beyond.synclab.ctrlline.domain.process.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
+
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
-import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
-import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
+import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
+import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,22 +21,26 @@ import org.springframework.stereotype.Service;
 public class ProcessServiceImpl implements ProcessService {
 
     private final ProcessRepository processRepository;
+    private final UserRepository userRepository;
+    private final EquipmentRepository equipmentRepository;
 
     // 공정 상세 조회
-    // ErrorCode 401, 404, 409
+    // ErrorCode 404, 409
     @Override
     public ProcessResponseDto getProcess(String processCode){
-        // 401 UNAUTHORIZED
 
         // 404 PROCESS_NOT_FOUND
         Processes process = processRepository.findByProcessCode(processCode)
                 .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_NOT_FOUND));
 
-            Equipments  equipment = equipment.getEquipmentCode();
-            Users user = process.getUser();
+        // 404 PROCESS_EQUIPMENT_NOT_FOUND
+        Equipments equipment = equipmentRepository.findById(process.getId())
+                .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_EQUIPMENT_NOT_FOUND));
+
+        // 404 USER_NOT_FOUND
+        Users user = userRepository.findById(process.getId())
+                .orElseThrow(() -> new AppException(CommonErrorCode.USER_NOT_FOUND));
 
         return ProcessResponseDto.fromEntity(process, equipment, user);
-
     }
-
 }
