@@ -44,6 +44,11 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_EQUIPMENT_CODE_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_PAYLOAD_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_PRODUCED_QTY_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_EXECUTE_AT_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_NG_COUNT_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_ORDER_NO_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_PAYLOAD_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_WAITING_ACK_AT_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.STATUS_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
@@ -51,6 +56,7 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -84,6 +90,7 @@ public class MesTelemetryListener {
     private final MesPowerConsumptionService mesPowerConsumptionService;
     private final MesDefectiveService mesDefectiveService;
     private final MesAlarmService mesAlarmService;
+    private final MesProductionPerformanceService mesProductionPerformanceService;
 
     private final NavigableMap<Long, Double> energyUsageByBucket = new TreeMap<>();
     private final ReentrantLock aggregationLock = new ReentrantLock();
@@ -121,6 +128,11 @@ public class MesTelemetryListener {
         JsonNode summaryPayload = extractOrderSummaryPayload(valueNode);
         if (summaryPayload != null) {
             persistOrderSummary(summaryPayload);
+            return;
+        }
+        JsonNode productionPerformancePayload = extractProductionPerformancePayload(valueNode);
+        if (productionPerformancePayload != null) {
+            persistProductionPerformance(productionPerformancePayload);
             return;
         }
         JsonNode alarmPayloadNode = extractAlarmPayload(valueNode, recordKey);
@@ -268,6 +280,19 @@ public class MesTelemetryListener {
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
     }
 
+    private void persistProductionPerformance(JsonNode performanceNode) {
+        ProductionPerformanceTelemetryPayload payload = buildProductionPerformancePayload(performanceNode);
+        if (payload == null) {
+            log.warn("Production performance payload가 유효하지 않아 저장하지 않습니다. payload={}", performanceNode);
+            return;
+        }
+        log.info("생산실적 텔레메트리 수신 orderNo={}, producedQty={}, ngCount={}",
+                payload.orderNo(),
+                payload.orderProducedQty(),
+                payload.ngCount());
+        mesProductionPerformanceService.saveProductionPerformance(payload);
+    }
+
     private void persistAlarmRecord(JsonNode valueNode) {
         AlarmTelemetryPayload payload = buildAlarmPayload(valueNode);
         if (payload == null) {
@@ -400,6 +425,30 @@ public class MesTelemetryListener {
                 .equipmentCode(equipmentCode)
                 .producedQuantity(producedQuantity)
                 .defectiveQuantity(defectiveQuantity)
+                .build();
+    }
+
+    private ProductionPerformanceTelemetryPayload buildProductionPerformancePayload(JsonNode performanceNode) {
+        String orderNo = firstNonEmptyValue(performanceNode, PRODUCTION_PERFORMANCE_ORDER_NO_FIELD);
+        BigDecimal producedQty = firstDecimal(performanceNode, ORDER_PRODUCED_QTY_FIELD);
+        BigDecimal ngCount = firstDecimal(performanceNode,
+                PRODUCTION_PERFORMANCE_NG_COUNT_FIELD,
+                ORDER_SUMMARY_DEFECTIVE_QTY_FIELD,
+                ORDER_NG_QTY_FIELD,
+                NG_QTY_FIELD);
+        LocalDateTime executeAt = parseDateTime(firstNonEmptyValue(performanceNode, PRODUCTION_PERFORMANCE_EXECUTE_AT_FIELD));
+        LocalDateTime waitingAckAt = parseDateTime(firstNonEmptyValue(performanceNode, PRODUCTION_PERFORMANCE_WAITING_ACK_AT_FIELD));
+
+        if (!StringUtils.hasText(orderNo) || producedQty == null || executeAt == null || waitingAckAt == null) {
+            return null;
+        }
+
+        return ProductionPerformanceTelemetryPayload.builder()
+                .orderNo(orderNo)
+                .orderProducedQty(producedQty)
+                .ngCount(ngCount)
+                .executeAt(executeAt)
+                .waitingAckAt(waitingAckAt)
                 .build();
     }
 
@@ -552,7 +601,33 @@ public class MesTelemetryListener {
         return null;
     }
 
+    private JsonNode extractProductionPerformancePayload(JsonNode valueNode) {
+        if (valueNode == null) {
+            return null;
+        }
+        JsonNode directNode = parseProductionPerformanceNode(valueNode.get(PRODUCTION_PERFORMANCE_PAYLOAD_FIELD));
+        if (directNode != null) {
+            return directNode;
+        }
+        if (PRODUCTION_PERFORMANCE_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
+            return parseProductionPerformanceNode(valueNode.get(VALUE_FIELD));
+        }
+        return null;
+    }
+
     private JsonNode parseOrderSummaryNode(JsonNode node) {
+        return parseTelemetryPayloadNode(node);
+    }
+
+    private JsonNode parseProductionPerformanceNode(JsonNode node) {
+        JsonNode parsed = parseTelemetryPayloadNode(node);
+        if (parsed != null && !parsed.hasNonNull(PRODUCTION_PERFORMANCE_ORDER_NO_FIELD)) {
+            return null;
+        }
+        return parsed;
+    }
+
+    private JsonNode parseTelemetryPayloadNode(JsonNode node) {
         if (node == null || node.isNull()) {
             return null;
         }

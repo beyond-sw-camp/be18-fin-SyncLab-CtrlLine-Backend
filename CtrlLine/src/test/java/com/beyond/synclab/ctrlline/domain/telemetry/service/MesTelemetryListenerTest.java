@@ -32,11 +32,20 @@ class MesTelemetryListenerTest {
     @Mock
     private MesAlarmService mesAlarmService;
 
+    @Mock
+    private MesProductionPerformanceService mesProductionPerformanceService;
+
     private MesTelemetryListener listener;
 
     @BeforeEach
     void setUp() {
-        listener = new MesTelemetryListener(new ObjectMapper(), mesPowerConsumptionService, mesDefectiveService, mesAlarmService);
+        listener = new MesTelemetryListener(
+                new ObjectMapper(),
+                mesPowerConsumptionService,
+                mesDefectiveService,
+                mesAlarmService,
+                mesProductionPerformanceService
+        );
     }
 
     @Test
