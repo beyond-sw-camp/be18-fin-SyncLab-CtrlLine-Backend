@@ -8,6 +8,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
+import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
@@ -34,12 +35,12 @@ public class ProcessServiceImpl implements ProcessService {
                 .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_NOT_FOUND));
 
         // 404 PROCESS_EQUIPMENT_NOT_FOUND
-        Equipments equipment = equipmentRepository.findById(process.getId())
+        Equipments equipment = equipmentRepository.findById(process.getEquipmentId())
                 .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_EQUIPMENT_NOT_FOUND));
 
         // 404 USER_NOT_FOUND
-        Users user = userRepository.findById(process.getId())
-                .orElseThrow(() -> new AppException(CommonErrorCode.USER_NOT_FOUND));
+        Users user = userRepository.findById(process.getUserId())
+                .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
         return ProcessResponseDto.fromEntity(process, equipment, user);
     }
