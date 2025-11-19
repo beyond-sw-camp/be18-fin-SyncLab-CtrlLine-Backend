@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionperformance;
 
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
@@ -10,12 +11,16 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.entity.Productio
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceQueryRepositoryImpl;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import config.QuerydslTestConfig;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.*;
 
 import java.math.BigDecimal;
@@ -25,6 +30,8 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.*;
 
 @DataJpaTest
+@AutoConfigureMockMvc(addFilters = false)
+@Import(QuerydslTestConfig.class)
 class ProductionPerformanceQueryRepositoryTest {
 
     @Autowired
@@ -36,82 +43,116 @@ class ProductionPerformanceQueryRepositoryTest {
     private Lines line;
     private Items itemA;
     private Items itemB;
+    private ItemsLines itemLineA;   // ✨ 추가됨
+    private ItemsLines itemLineB;   // ✨ 추가됨
     private Users salesManager;
     private Users prodManager;
 
     @BeforeEach
     void setUp() {
-        queryRepository = new ProductionPerformanceQueryRepositoryImpl(new com.querydsl.jpa.impl.JPAQueryFactory(em));
 
-        // 공장
+        // 테스트 환경에서는 엔티티 로깅 비활성화
+        System.setProperty("logging.entity.enabled", "false");
+
+        // Querydsl Repository 초기화
+        queryRepository = new ProductionPerformanceQueryRepositoryImpl(new JPAQueryFactory(em));
+
+        // ---------- 공장 ----------
         factory = Factories.builder()
-                .id(1L)
                 .factoryCode("F001")
                 .factoryName("테스트공장")
                 .isActive(true)
                 .build();
         em.persist(factory);
 
-        // 라인
+        // ---------- 라인 ----------
         line = Lines.builder()
-                .id(10L)
+                .factory(factory)
                 .factoryId(factory.getId())
                 .lineCode("L01")
                 .lineName("1라인")
+                .isActive(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
         em.persist(line);
 
-        // 품목
+        // ---------- 품목 ----------
         itemA = Items.builder()
-                .id(100L)
                 .itemCode("ITEM-A")
                 .itemName("제품A")
+                .itemStatus(ItemStatus.RAW_MATERIAL)
+                .itemUnit("EA")
                 .isActive(true)
                 .build();
         em.persist(itemA);
 
         itemB = Items.builder()
-                .id(200L)
                 .itemCode("ITEM-B")
                 .itemName("제품B")
+                .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                .itemUnit("EA")
                 .isActive(true)
                 .build();
         em.persist(itemB);
 
-        // item-line 매핑
-        em.persist(ItemsLines.builder().id(1L).line(line).item(itemA).build());
-        em.persist(ItemsLines.builder().id(2L).line(line).item(itemB).build());
+        // ---------- Item-Line ----------
+        itemLineA = ItemsLines.builder()
+                .line(line)
+                .lineId(line.getId())
+                .item(itemA)
+                .itemId(itemA.getId())
+                .build();
+        em.persist(itemLineA);
 
-        // 사용자 (영업/생산)
+        itemLineB = ItemsLines.builder()
+                .line(line)
+                .lineId(line.getId())
+                .item(itemB)
+                .itemId(itemB.getId())
+                .build();
+        em.persist(itemLineB);
+
+        // ---------- 사용자 ----------
         salesManager = Users.builder()
-                .id(1000L)
                 .empNo("E1000")
                 .name("홍길동")
-                .status(Users.UserStatus.ACTIVE)
+                .email("hong@test.com")
+                .password("1234")
+                .phoneNumber("010-1111-2222")
+                .hiredDate(LocalDate.now())
                 .role(Users.UserRole.USER)
+                .status(Users.UserStatus.ACTIVE)
+                .department("영업부")
                 .position(Users.UserPosition.ASSISTANT)
+                .address("서울시 송파구")
                 .build();
         em.persist(salesManager);
 
         prodManager = Users.builder()
-                .id(2000L)
                 .empNo("E2000")
                 .name("김철수")
-                .status(Users.UserStatus.ACTIVE)
+                .email("kim@test.com")
+                .password("1234")
+                .phoneNumber("010-3333-4444")
+                .hiredDate(LocalDate.now())
                 .role(Users.UserRole.USER)
+                .status(Users.UserStatus.ACTIVE)
+                .department("생산부")
                 .position(Users.UserPosition.ASSISTANT_MANAGER)
+                .address("경기도 수원시")
                 .build();
         em.persist(prodManager);
 
-        // 생산계획
+        // ---------- 생산계획 ----------
         ProductionPlans planA = ProductionPlans.builder()
-                .id(300L)
                 .documentNo("2025/11/18-1")
-                .line(line)
+                .itemLine(itemLineA)
+                .itemLineId(itemLineA.getId())
                 .salesManager(salesManager)
+                .salesManagerId(salesManager.getId())
                 .productionManager(prodManager)
+                .productionManagerId(prodManager.getId())
                 .dueDate(LocalDate.now().plusDays(1))
                 .plannedQty(BigDecimal.valueOf(100))
                 .startTime(LocalDateTime.now().minusHours(5))
@@ -120,11 +161,13 @@ class ProductionPerformanceQueryRepositoryTest {
         em.persist(planA);
 
         ProductionPlans planB = ProductionPlans.builder()
-                .id(301L)
                 .documentNo("2025/11/19-1")
-                .line(line)
+                .itemLine(itemLineB)
+                .itemLineId(itemLineB.getId())
                 .salesManager(salesManager)
+                .salesManagerId(salesManager.getId())
                 .productionManager(prodManager)
+                .productionManagerId(prodManager.getId())
                 .dueDate(LocalDate.now().plusDays(2))
                 .plannedQty(BigDecimal.valueOf(200))
                 .startTime(LocalDateTime.now().minusHours(3))
@@ -132,26 +175,26 @@ class ProductionPerformanceQueryRepositoryTest {
                 .build();
         em.persist(planB);
 
-        // 생산실적
+        // ---------- 생산실적 ----------
         em.persist(ProductionPerformances.builder()
-                .id(900L)
-                .performanceDocumentNo("2025/11/18-1")
                 .productionPlan(planA)
-                .totalQty(100.0)
-                .performanceQty(95.0)
-                .performanceDefectiveRate(5.0)
-                .remark("테스트A")
+                .productionPlanId(planA.getId())
+                .performanceDocumentNo("2025/11/18-1")
+                .totalQty(BigDecimal.valueOf(100))
+                .performanceQty(BigDecimal.valueOf(95))
+                .performanceDefectiveRate(BigDecimal.valueOf(5))
                 .startTime(LocalDateTime.now().minusHours(4))
+                .remark("테스트A")
                 .endTime(LocalDateTime.now())
                 .build());
 
         em.persist(ProductionPerformances.builder()
-                .id(901L)
                 .performanceDocumentNo("2025/11/19-1")
                 .productionPlan(planB)
-                .totalQty(200.0)
-                .performanceQty(190.0)
-                .performanceDefectiveRate(5.0)
+                .productionPlanId(planB.getId())
+                .totalQty(BigDecimal.valueOf(200))
+                .performanceQty(BigDecimal.valueOf(190))
+                .performanceDefectiveRate(BigDecimal.valueOf(5))
                 .remark("테스트B")
                 .startTime(LocalDateTime.now().minusHours(2))
                 .endTime(LocalDateTime.now())
@@ -292,18 +335,18 @@ class ProductionPerformanceQueryRepositoryTest {
         assertThat(result.getContent().get(0).getSalesManagerNo()).isEqualTo("E1000");
     }
     // =============================================================
-// 7. 수량범위 + 불량률범위 다중 조건 테스트
-// =============================================================
+    // 7. 수량범위 + 불량률범위 다중 조건 테스트
+    // =============================================================
     @Test
     @DisplayName("수량범위 + 불량률 범위 다중 조건 검색")
     void testSearch_multiCondition_qty_defectRate() {
 
         SearchProductionPerformanceRequestDto condition =
                 SearchProductionPerformanceRequestDto.builder()
-                        .minTotalQty(150.0)
-                        .maxTotalQty(250.0)
-                        .minDefectRate(5.0)
-                        .maxDefectRate(5.0)
+                        .minTotalQty(BigDecimal.valueOf(150))
+                        .maxTotalQty(BigDecimal.valueOf(250))
+                        .minDefectRate(BigDecimal.valueOf(5))
+                        .maxDefectRate(BigDecimal.valueOf(5))
                         .build();
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -312,7 +355,7 @@ class ProductionPerformanceQueryRepositoryTest {
                 queryRepository.searchProductionPerformanceList(condition, pageable);
 
         assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).getPerformanceQty()).isEqualTo(190.0);
+        assertThat(result.getContent().getFirst().getPerformanceQty())
+                .isEqualByComparingTo("190");
     }
-
 }

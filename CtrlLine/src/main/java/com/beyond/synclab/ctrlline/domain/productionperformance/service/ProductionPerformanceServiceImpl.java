@@ -10,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,12 +28,12 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
             final String lineCode,
             final String itemCode,
             final String productionPlanDocumentNo,
-            final Double minTotalQty,
-            final Double maxTotalQty,
-            final Double minPerformanceQty,
-            final Double maxPerformanceQty,
-            final Double minDefectRate,
-            final Double maxDefectRate,
+            final BigDecimal minTotalQty,
+            final BigDecimal maxTotalQty,
+            final BigDecimal minPerformanceQty,
+            final BigDecimal maxPerformanceQty,
+            final BigDecimal minDefectRate,
+            final BigDecimal maxDefectRate,
             final String salesManagerName,
             final String producerManagerName,
             final String startDate,

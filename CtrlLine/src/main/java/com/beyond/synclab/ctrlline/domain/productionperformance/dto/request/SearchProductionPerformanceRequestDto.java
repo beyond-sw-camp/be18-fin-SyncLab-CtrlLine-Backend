@@ -2,6 +2,8 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.dto.request;
 
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -14,12 +16,12 @@ public class SearchProductionPerformanceRequestDto {
     private String itemCode;
     private String productionPlanDocumentNo;
     private String defectiveDocumentNo;
-    private Double minTotalQty;
-    private Double maxTotalQty;
-    private Double minPerformanceQty;
-    private Double maxPerformanceQty;
-    private Double minDefectRate;
-    private Double maxDefectRate;
+    private BigDecimal minTotalQty;
+    private BigDecimal maxTotalQty;
+    private BigDecimal minPerformanceQty;
+    private BigDecimal maxPerformanceQty;
+    private BigDecimal minDefectRate;
+    private BigDecimal maxDefectRate;
     private String salesManagerName;
     private String producerManagerName;
     private String startDate;

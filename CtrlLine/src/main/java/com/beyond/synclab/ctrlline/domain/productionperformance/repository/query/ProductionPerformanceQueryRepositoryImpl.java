@@ -7,7 +7,6 @@ import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.QLines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
@@ -23,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -80,8 +80,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 ))
                 .from(perf)
                 .leftJoin(perf.productionPlan, plan)
-                .leftJoin(plan.line, line)
-                .leftJoin(line.itemLines, itemLine)
+                .leftJoin(plan.itemLine, itemLine)
+                .leftJoin(itemLine.line, line)
                 .leftJoin(itemLine.item, item)
                 .leftJoin(factory).on(factory.id.eq(line.factoryId))
                 .leftJoin(plan.salesManager, salesManager)
@@ -112,8 +112,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 .select(perf.count())
                 .from(perf)
                 .leftJoin(perf.productionPlan, plan)
-                .leftJoin(plan.line, line)
-                .leftJoin(line.itemLines, itemLine)  // 연관관계 기반
+                .leftJoin(plan.itemLine, itemLine)
+                .leftJoin(itemLine.line, line)
                 .leftJoin(itemLine.item, item)
                 .leftJoin(factory).on(factory.id.eq(line.factoryId))
                 .leftJoin(plan.salesManager, salesManager)
@@ -200,7 +200,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         );
     }
 
-    private BooleanExpression totalQtyBetween(Double min, Double max) {
+    private BooleanExpression totalQtyBetween(BigDecimal min, BigDecimal max) {
         if (min == null && max == null) return null;
         if (min != null && max != null)
             return QProductionPerformances.productionPerformances.totalQty.between(min, max);
@@ -209,7 +209,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         return QProductionPerformances.productionPerformances.totalQty.loe(max);
     }
 
-    private BooleanExpression performanceQtyBetween(Double min, Double max) {
+    private BooleanExpression performanceQtyBetween(BigDecimal min, BigDecimal max) {
         if (min == null && max == null) return null;
         if (min != null && max != null)
             return QProductionPerformances.productionPerformances.performanceQty.between(min, max);
@@ -218,7 +218,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         return QProductionPerformances.productionPerformances.performanceQty.loe(max);
     }
 
-    private BooleanExpression defectRateBetween(Double min, Double max) {
+    private BooleanExpression defectRateBetween(BigDecimal min, BigDecimal max) {
         if (min == null && max == null) return null;
         if (min != null && max != null)
             return QProductionPerformances.productionPerformances.performanceDefectiveRate.between(min, max);

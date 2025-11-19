@@ -4,6 +4,8 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.Get
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+
 public interface ProductionPerformanceService {
 
     // 생산실적 목록 조회
@@ -13,12 +15,12 @@ public interface ProductionPerformanceService {
             final String lineCode,
             final String itemCode,
             final String productionPlanDocumentNo,
-            final Double minTotalQty,
-            final Double maxTotalQty,
-            final Double minPerformanceQty,
-            final Double maxPerformanceQty,
-            final Double minDefectRate,
-            final Double maxDefectRate,
+            final BigDecimal minTotalQty,
+            final BigDecimal maxTotalQty,
+            final BigDecimal minPerformanceQty,
+            final BigDecimal maxPerformanceQty,
+            final BigDecimal minDefectRate,
+            final BigDecimal maxDefectRate,
             final String salesManagerName,
             final String producerManagerName,
             final String startDate,

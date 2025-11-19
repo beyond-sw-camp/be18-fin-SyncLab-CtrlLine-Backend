@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -32,21 +33,24 @@ public class ProductionPerformances {
     @Column(name = "production_performance_id", updatable = false)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "production_plan_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "production_plan_id", nullable = false, insertable = false, updatable = false)
     private ProductionPlans productionPlan;
+
+    @Column(name = "production_plan_id")
+    private Long productionPlanId;
 
     @Column(name = "performance_document_no", length = 32, nullable = false)
     private String performanceDocumentNo;
 
     @Column(name = "total_qty", precision = 10, scale = 2, nullable = false)
-    private Double totalQty;
+    private BigDecimal totalQty;
 
     @Column(name = "performance_qty", precision = 10, scale = 2, nullable = false)
-    private Double performanceQty;
+    private BigDecimal performanceQty;
 
     @Column(name = "performance_defective_rate", precision = 10, scale = 2, nullable = false)
-    private Double performanceDefectiveRate;
+    private BigDecimal performanceDefectiveRate;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;

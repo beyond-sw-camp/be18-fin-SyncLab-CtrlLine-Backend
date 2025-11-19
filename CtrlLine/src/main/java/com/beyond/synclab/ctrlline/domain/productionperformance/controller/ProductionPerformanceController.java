@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+
 import static com.beyond.synclab.ctrlline.common.dto.BaseResponse.ok;
 
 @Slf4j
@@ -33,12 +35,12 @@ public class ProductionPerformanceController {
             @RequestParam(required = false) String lineCode,
             @RequestParam(required = false) String itemCode,
             @RequestParam(required = false) String productionPlanDocumentNo,
-            @RequestParam(required = false) Double minTotalQty,
-            @RequestParam(required = false) Double maxTotalQty,
-            @RequestParam(required = false) Double minPerformanceQty,
-            @RequestParam(required = false) Double maxPerformanceQty,
-            @RequestParam(required = false) Double minDefectRate,
-            @RequestParam(required = false) Double maxDefectRate,
+            @RequestParam(required = false) BigDecimal minTotalQty,
+            @RequestParam(required = false) BigDecimal maxTotalQty,
+            @RequestParam(required = false) BigDecimal minPerformanceQty,
+            @RequestParam(required = false) BigDecimal maxPerformanceQty,
+            @RequestParam(required = false) BigDecimal minDefectRate,
+            @RequestParam(required = false) BigDecimal maxDefectRate,
             @RequestParam(required = false) String salesManagerName,
             @RequestParam(required = false) String producerManagerName,
             @RequestParam(required = false) String startDate,
