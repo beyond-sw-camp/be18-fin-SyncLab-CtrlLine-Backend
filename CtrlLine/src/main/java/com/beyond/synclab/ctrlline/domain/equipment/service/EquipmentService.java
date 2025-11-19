@@ -1,7 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.equipment.service;
 
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
@@ -16,7 +16,7 @@ public interface EquipmentService {
     EquipmentResponseDto register(Users users, CreateEquipmentRequestDto requestDto);
 
     // 설비 상세 조회
-    EquipmentDetailResponseDto getEquipmentDetail(String equipmentCode);
+    ProcessResponseDto getEquipmentDetail(String equipmentCode);
 
     // 설비 목록 조회
     // PageResponse를 반환해야하는데, Page로 적어서. 충돌 오류 발생했었음..

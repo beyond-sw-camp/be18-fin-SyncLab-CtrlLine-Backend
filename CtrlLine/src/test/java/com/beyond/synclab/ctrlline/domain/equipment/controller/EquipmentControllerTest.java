@@ -3,7 +3,7 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
@@ -131,7 +131,7 @@ class EquipmentControllerTest {
     @DisplayName("설비코드로 상세 조회 호출에 성공한다.")
     void getEquipmentDetail_success() throws Exception {
         // given
-        EquipmentDetailResponseDto dto = EquipmentDetailResponseDto.builder()
+        ProcessResponseDto dto = ProcessResponseDto.builder()
                 .equipmentCode("EQ001")
                 .equipmentName("절단기-01")
                 .equipmentType("절단기")
