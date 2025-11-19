@@ -9,6 +9,9 @@ import static org.mockito.Mockito.when;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
@@ -109,7 +112,8 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_sendOrderAndMarkRunning() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
-        Lines line = Lines.builder().id(1L).lineCode("PS-001").factoryId(10L).build();
+        Factories factory = Factories.builder().id(1L).factoryName("F0001").build();
+        Lines line = Lines.builder().id(1L).lineCode("PS-001").factory(factory).build();
         Items item = Items.builder()
                 .id(5L)
                 .itemCode("PRD-7782")
