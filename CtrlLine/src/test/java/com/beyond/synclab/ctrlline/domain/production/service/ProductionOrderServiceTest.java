@@ -109,6 +109,7 @@ class ProductionOrderServiceTest {
         assertThat(actual.lineCode()).isEqualTo("PS-001");
     }
 
+    
     @Test
     @DisplayName("시작 시간이 경과한 생산계획은 Milo에 생산지시를 전달하고 RUNNING으로 변경한다")
     void dispatchDuePlans_sendOrderAndMarkRunning() {
