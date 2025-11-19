@@ -2,7 +2,6 @@ package com.beyond.synclab.ctrlline.domain.process.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
-import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
