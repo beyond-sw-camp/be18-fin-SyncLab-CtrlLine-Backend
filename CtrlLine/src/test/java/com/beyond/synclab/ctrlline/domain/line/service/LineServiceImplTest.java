@@ -1,5 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.line.service;
 
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
@@ -27,6 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({LineServiceImpl.class, QuerydslTestConfig.class})
 @AutoConfigureMockMvc(addFilters = false)
 class LineServiceImplTest {
+
+    @Autowired
+    private FactoryRepository factoryRepository;
 
     @Autowired
     private LineRepository lineRepository;
@@ -72,6 +77,30 @@ class LineServiceImplTest {
                      .build()
         );
 
+        Factories factory1 = factoryRepository.save(
+                Factories.builder()
+                     .factoryCode("F0001")
+                     .factoryName("울산 제1공장")
+                     .isActive(true)
+                     .build()
+        );
+
+        Factories factory2 = factoryRepository.save(
+                Factories.builder()
+                         .factoryCode("F0002")
+                         .factoryName("울산 제2공장")
+                         .isActive(true)
+                         .build()
+        );
+
+        Factories factory3 = factoryRepository.save(
+                Factories.builder()
+                         .factoryCode("F0003")
+                         .factoryName("울산 제3공장")
+                         .isActive(true)
+                         .build()
+        );
+
         // 라인 생성
         lineRepository.saveAll(List.of(
                 Lines.builder()
@@ -79,6 +108,7 @@ class LineServiceImplTest {
                      .lineName("전지1라인")
                      .isActive(true)
                      .user(user1)
+                     .factory(factory1)
                      .userId(user1.getId())
                      .createdAt(LocalDateTime.now())
                      .updatedAt(LocalDateTime.now())
@@ -88,6 +118,7 @@ class LineServiceImplTest {
                      .lineName("전지2라인")
                      .isActive(false)
                      .user(user2)
+                     .factory(factory2)
                      .userId(user2.getId())
                      .createdAt(LocalDateTime.now())
                      .updatedAt(LocalDateTime.now())
@@ -97,6 +128,7 @@ class LineServiceImplTest {
                      .lineName("조립1라인")
                      .isActive(true)
                      .user(user1)
+                     .factory(factory3)
                      .userId(user1.getId())
                      .createdAt(LocalDateTime.now())
                      .updatedAt(LocalDateTime.now())
