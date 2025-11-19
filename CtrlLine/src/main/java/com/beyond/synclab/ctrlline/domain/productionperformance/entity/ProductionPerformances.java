@@ -39,8 +39,11 @@ public class ProductionPerformances {
     @Column(name = "production_performance_id")
     private Long id;
 
+    @Column(name = "production_plan_id", nullable = false)
+    private Long productionPlanId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "production_plan_id", nullable = false,
+    @JoinColumn(name = "production_plan_id", insertable = false, updatable = false,
             foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ProductionPlans productionPlan;
 
