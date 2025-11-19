@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
@@ -107,14 +108,15 @@ class ProductionOrderServiceTest {
     void dispatchDuePlans_sendOrderAndMarkRunning() {
         // given
         LocalDateTime now = LocalDateTime.now(fixedClock);
-        Lines line = Lines.builder().id(1L).lineCode("PS-001").factoryId(10L).build();
+        Factories factory = Factories.builder().id(1L).factoryName("F0001").build();
+        Lines line = Lines.builder().id(1L).lineCode("PS-001").factory(factory).build();
         ProductionPlans plan = ProductionPlans.builder()
-                .documentNo("2025-10-24-1")
-                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
-                .startTime(now.minusMinutes(1))
-                .plannedQty(new java.math.BigDecimal("7000"))
-                .status(PlanStatus.CONFIRMED)
-                .build();
+                                              .documentNo("2025-10-24-1")
+                                              .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
+                                              .startTime(now.minusMinutes(1))
+                                              .plannedQty(new java.math.BigDecimal("7000"))
+                                              .status(PlanStatus.CONFIRMED)
+                                              .build();
 
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
@@ -156,12 +158,12 @@ class ProductionOrderServiceTest {
         LocalDateTime now = LocalDateTime.now(fixedClock);
         Lines line = Lines.builder().id(1L).lineCode("L001").build();
         ProductionPlans plan = ProductionPlans.builder()
-                .documentNo("2025-10-24-1")
-                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
-                .startTime(now.minusMinutes(1))
-                .plannedQty(new java.math.BigDecimal("7000"))
-                .status(PlanStatus.CONFIRMED)
-                .build();
+                                              .documentNo("2025-10-24-1")
+                                              .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).build())
+                                              .startTime(now.minusMinutes(1))
+                                              .plannedQty(new java.math.BigDecimal("7000"))
+                                              .status(PlanStatus.CONFIRMED)
+                                              .build();
 
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
@@ -170,7 +172,7 @@ class ProductionOrderServiceTest {
         when(lineRepository.findItemCodeByLineId(1L)).thenReturn(Optional.of("PRD-7782"));
 
         Mockito.doThrow(new RuntimeException("Milo down"))
-                .when(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
+               .when(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
 
         // when
         productionOrderService.dispatchDuePlans();

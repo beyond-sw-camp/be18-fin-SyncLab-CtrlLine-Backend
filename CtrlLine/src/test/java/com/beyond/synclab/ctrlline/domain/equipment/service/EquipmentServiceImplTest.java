@@ -69,18 +69,6 @@ class EquipmentServiceImplTest {
                 .build();
     }
 
-    // ===== 테스트용 설비 빌더 =====
-    private Equipments buildTestEquipment(Users user, boolean isActive) {
-        return Equipments.builder()
-                .equipmentCode("E001")
-                .equipmentName("절단기-01")
-                .equipmentType("절단기")
-                .user(user)
-                .equipmentPpm(BigDecimal.valueOf(108))
-                .isActive(isActive)
-                .build();
-    }
-
     @Test
     @DisplayName("설비코드가 중복되면 등록에 실패한다.")
     void createEquipment_fail_duplicateEquipmentCode() {

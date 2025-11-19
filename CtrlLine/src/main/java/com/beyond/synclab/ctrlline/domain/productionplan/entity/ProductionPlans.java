@@ -34,8 +34,8 @@ import org.hibernate.annotations.UpdateTimestamp;
         name = "production_plan",
         indexes = {
                 @Index(
-                        name = "idx_production_plan_line_id",
-                        columnList = "line_id"
+                        name = "idx_production_plan_item_line_id",
+                        columnList = "item_line_id"
                 ),
                 @Index(
                         name = "idx_production_plan_sales_manager_id",

@@ -8,8 +8,8 @@ import java.util.List;
 public interface ItemLineService {
 
     // 특정 라인에서 생산 가능한 품목 조회
-    List<GetItemLineListResponseDto> getItemLineList(Long lineId);
+    List<GetItemLineListResponseDto> getItemLineList(String lineCode);
 
     // 특정 라인의 생산 가능 품목 전체 수정
-    void updateItemLine(Long lineId, UpdateItemLineRequestDto requestDto);
+    void updateItemLine(String lineCode, UpdateItemLineRequestDto requestDto);
 }
