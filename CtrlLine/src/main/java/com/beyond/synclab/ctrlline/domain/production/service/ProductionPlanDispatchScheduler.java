@@ -14,11 +14,15 @@ public class ProductionPlanDispatchScheduler {
     private final ProductionOrderService productionOrderService;
     @Value("${production.order.dispatch.enabled:true}")
     private boolean dispatchEnabled;
+    @Value("${production.order.dispatch.log-when-disabled:true}")
+    private boolean logWhenDisabled;
 
     @Scheduled(fixedDelayString = "${production.order.dispatch.interval-ms:60000}")
     public void dispatchDuePlans() {
         if (!dispatchEnabled) {
-            log.debug("Production order dispatch scheduler disabled. Skipping execution.");
+            if (logWhenDisabled && log.isDebugEnabled()) {
+                log.debug("Production order dispatch scheduler disabled. Skipping execution.");
+            }
             return;
         }
         try {
