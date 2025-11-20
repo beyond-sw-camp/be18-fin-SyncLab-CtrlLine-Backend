@@ -31,6 +31,7 @@ public class ItemController {
 
     private final ItemService itemService;
 
+    // 품목 등록
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<BaseResponse<GetItemDetailResponseDto>> createItem(
@@ -40,9 +41,7 @@ public class ItemController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ok(createdItem));
     }
 
-    /* ========================================================
-   🔹 품목 목록 조회 (✅ PageResponse 적용)
-======================================================== */
+    // 품목 목록 조회
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<GetItemListResponseDto>>> getItemList(
             @RequestParam(required = false) String itemCode,
@@ -66,12 +65,14 @@ public class ItemController {
         return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
+    // 품목 상세 조회
     @GetMapping("/{itemId}")
     public ResponseEntity<BaseResponse<GetItemDetailResponseDto>> getItemDetail(@PathVariable Long itemId) {
         GetItemDetailResponseDto detail = itemService.getItemDetail(itemId);
         return ResponseEntity.ok(ok(detail));
     }
 
+    // 품목 수정
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{itemId}")
     public ResponseEntity<BaseResponse<GetItemDetailResponseDto>> updateItem(
@@ -82,6 +83,7 @@ public class ItemController {
         return ResponseEntity.ok(ok(updatedItem));
     }
 
+    // 품목 사용여부 수정
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping
     public ResponseEntity<BaseResponse<UpdateItemActResponseDto>> updateItemAct(
