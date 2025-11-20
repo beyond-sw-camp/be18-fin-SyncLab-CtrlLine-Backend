@@ -18,6 +18,7 @@ import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.repository.ItemRepository;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.itemline.errorcode.ItemLineErrorCode;
 import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
@@ -28,10 +29,12 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -107,13 +110,17 @@ class ProductionPlanServiceImplTest {
         );
     }
 
+    private Factories factory() {
+        return Factories.builder().id(1L).factoryCode("F001").build();
+    }
+
     private Lines line(Long id) {
-        Factories factories = Factories.builder().factoryName("1공장").factoryCode("F001").build();
-        return Lines.builder().id(id).lineName("라인").lineCode("LINE01").factory(factories).build();
+        Factories factories = Factories.builder().id(1L).factoryName("1공장").factoryCode("F001").build();
+        return Lines.builder().id(id).lineName("라인").lineCode("LINE01").factoryId(1L).factory(factories).build();
     }
 
     private Users user(String empNo) {
-        return Users.builder().name("유저").empNo(empNo).build();
+        return Users.builder().name("유저").role(UserRole.MANAGER).empNo(empNo).build();
     }
 
     private Items item(Long id) {
@@ -138,6 +145,15 @@ class ProductionPlanServiceImplTest {
             .build();
     }
 
+    private ProductionPlans plan(Long id) {
+        return ProductionPlans.builder()
+            .id(id)
+            .status(PlanStatus.PENDING)
+            .startTime(LocalDateTime.of(2099, 1, 1, 9, 0))
+            .endTime(LocalDateTime.of(2099, 1, 1, 10, 0))
+            .createdAt(LocalDateTime.now(fixedClock))
+            .build();
+    }
 
     @Test
     @DisplayName("유저 권한으로 생산 계획을 성공적으로 등록합니다.")
@@ -604,4 +620,206 @@ class ProductionPlanServiceImplTest {
         assertThat(result.getTotalElements()).isZero();
         assertThat(result.getContent()).isEmpty();
     }
+
+    private UpdateProductionPlanRequestDto dto() {
+        return UpdateProductionPlanRequestDto.builder()
+            .status(PlanStatus.PENDING)
+            .salesManagerNo("S001")
+            .productionManagerNo("P001")
+            .lineCode("L001")
+            .factoryCode("F001")
+            .itemCode("ITEM001")
+            .endTime(LocalDateTime.of(2099, 1, 1, 11, 0))
+            .build();
+    }
+
+    @Test
+    @DisplayName("생산계획 수정 성공 - 일반 담당자")
+    void update_success_user() {
+        // given
+        ProductionPlans plan = plan(1L);
+        UpdateProductionPlanRequestDto request = dto();
+
+        Users requestUser = user("T001");
+        Users sManager = Users.builder().role(UserRole.MANAGER).empNo("S001").build();
+        Users pManager = Users.builder().role(UserRole.MANAGER).empNo("P001").build();
+        Lines lines = line(1L);
+        Items items = item(1L);
+
+        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+        when(userRepository.findByEmpNo("S001")).thenReturn(Optional.of(sManager));
+        when(userRepository.findByEmpNo("P001")).thenReturn(Optional.of(pManager));
+        when(lineRepository.findBylineCode("L001")).thenReturn(Optional.of(lines));
+        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory()));
+        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(items));
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L)).thenReturn(Optional.of(itemLine(lines, items)));
+
+        when(productionPlanRepository.findAllScheduledAfterEndTime(any())).thenReturn(List.of());
+
+        // when
+        GetProductionPlanResponseDto response =
+            productionPlanService.updateProductionPlan(request, 1L, requestUser);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(PlanStatus.PENDING);
+
+        verify(productionPlanRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    @DisplayName("생산계획 수정 실패 - 권한 오류 : 관리자가 PENDING/CONFIRMED 외 상태로 변경 시 실패")
+    void update_fail_manager_status_forbidden() {
+        // given
+        ProductionPlans plan = plan(1L);
+
+        UpdateProductionPlanRequestDto request = UpdateProductionPlanRequestDto.builder()
+            .status(PlanStatus.RUNNING) // 허용되지 않음
+            .build();
+
+        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+
+        // when + then
+        assertThatThrownBy(() ->productionPlanService.updateProductionPlan(request, 1L, user("S001")))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+    }
+
+    @Test
+    @DisplayName("생산계획 수정 실패 - 계획 상태가 PENDING/CONFIRMED이 아니면 수정 불가")
+    void update_fail_plan_not_updatable() {
+        ProductionPlans plan = plan(1L);
+        plan.updateStatus(PlanStatus.RUNNING); // isUpdatable() = false
+
+        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+
+        assertThatThrownBy(() -> productionPlanService.updateProductionPlan(dto(), 1L, user("S001")))
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST.getMessage());
+    }
+
+    // ============================================================================================
+    // 4. 라인/아이템/팩토리 검증 실패
+    // ============================================================================================
+
+    @Test
+    @DisplayName("생산계획 수정 실패 - 아이템-라인 조합이 없으면 실패")
+    void update_fail_itemLine_not_found() {
+        ProductionPlans plan = plan(1L);
+
+        Users requestUser = user("T001");
+        Users sManager = Users.builder().role(UserRole.MANAGER).empNo("S001").build();
+        Users pManager = Users.builder().role(UserRole.MANAGER).empNo("P001").build();
+
+        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+        when(lineRepository.findBylineCode("L001")).thenReturn(Optional.of(line(1L)));
+        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory()));
+        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item(1L)));
+        when(userRepository.findByEmpNo("S001")).thenReturn(Optional.of(sManager));
+        when(userRepository.findByEmpNo("P001")).thenReturn(Optional.of(pManager));
+
+        when(itemLineRepository.findByLineIdAndItemId(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            productionPlanService.updateProductionPlan(dto(), 1L, requestUser)
+        )
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining(ItemLineErrorCode.ITEM_LINE_NOT_FOUND.getMessage());
+    }
+
+    @Test
+    @DisplayName("생산계획 수정 실패 - 공장-라인 매칭 오류 시 실패")
+    void update_fail_line_not_in_factory() {
+        ProductionPlans plan = plan(1L);
+
+        Lines wrongLine = Lines.builder()
+            .id(1L)
+            .factoryId(999L) // 다른 공장
+            .factory(Factories.builder().id(999L).build())
+            .build();
+        Items items = item(1L);
+        Factories factory =
+        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+        when(lineRepository.findBylineCode("L001")).thenReturn(Optional.of(wrongLine));
+        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory()));
+        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item(1L)));
+        when(itemLineRepository.findByLineIdAndItemId(any(), any()))
+            .thenReturn(Optional.of(itemLine(wrongLine, )));
+
+        assertThatThrownBy(() ->
+            service.updateProductionPlan(dto(), 1L, user())
+        )
+            .isInstanceOf(AppException.class)
+            .hasMessageContaining("LINE_NOT_FOUND");
+    }
+
+//    // ============================================================================================
+//    // 5. 이후 계획 이동
+//    // ============================================================================================
+//
+//    @Test
+//    @DisplayName("이후 계획에 CONFIRMED 포함 → 담당자 권한이면 이동 불가")
+//    void update_fail_shift_has_confirmed() {
+//        ProductionPlans plan = plan(1L);
+//
+//        ProductionPlans after = plan(2L);
+//        after.updateStatus(PlanStatus.CONFIRMED);
+//
+//        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+//
+//        when(userRepository.findByEmpNo(anyString())).thenReturn(Optional.of(user()));
+//        when(lineRepository.findBylineCode("L001")).thenReturn(Optional.of(line()));
+//        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory()));
+//        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item()));
+//        when(itemLineRepository.findByLineIdAndItemId(any(), any())).thenReturn(Optional.of(itemsLine()));
+//
+//        when(productionPlanRepository.findAllScheduledAfterEndTime(any()))
+//            .thenReturn(List.of(after));
+//
+//        assertThatThrownBy(() ->
+//            service.updateProductionPlan(dto(), 1L, manager())
+//        )
+//            .isInstanceOf(AppException.class)
+//            .hasMessageContaining("PRODUCTION_PLAN_FORBIDDEN");
+//    }
+//
+//    @Test
+//    @DisplayName("이후 계획 정상 이동 - 일반 사용자")
+//    void update_success_shift_user() {
+//        ProductionPlans plan = plan(1L);
+//
+//        ProductionPlans after = plan(2L);
+//
+//        when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+//        when(userRepository.findByEmpNo(anyString())).thenReturn(Optional.of(user()));
+//        when(lineRepository.findBylineCode(any())).thenReturn(Optional.of(line()));
+//        when(factoryRepository.findByFactoryCode(any())).thenReturn(Optional.of(factory()));
+//        when(itemRepository.findByItemCode(any())).thenReturn(Optional.of(item()));
+//        when(itemLineRepository.findByLineIdAndItemId(any(), any()))
+//            .thenReturn(Optional.of(itemsLine()));
+//
+//        when(productionPlanRepository.findAllScheduledAfterEndTime(any()))
+//            .thenReturn(List.of(after));
+//
+//        GetProductionPlanResponseDto response =
+//            service.updateProductionPlan(dto(), 1L, user());
+//
+//        assertThat(response).isNotNull();
+//        verify(productionPlanRepository).saveAllInBatch(anyList());
+//    }
+//
+//    // ============================================================================================
+//    // 6. 엔티티 조회 실패
+//    // ============================================================================================
+//
+//    @Test
+//    @DisplayName("생산계획 ID 조회 실패 시 예외")
+//    void update_fail_plan_not_found() {
+//        when(productionPlanRepository.findById(anyLong())).thenReturn(Optional.empty());
+//
+//        assertThatThrownBy(() ->
+//            service.updateProductionPlan(dto(), 1L, user())
+//        ).isInstanceOf(AppException.class)
+//            .hasMessageContaining("PRODUCTION_PLAN_NOT_FOUND");
+//    }
 }
