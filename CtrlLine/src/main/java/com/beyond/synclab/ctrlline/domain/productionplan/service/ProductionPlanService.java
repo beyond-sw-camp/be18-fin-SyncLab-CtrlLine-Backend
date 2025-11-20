@@ -1,13 +1,20 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ProductionPlanService {
 
-    ProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user);
+    GetProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user);
 
-    ProductionPlanDetailResponseDto getProductionPlan(Long planId);
+    GetProductionPlanDetailResponseDto getProductionPlan(Long planId);
+
+    Page<GetProductionPlanListResponseDto> getProductionPlanList(
+        SearchProductionPlanCommand searchCommand, Pageable pageable);
 }

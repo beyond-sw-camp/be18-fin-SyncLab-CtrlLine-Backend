@@ -11,8 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanServiceImpl;
@@ -24,6 +25,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +34,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -84,7 +90,7 @@ class ProductionPlanControllerTest {
             .itemCode("I001")
             .build();
 
-        ProductionPlanResponseDto responseDto = ProductionPlanResponseDto.builder()
+        GetProductionPlanResponseDto responseDto = GetProductionPlanResponseDto.builder()
             .productionManagerNo("209910001")
             .build();
 
@@ -109,7 +115,7 @@ class ProductionPlanControllerTest {
     void getProductionPlan_success() throws Exception {
         // given
         Long planId = 123L;
-        ProductionPlanDetailResponseDto dto = ProductionPlanDetailResponseDto.builder()
+        GetProductionPlanDetailResponseDto dto = GetProductionPlanDetailResponseDto.builder()
             .id(planId)
             .dueDate(LocalDate.of(2025, 1, 10))
             .status(ProductionPlans.PlanStatus.PENDING)
@@ -141,5 +147,96 @@ class ProductionPlanControllerTest {
             .andExpect(jsonPath("$.data.itemName").value("샘플품목"))
             .andExpect(jsonPath("$.data.lineCode").value("L01"))
             .andExpect(jsonPath("$.data.remark").value("테스트 비고"));
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 성공 - 기본 페이지/정렬")
+    @WithMockUser
+    void getProductionPlanList_success_defaultPageable() throws Exception {
+        // given
+        GetProductionPlanListResponseDto dto1 = GetProductionPlanListResponseDto.builder()
+            .documentNo("DOC001")
+            .dueDate(LocalDate.now(testClock).plusDays(1))
+            .status(ProductionPlans.PlanStatus.PENDING)
+            .factoryName("1공장")
+            .itemName("좋은 배터리")
+            .plannedQty(BigDecimal.valueOf(100))
+            .build();
+
+        GetProductionPlanListResponseDto dto2 = GetProductionPlanListResponseDto.builder()
+            .documentNo("DOC002")
+            .dueDate(LocalDate.now(testClock).plusDays(1))
+            .status(ProductionPlans.PlanStatus.CONFIRMED)
+            .factoryName("2공장")
+            .itemName("좋은 셀")
+            .plannedQty(BigDecimal.valueOf(200))
+            .build();
+
+        Page<GetProductionPlanListResponseDto> page = new PageImpl<>(List.of(dto1, dto2));
+
+        when(productionPlanService.getProductionPlanList(any(), any(Pageable.class))).thenReturn(page);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content[0].documentNo").value("DOC001"))
+            .andExpect(jsonPath("$.data.content[1].documentNo").value("DOC002"))
+            .andExpect(jsonPath("$.data.pageInfo.totalElements").value(2));
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 성공 - 검색 필터 적용")
+    @WithMockUser
+    void getProductionPlanList_success_withSearch() throws Exception {
+        // given
+        GetProductionPlanListResponseDto dto = GetProductionPlanListResponseDto.builder()
+            .documentNo("DOC001")
+            .factoryName("1공장")
+            .status(ProductionPlans.PlanStatus.PENDING)
+            .build();
+
+        Page<GetProductionPlanListResponseDto> page = new PageImpl<>(List.of(dto));
+
+        when(productionPlanService.getProductionPlanList(any(), any(Pageable.class))).thenReturn(page);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/production-plans")
+                .param("factoryName", "1공장")
+                .param("status", "PENDING")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content[0].factoryName").value("1공장"))
+            .andExpect(jsonPath("$.data.content[0].status").value("PENDING"))
+            .andExpect(jsonPath("$.data.pageInfo.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 - 결과 없음")
+    @WithMockUser
+    void getProductionPlanList_emptyResult() throws Exception {
+        // given
+        Page<GetProductionPlanListResponseDto> emptyPage = new PageImpl<>(Collections.emptyList());
+
+        when(productionPlanService.getProductionPlanList(any(), any(Pageable.class)))
+            .thenReturn(emptyPage);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content").isEmpty())
+            .andExpect(jsonPath("$.data.pageInfo.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 - 잘못된 페이지 파라미터 처리")
+    @WithMockUser
+    void getProductionPlanList_invalidPageParam() throws Exception {
+        mockMvc.perform(get("/api/v1/production-plans")
+                .param("status", "notexisting")
+                .param("size", "0")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
     }
 }
