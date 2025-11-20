@@ -365,7 +365,7 @@ public class MesTelemetryListener {
                 DEFECTIVE_QTY_FIELD_SNAKE,
                 ORDER_NG_QTY_FIELD,
                 NG_QTY_FIELD);
-        BigDecimal producedQuantity = firstDecimal(valueNode, ORDER_PRODUCED_QTY_FIELD);
+        String orderNo = firstNonEmptyValue(valueNode, PRODUCTION_PERFORMANCE_ORDER_NO_FIELD);
         String defectiveCode = firstNonEmptyValue(valueNode,
                 DEFECTIVE_CODE_FIELD,
                 DEFECTIVE_CODE_FIELD_ALT,
@@ -400,7 +400,7 @@ public class MesTelemetryListener {
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQuantity(quantity)
-                .producedQuantity(producedQuantity)
+                .orderNo(orderNo)
                 .status(resolveStatus(valueNode))
                 .defectiveType(defectiveType)
                 .build();
