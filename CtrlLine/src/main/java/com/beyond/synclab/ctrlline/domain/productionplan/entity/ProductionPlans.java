@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionplan.entity;
 
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,6 +17,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -136,6 +138,53 @@ public class ProductionPlans {
 
     public void updateStatus(PlanStatus requestedStatus) {
         this.status = requestedStatus;
+    }
+
+    // 기존 생산계획은 pending 이나 confirmed 일때만 변경 가능하다.
+    public boolean isUpdatable() {
+        return (status == PlanStatus.PENDING || status == PlanStatus.CONFIRMED);
+    }
+
+    public void updatePeriod(Duration originalPeriod) {
+        this.startTime = this.startTime.plus(originalPeriod);
+        this.endTime = this.endTime.plus(originalPeriod);
+    }
+
+    public void update(UpdateProductionPlanRequestDto dto, Users salesManager, Users productionManager, ItemsLines itemLine) {
+        if (dto.getStatus() != null) {
+            this.status = dto.getStatus();
+        }
+
+        if (salesManager != null) {
+            this.salesManagerId = salesManager.getId();
+            this.salesManager = salesManager;
+        }
+
+        if (productionManager != null) {
+            this.productionManagerId = productionManager.getId();
+            this.productionManager = productionManager;
+        }
+
+        if (dto.getStartTime() != null) {
+            this.startTime = dto.getStartTime();
+        }
+
+        if (dto.getEndTime() != null) {
+            this.endTime = dto.getEndTime();
+        }
+
+        if (itemLine != null) {
+            this.itemLineId = itemLine.getId();
+            this.itemLine = itemLine;
+        }
+
+        if (dto.getDueDate() != null) {
+            this.dueDate = dto.getDueDate();
+        }
+
+        if (dto.getRemark() != null) {
+            this.remark = dto.getRemark();
+        }
     }
 
     public enum PlanStatus {
