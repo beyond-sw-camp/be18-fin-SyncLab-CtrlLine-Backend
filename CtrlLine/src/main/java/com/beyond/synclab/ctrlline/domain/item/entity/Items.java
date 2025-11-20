@@ -51,6 +51,7 @@ public class Items {
     private ItemStatus itemStatus; // 원재료 / 부재료 / 반제품 / 완제품
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
     @CreationTimestamp
