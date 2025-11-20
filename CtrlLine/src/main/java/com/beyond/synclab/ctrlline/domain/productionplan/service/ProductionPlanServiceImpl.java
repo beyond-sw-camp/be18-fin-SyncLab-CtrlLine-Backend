@@ -17,11 +17,14 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
+import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
@@ -34,6 +37,10 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +60,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     @Override
     @Transactional
-    public ProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user) {
+    public GetProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user) {
 
         Users salesManager = userRepository.findByEmpNo(requestDto.getSalesManagerNo())
                 .orElseThrow(() -> {
@@ -128,7 +135,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         productionPlanRepository.save(productionPlan);
 
-        return ProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+        return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }
 
     // 설비별 유효 PPM 계산
@@ -207,7 +214,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProductionPlanDetailResponseDto getProductionPlan(Long planId) {
+    public GetProductionPlanDetailResponseDto getProductionPlan(Long planId) {
         ProductionPlans productionPlans = productionPlanRepository.findById(planId)
             .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
 
@@ -215,6 +222,36 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         Items item = productionPlans.getItemLine().getItem();
 
-        return ProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item);
+        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<GetProductionPlanListResponseDto> getProductionPlanList(
+        SearchProductionPlanCommand command,
+        Pageable pageable
+    ) {
+        // size 10 고정
+        Pageable finalPageable = PageRequest.of(
+            pageable.getPageNumber(),
+            10,
+            pageable.getSort()
+        );
+
+        Specification<ProductionPlans> spec = Specification.allOf(
+            PlanSpecification.planStatusEquals(command.status()),
+            PlanSpecification.planFactoryNameContains(command.factoryName()),
+            PlanSpecification.planSalesManagerNameContains(command.salesManagerName()),
+            PlanSpecification.planProductionManagerNameContains(command.productionManagerName()),
+            PlanSpecification.planItemNameContains(command.itemName()),
+            PlanSpecification.planDueDateBefore(command.dueDate()),
+            PlanSpecification.planStartTimeAfter(command.startTime()),
+            PlanSpecification.planEndTimeBefore(command.endTime())
+        );
+
+
+        return productionPlanRepository.findAll(spec, finalPageable)
+            .map(GetProductionPlanListResponseDto::fromEntity);
+    }
+
 }
