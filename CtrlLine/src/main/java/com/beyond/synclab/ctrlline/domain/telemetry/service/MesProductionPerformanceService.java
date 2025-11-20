@@ -61,6 +61,7 @@ public class MesProductionPerformanceService {
 
         ProductionPerformances performance = ProductionPerformances.builder()
                 .productionPlan(productionPlan)
+                .productionPlanId(productionPlan.getId())
                 .performanceDocumentNo(createDocumentNo())
                 .totalQty(totalQty)
                 .performanceQty(producedQty)
