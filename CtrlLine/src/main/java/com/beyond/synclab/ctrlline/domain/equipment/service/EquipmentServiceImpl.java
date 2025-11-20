@@ -67,6 +67,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     // 설비 상세 조회
     @Override
+    @Transactional(readOnly=true)
     public UpdateEquipmentResponseDto getEquipmentDetail(String equipmentCode){
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));

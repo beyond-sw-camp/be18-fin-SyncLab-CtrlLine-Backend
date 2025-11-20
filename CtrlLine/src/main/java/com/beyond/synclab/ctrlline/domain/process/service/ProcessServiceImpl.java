@@ -11,9 +11,10 @@ import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +28,7 @@ public class ProcessServiceImpl implements ProcessService {
     // 공정 상세 조회
     // ErrorCode 404, 409
     @Override
+    @Transactional(readOnly=true)
     public ProcessResponseDto getProcess(String processCode){
 
         // 404 PROCESS_NOT_FOUND
