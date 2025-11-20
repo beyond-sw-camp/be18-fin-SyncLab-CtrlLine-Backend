@@ -32,6 +32,7 @@ import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -112,7 +113,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDateTime.now(clock)
         );
 
-        ProductionPlans.PlanStatus requestedStatus;
+        PlanStatus requestedStatus;
         if (user.isUserRole()) {
             requestedStatus = PlanStatus.PENDING;
         } else {
@@ -255,12 +256,136 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .map(GetProductionPlanListResponseDto::fromEntity);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public GetProductionPlanResponseDto updateProductionPlan(
-        UpdateProductionPlanRequestDto requestDto, Long planId, Users user
+    private void validateRequestedStatusByRole(PlanStatus newStatus, Users requester) {
+        if (!requester.isManagerRole()) return;
+
+        // 관리자일때 수정 요청 확인
+        if (!(newStatus == PlanStatus.PENDING || newStatus == PlanStatus.CONFIRMED)) {
+            log.debug("담당자는 PENDING 또는 CONFIRMED 요청으로만 수정가능합니다.");
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+        }
+    }
+
+    private Users findUserByEmpNo(String empNo) {
+        if (empNo == null) return null;
+        return userRepository.findByEmpNo(empNo)
+            .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
+    }
+
+    private Lines findLine(String lineCode) {
+        if (lineCode == null) return null;
+        return lineRepository.findBylineCode(lineCode)
+            .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+    }
+
+    private Items findItem(String itemCode) {
+        if (itemCode == null) return null;
+        return itemRepository.findByItemCode(itemCode)
+            .orElseThrow(() -> new AppException(ItemErrorCode.ITEM_NOT_FOUND));
+    }
+
+    private Factories findFactory(String factoryCode) {
+        if (factoryCode == null) return null;
+        return factoryRepository.findByFactoryCode(factoryCode)
+            .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
+    }
+
+    private ItemsLines findValidatedItemLine(Lines line, Items item) {
+        if (line == null || item == null) return null;
+
+        Optional<ItemsLines> itemsLinesOptional = itemLineRepository
+            .findByLineIdAndItemId(line.getId(), item.getId());
+
+
+        if (itemsLinesOptional.isEmpty()) {
+            throw new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND);
+        }
+
+        return itemsLinesOptional.get();
+    }
+
+
+    private void validateFactoryLine(Factories factory, Lines line) {
+        if (factory == null || line == null) return;
+
+        if (!line.getFactoryId().equals(factory.getId())) {
+            throw new AppException(LineErrorCode.LINE_NOT_FOUND);
+        }
+    }
+
+    private void shiftAfterPlansIfNeeded(
+        LocalDateTime newEndTime,
+        ProductionPlans currentPlan,
+        Users requester
     ) {
-        return null;
+        List<ProductionPlans> afterPlans =
+            productionPlanRepository.findAllScheduledAfterEndTime(newEndTime);
+
+        if (afterPlans.isEmpty()) return;
+
+        if (requester.isManagerRole()) {
+            boolean hasConfirmed =
+                afterPlans.stream().anyMatch(p -> p.getStatus() == PlanStatus.CONFIRMED);
+
+            if (hasConfirmed) {
+                log.debug("이후에 변경되는 생산 계획 중 confirmed가 있습니다. 담당자 권한으로 수정 불가능합니다.");
+                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+            }
+        }
+
+        Duration delta;
+        if (requester.isManagerRole()) {
+            // 앞 뒤로 30분씩 텀
+            delta = Duration.ofMinutes(60L);
+        } else {
+            // 앞 10분, 뒤로 30분씩 텀
+            delta = Duration.ofMinutes(40L);
+        }
+
+        Duration updatingPeriod =
+            Duration.between(currentPlan.getStartTime(), currentPlan.getEndTime()).plus(delta);
+
+        afterPlans.forEach(p -> p.updatePeriod(updatingPeriod));
+
+        productionPlanRepository.saveAllInBatch(afterPlans);
+    }
+
+    @Override
+    @Transactional
+    public GetProductionPlanResponseDto updateProductionPlan(
+        UpdateProductionPlanRequestDto dto, Long planId, Users requester
+    ) {
+        ProductionPlans productionPlan = productionPlanRepository.findById(planId)
+            .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
+
+        // 1. 상태 수정 가능 여부 도메인에서 검증
+        if (!productionPlan.isUpdatable()) {
+            log.debug("수정하려는 생산계획이 PENDING 또는 CONFIRMED 일때만, 수정이 가능합니다.");
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
+        }
+
+        // 2. 담당자 권한 검증
+        validateRequestedStatusByRole(dto.getStatus(), requester);
+
+        // 3. 관련 엔티티 조회 (optional → safe wrapper)
+        Users salesManager = findUserByEmpNo(dto.getSalesManagerNo());
+        Users productionManager = findUserByEmpNo(dto.getProductionManagerNo());
+        Lines line = findLine(dto.getLineCode());
+        Items item = findItem(dto.getItemCode());
+        Factories factory = findFactory(dto.getFactoryCode());
+
+        // 4. 라인-공장-아이템 조합 검증
+        ItemsLines itemsLine = findValidatedItemLine(line, item);
+        validateFactoryLine(factory, line);
+
+        // 주어지는 종료 시각 이후에 존재하는 생산계획 중 시작시간이 그 이후인 것들 모두 조회
+        // 5. 이후 계획들 이동 처리
+        shiftAfterPlansIfNeeded(dto.getEndTime(), productionPlan, requester);
+
+        // 6. 최종 업데이트 (도메인 주도)
+        productionPlan.update(dto, salesManager, productionManager, itemsLine);
+
+        return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }
 
 }
