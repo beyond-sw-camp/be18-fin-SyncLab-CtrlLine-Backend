@@ -1,17 +1,19 @@
 package com.beyond.synclab.ctrlline.domain.productionperformance.repository;
 
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceQueryRepository;
 import jakarta.persistence.LockModeType;
-import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-@Repository
-public interface ProductionPerformanceRepository extends JpaRepository<ProductionPerformances, Long> {
+import java.util.List;
 
+@Repository
+public interface ProductionPerformanceRepository
+        extends JpaRepository<ProductionPerformances, Long>, ProductionPerformanceQueryRepository {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT pp.performanceDocumentNo

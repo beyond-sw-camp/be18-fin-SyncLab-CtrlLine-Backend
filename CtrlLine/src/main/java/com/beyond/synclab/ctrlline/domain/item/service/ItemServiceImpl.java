@@ -39,7 +39,7 @@ public class ItemServiceImpl implements ItemService {
         return GetItemDetailResponseDto.fromEntity(saved);
     }
 
-    // 품목 목록 조회 (검색 / 페이징)
+    // 품목 목록 조회
     @Override
     @Transactional(readOnly = true)
     public Page<GetItemListResponseDto> getItemList(
