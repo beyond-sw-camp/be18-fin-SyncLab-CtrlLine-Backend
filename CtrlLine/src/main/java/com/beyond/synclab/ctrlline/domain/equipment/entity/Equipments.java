@@ -106,8 +106,9 @@ public class Equipments {
     }
 
     // 담당자 업데이트 (이렇게 해야, DB도 잘 바뀝니다..)
-    public void updateManager(Long userId) {
-        this.userId = userId;
+    public void updateManager(Users newManager) {
+        this.user = newManager;
+        this.userId = newManager.getId();
     }
 
     public void accumulateProduction(BigDecimal producedDelta, BigDecimal defectiveDelta) {
