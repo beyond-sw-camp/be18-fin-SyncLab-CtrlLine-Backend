@@ -21,6 +21,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
@@ -252,6 +253,14 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         return productionPlanRepository.findAll(spec, finalPageable)
             .map(GetProductionPlanListResponseDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetProductionPlanResponseDto updateProductionPlan(
+        UpdateProductionPlanRequestDto requestDto, Long planId, Users user
+    ) {
+        return null;
     }
 
 }
