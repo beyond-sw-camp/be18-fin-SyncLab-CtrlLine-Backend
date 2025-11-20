@@ -44,7 +44,7 @@ public class PlanDefectiveXrefService {
         PlanDefectiveXref xref = planDefectiveXrefRepository
                 .findByPlanDefectiveIdAndDefectiveId(planDefectiveId, defectiveId)
                 .map(existing -> {
-                    existing.updateDefectiveQty(defectiveQty);
+                    existing.increaseDefectiveQty(defectiveQty);
                     return existing;
                 })
                 .orElseGet(() -> PlanDefectiveXref.builder()
