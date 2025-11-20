@@ -7,7 +7,9 @@ import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiv
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveXrefRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ public class PlanDefectiveXrefService {
     private final ProductionPlanRepository productionPlanRepository;
     private final PlanDefectiveRepository planDefectiveRepository;
     private final PlanDefectiveXrefRepository planDefectiveXrefRepository;
+    private final Map<String, BigDecimal> lastReportedByPlanAndDefect = new ConcurrentHashMap<>();
 
     @Transactional
     public void linkPlanDefective(Long defectiveId, DefectiveTelemetryPayload payload) {
@@ -41,18 +44,32 @@ public class PlanDefectiveXrefService {
             return;
         }
         Long planDefectiveId = planDefectiveIdOptional.get();
+        BigDecimal reportedQty = sanitize(defectiveQty);
+        String cacheKey = cacheKey(planDefectiveId, defectiveId);
         PlanDefectiveXref xref = planDefectiveXrefRepository
                 .findByPlanDefectiveIdAndDefectiveId(planDefectiveId, defectiveId)
                 .map(existing -> {
-                    existing.increaseDefectiveQty(defectiveQty);
+                    BigDecimal currentTotal = Optional.ofNullable(existing.getDefectiveQty()).orElse(BigDecimal.ZERO);
+                    BigDecimal lastReported = lastReportedByPlanAndDefect.getOrDefault(cacheKey, BigDecimal.ZERO);
+                    if (reportedQty.compareTo(lastReported) >= 0) {
+                        BigDecimal base = currentTotal.subtract(lastReported);
+                        if (base.compareTo(BigDecimal.ZERO) < 0) {
+                            base = BigDecimal.ZERO;
+                        }
+                        existing.updateDefectiveQty(base.add(reportedQty));
+                    } else {
+                        existing.updateDefectiveQty(currentTotal.add(reportedQty));
+                    }
+                    lastReportedByPlanAndDefect.put(cacheKey, reportedQty);
                     return existing;
                 })
                 .orElseGet(() -> PlanDefectiveXref.builder()
                         .planDefectiveId(planDefectiveId)
                         .defectiveId(defectiveId)
-                        .defectiveQty(defectiveQty)
+                        .defectiveQty(reportedQty)
                         .build());
         planDefectiveXrefRepository.save(xref);
+        lastReportedByPlanAndDefect.putIfAbsent(cacheKey, reportedQty);
         log.info("plan_defective_xref 저장 완료 planDefectiveId={}, defectiveId={}, qty={}",
                 planDefectiveId, defectiveId, defectiveQty);
     }
@@ -61,5 +78,19 @@ public class PlanDefectiveXrefService {
         return productionPlanRepository.findByDocumentNo(orderNo)
                 .flatMap(plan -> planDefectiveRepository.findByProductionPlanId(plan.getId()))
                 .map(PlanDefective::getId);
+    }
+
+    private BigDecimal sanitize(BigDecimal qty) {
+        if (qty == null) {
+            return BigDecimal.ZERO;
+        }
+        if (qty.compareTo(BigDecimal.ZERO) < 0) {
+            return BigDecimal.ZERO;
+        }
+        return qty;
+    }
+
+    private String cacheKey(Long planDefectiveId, Long defectiveId) {
+        return planDefectiveId + ":" + defectiveId;
     }
 }

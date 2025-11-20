@@ -52,11 +52,4 @@ public class PlanDefectiveXref {
         this.defectiveQty = defectiveQty;
     }
 
-    public void increaseDefectiveQty(BigDecimal additionalQty) {
-        if (additionalQty == null) {
-            return;
-        }
-        BigDecimal current = this.defectiveQty != null ? this.defectiveQty : BigDecimal.ZERO;
-        this.defectiveQty = current.add(additionalQty);
-    }
 }
