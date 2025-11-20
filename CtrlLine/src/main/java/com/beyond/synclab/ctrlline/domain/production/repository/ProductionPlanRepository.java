@@ -9,9 +9,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface ProductionPlanRepository extends JpaRepository<ProductionPlans, Long>,
@@ -37,4 +39,16 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     """)
     Optional<ProductionPlans> findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(String lineCode, List<PlanStatus> statuses,
         LocalDateTime now);
+
+    @Query("""
+        SELECT p
+        FROM ProductionPlans p
+        WHERE p.startTime > :endTime
+        ORDER BY p.startTime ASC
+    """)
+    List<ProductionPlans> findAllScheduledAfterEndTime(LocalDateTime newEndTime);
+
+    @Transactional
+    @Modifying(flushAutomatically = true)
+    void saveAllInBatch(Iterable<ProductionPlans> entities);
 }
