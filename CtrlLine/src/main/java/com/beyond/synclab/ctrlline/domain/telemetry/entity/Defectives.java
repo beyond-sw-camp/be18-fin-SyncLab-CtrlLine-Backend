@@ -12,8 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -45,15 +43,11 @@ public class Defectives {
     @JoinColumn(name = "equipment_id", updatable = false, insertable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Equipments equipment;
 
-    @Column(name = "defective_code", nullable = false, length = 32)
+    @Column(name = "defective_code", nullable = false, length = 64)
     private String defectiveCode;
 
-    @Column(name = "defective_name", nullable = false, length = 32)
+    @Column(name = "defective_name", nullable = false, length = 255)
     private String defectiveName;
-
-    // 지워야함
-    @Transient
-    private BigDecimal defectiveQty;
 
     @Column(name = "defective_type", nullable = false, length = 255)
     private String defectiveType;
