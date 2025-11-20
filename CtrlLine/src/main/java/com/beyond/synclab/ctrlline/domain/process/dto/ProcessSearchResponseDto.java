@@ -22,7 +22,7 @@ public class ProcessSearchResponseDto {
     public static ProcessSearchResponseDto fromEntity (Processes process, Users user) {
         return ProcessSearchResponseDto.builder()
                 .processCode(process.getProcessCode())
-                .processName(process.getProcessCode())
+                .processName(process.getProcessName())
                 .userDepartment(user.getDepartment())
                 .userName(user.getName())
                 .empNo(user.getEmpNo())
