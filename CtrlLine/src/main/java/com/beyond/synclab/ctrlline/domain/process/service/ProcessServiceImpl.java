@@ -51,11 +51,11 @@ public class ProcessServiceImpl implements ProcessService {
         Processes process = processRepository.findByProcessCode(processCode)
                 .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_NOT_FOUND));
 
-        Users newManager = userRepository.findByEmpNo(request.getEmpNo())
+        Users newManager_requested = userRepository.findByEmpNo(request.getEmpNo())
                 .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
         // 사원명과 사번 매핑 검증
-        if(!newManager.getName().equals(request.getUserName())){
+        if(!newManager_requested.getName().equals(request.getUserName())){
             throw new AppException(UserErrorCode.USER_INFO_MISMATCH);
         }
 
@@ -66,7 +66,7 @@ public class ProcessServiceImpl implements ProcessService {
 
         // 공정 담당자
         if(request.getUserName() != null){
-            process.updateManager(newManager.getId());
+            process.updateManager(newManager_requested);
         }
         return ProcessResponseDto.fromEntity(process, process.getEquipment(), process.getUser());
     }

@@ -77,7 +77,8 @@ public class Processes {
     }
 
     // 담당자 업데이트 (무조건 Long userId로 받아야, DB도 같이 변경됩니다!)
-    public void updateManager(Long userId) {
-        this.userId = userId;
+    public void updateManager(Users newManager) {
+        this.user = newManager;
+        this.userId = newManager.getId();
     }
 }
