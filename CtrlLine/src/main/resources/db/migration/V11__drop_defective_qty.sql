@@ -12,14 +12,10 @@ ALTER TABLE defective
 ALTER TABLE performance_defective
     DROP COLUMN IF EXISTS production_performance_id,
     DROP COLUMN IF EXISTS defective_id,
-    DROP COLUMN IF EXISTS defective_qty,
-    ADD COLUMN production_plan_id BIGINT NOT NULL AFTER production_defective_id;
+    DROP COLUMN IF EXISTS defective_qty;
 
-ALTER TABLE performance_defective
-RENAME TO plan_defective
-
-ALTER TABLE lot_no
-RENAME TO lot
+ALTER TABLE IF EXISTS lot_no
+ RENAME TO lot;
 
 ALTER TABLE lot
     DROP COLUMN IF EXISTS production_performance_id;
