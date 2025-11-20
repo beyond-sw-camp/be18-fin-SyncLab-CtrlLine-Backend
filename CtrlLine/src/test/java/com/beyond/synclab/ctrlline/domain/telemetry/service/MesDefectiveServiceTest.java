@@ -24,10 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MesDefectiveServiceTest {
 
     @Mock
-    private DefectiveRepository defectiveRepository;
+    private EquipmentRepository equipmentRepository;
 
     @Mock
-    private EquipmentRepository equipmentRepository;
+    private DefectiveRepository defectiveRepository;
 
     @Captor
     private ArgumentCaptor<Defectives> defectiveCaptor;
@@ -40,43 +40,58 @@ class MesDefectiveServiceTest {
     }
 
     @Test
-    void saveNgTelemetry_persistsRecord() {
+    void saveNgTelemetry_insertsWhenNameMissing() {
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
-                .equipmentId(5L)
+                .equipmentCode("EQP-10")
                 .defectiveCode("DF-01")
-                .defectiveName("Scratch")
-                .defectiveQuantity(BigDecimal.valueOf(4))
-                .producedQuantity(BigDecimal.valueOf(10))
+                .defectiveName("Dent")
+                .defectiveQuantity(BigDecimal.ONE)
+                .orderNo("PLAN-100")
                 .status("NG")
-                .defectiveType("ORDER_NG")
+                .defectiveType("TYPE")
                 .build();
-
-        Equipments equipment = sampleEquipment(5L);
-        when(equipmentRepository.findById(5L)).thenReturn(Optional.of(equipment));
+        when(defectiveRepository.existsByDefectiveName("Dent")).thenReturn(false);
+        when(equipmentRepository.findByEquipmentCode("EQP-10")).thenReturn(Optional.of(sampleEquipment(10L)));
 
         mesDefectiveService.saveNgTelemetry(payload);
 
         verify(defectiveRepository).save(defectiveCaptor.capture());
         Defectives saved = defectiveCaptor.getValue();
-        assertThat(saved.getDefectiveCode()).isEqualTo("DF-01");
-        assertThat(saved.getDefectiveQty()).isEqualByComparingTo("4");
-        assertThat(saved.getDefectiveType()).isEqualTo("ORDER_NG");
-        assertThat(equipment.getTotalCount()).isEqualByComparingTo("0");
-        assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("0");
+        assertThat(saved.getEquipmentId()).isEqualTo(10L);
+        assertThat(saved.getDefectiveCode()).isEqualTo("EQP-10-DF-01");
+        assertThat(saved.getDefectiveType()).isEqualTo("DF-01");
+        assertThat(saved.getDefectiveName()).isEqualTo("Dent");
     }
 
     @Test
-    void saveNgTelemetry_skipsWhenEquipmentMissing() {
+    void saveNgTelemetry_skipsWhenNameAlreadyExists() {
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
-                .equipmentId(999L)
-                .defectiveCode("DF-00")
-                .defectiveName("Unknown")
+                .equipmentCode("EQP-5")
+                .defectiveCode("DF-02")
+                .defectiveName("Scratch")
                 .defectiveQuantity(BigDecimal.TEN)
+                .orderNo("PLAN-200")
                 .status("NG")
-                .defectiveType("ORDER_NG")
+                .defectiveType("TYPE")
+                .build();
+        when(defectiveRepository.existsByDefectiveName("Scratch")).thenReturn(true);
+        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(sampleEquipment(5L)));
+
+        mesDefectiveService.saveNgTelemetry(payload);
+
+        verify(defectiveRepository, never()).save(any());
+    }
+
+    @Test
+    void saveNgTelemetry_skipsWhenEquipmentNotFound() {
+        DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
+                .equipmentCode("UNKNOWN")
+                .defectiveCode("DF-99")
+                .defectiveName("Unknown")
+                .defectiveQuantity(BigDecimal.ONE)
                 .build();
 
-        when(equipmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(equipmentRepository.findByEquipmentCode("UNKNOWN")).thenReturn(Optional.empty());
 
         mesDefectiveService.saveNgTelemetry(payload);
 
@@ -98,7 +113,6 @@ class MesDefectiveServiceTest {
 
         assertThat(equipment.getTotalCount()).isEqualByComparingTo("40");
         assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("8");
-        verifyNoInteractions(defectiveRepository);
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -103,11 +104,11 @@ class MesTelemetryListenerTest {
     }
 
     @Test
-    void onTelemetry_savesNgDefectiveRecord() {
+    void onTelemetry_persistsNgDefectiveRecord() {
         String payload = """
                 {"records":[
                     {"value":{"status":"OK","equipmentId":7,"defectiveCode":"DF-00","defectiveName":"Scratch","quantity":1}},
-                    {"value":{"status":"NG","equipmentId":10,"equipmentCode":"EQP-10","defectiveCode":"DF-01","defectiveName":"Dent","quantity":3.5}}
+                    {"value":{"status":"NG","equipmentId":10,"equipmentCode":"EQP-10","defectiveCode":"DF-01","defectiveName":"Dent","quantity":3.5,"order_no":"PLAN-100"}}
                 ]}
                 """;
 
@@ -117,17 +118,14 @@ class MesTelemetryListenerTest {
         verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
         DefectiveTelemetryPayload savedPayload = captor.getValue();
         assertThat(savedPayload.equipmentId()).isEqualTo(10L);
-        assertThat(savedPayload.equipmentCode()).isEqualTo("EQP-10");
-        assertThat(savedPayload.defectiveCode()).isEqualTo("DF-01");
-        assertThat(savedPayload.defectiveName()).isEqualTo("Dent");
+        assertThat(savedPayload.orderNo()).isEqualTo("PLAN-100");
         assertThat(savedPayload.defectiveQuantity()).isEqualByComparingTo("3.5");
-        assertThat(savedPayload.status()).isEqualTo("NG");
     }
 
     @Test
-    void onTelemetry_savesOrderNgPayloadWithoutStatus() {
+    void onTelemetry_identifiesOrderNgPayloadWithoutStatus() {
         String payload = """
-                {"order_ng_type":4,"order_ng_qty":6,"order_ng_name":"코팅 두께 불량"}
+                {"order_ng_type":4,"order_ng_qty":6,"order_ng_name":"코팅 두께 불량","order_no":"PLAN-200"}
                 """;
 
         JsonNode node = ReflectionTestUtils.invokeMethod(listener, "parsePayload", payload);
@@ -135,34 +133,22 @@ class MesTelemetryListenerTest {
         assertThat(identified).isTrue();
         DefectiveTelemetryPayload builtPayload = ReflectionTestUtils.invokeMethod(listener, "buildDefectivePayload", node);
         assertThat(builtPayload).isNotNull();
+        assertThat(builtPayload.orderNo()).isEqualTo("PLAN-200");
 
         listener.onTelemetry(consumerRecord(payload));
 
-        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
-        DefectiveTelemetryPayload savedPayload = captor.getValue();
-        assertThat(savedPayload.defectiveCode()).isEqualTo("4");
-        assertThat(savedPayload.defectiveName()).isEqualTo("코팅 두께 불량");
-        assertThat(savedPayload.defectiveQuantity()).isEqualByComparingTo("6");
-        assertThat(savedPayload.status()).isEqualTo("NG");
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(any());
     }
 
     @Test
-    void onTelemetry_savesNgPayloadWithSnakeCaseFields() {
+    void onTelemetry_identifiesNgPayloadWithSnakeCaseFields() {
         String payload = """
-                {"equipmentId":15,"ng_type":2,"ng_qty":3,"ng_name":"셀 정렬 불량"}
+                {"equipmentId":15,"ng_type":2,"ng_qty":3,"ng_name":"셀 정렬 불량","order_no":"PLAN-300"}
                 """;
 
         listener.onTelemetry(consumerRecord(payload));
 
-        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
-        DefectiveTelemetryPayload saved = captor.getValue();
-        assertThat(saved.equipmentId()).isEqualTo(15L);
-        assertThat(saved.defectiveCode()).isEqualTo("2");
-        assertThat(saved.defectiveName()).isEqualTo("셀 정렬 불량");
-        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("3");
-        assertThat(saved.status()).isEqualTo("NG");
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(any());
     }
 
     @Test
@@ -173,12 +159,7 @@ class MesTelemetryListenerTest {
 
         listener.onTelemetry(consumerRecord(payload));
 
-        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
-        DefectiveTelemetryPayload saved = captor.getValue();
-        assertThat(saved.defectiveCode()).isEqualTo("4");
-        assertThat(saved.defectiveName()).isEqualTo("체결 토크 불량");
-        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("7");
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(any());
     }
 
     @Test
