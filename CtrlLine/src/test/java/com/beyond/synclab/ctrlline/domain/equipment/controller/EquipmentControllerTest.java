@@ -3,8 +3,8 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
@@ -74,7 +74,7 @@ class EquipmentControllerTest {
                 .isActive(true)
                 .build();
 
-        EquipmentResponseDto responseDto = EquipmentResponseDto.builder()
+        CreateEquipmentResponseDto responseDto = CreateEquipmentResponseDto.builder()
                 .equipmentCode("EQP-0001")
                 .equipmentName("각형전지 조립라인")
                 .equipmentType("생산설비")
@@ -131,7 +131,7 @@ class EquipmentControllerTest {
     @DisplayName("설비코드로 상세 조회 호출에 성공한다.")
     void getEquipmentDetail_success() throws Exception {
         // given
-        ProcessResponseDto dto = ProcessResponseDto.builder()
+        UpdateEquipmentResponseDto dto = UpdateEquipmentResponseDto.builder()
                 .equipmentCode("EQ001")
                 .equipmentName("절단기-01")
                 .equipmentType("절단기")
@@ -221,15 +221,15 @@ class EquipmentControllerTest {
                 .build();
 
         // 응답 DTO
-        EquipmentResponseDto response = EquipmentResponseDto.builder()
+        CreateEquipmentResponseDto response = CreateEquipmentResponseDto.builder()
                 .equipmentCode("EQ001")
                 .equipmentName("절단기-01")
                 .equipmentType("CUTTER")
                 .equipmentPpm(BigDecimal.valueOf(210))
                 .userName("박민수")
                 .userDepartment("생산1팀")
-                .equipmentStatus("E001")
-                .line("PL0001")
+                .equipmentStatusCode("E001")
+                .lineCode("PL0001")
                 .empNo("20240001")
                 .isActive(false)
                 .build();

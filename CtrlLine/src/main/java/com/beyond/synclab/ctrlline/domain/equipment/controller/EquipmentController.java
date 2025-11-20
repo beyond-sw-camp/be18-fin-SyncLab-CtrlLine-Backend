@@ -3,8 +3,8 @@ package com.beyond.synclab.ctrlline.domain.equipment.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
@@ -41,11 +41,11 @@ public class EquipmentController {
     // 관리자만 설비를 등록할 수 있다.
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BaseResponse<EquipmentResponseDto>> registerEquipment(
+    public ResponseEntity<BaseResponse<CreateEquipmentResponseDto>> registerEquipment(
             @AuthenticationPrincipal CustomUserDetails user,
             @Validated @RequestBody CreateEquipmentRequestDto requestDto) {
 
-        EquipmentResponseDto responseDto =
+        CreateEquipmentResponseDto responseDto =
                 equipmentService.register(user.getUser(), requestDto);
 
         // 이거 BaseResponse로 받다보니까, 201이 아니라, 200으로 뜨더라고요?
@@ -56,12 +56,12 @@ public class EquipmentController {
 
     // 설비 상세 조회
     @GetMapping("/{equipmentCode}")
-    public ResponseEntity<BaseResponse<ProcessResponseDto>> getEquipmentDetail(
+    public ResponseEntity<BaseResponse<UpdateEquipmentResponseDto>> getEquipmentDetail(
             @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable("equipmentCode") String equipmentCode) {
 
-        ProcessResponseDto responseDto = equipmentService.getEquipmentDetail(equipmentCode);
-        BaseResponse<ProcessResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
+        UpdateEquipmentResponseDto responseDto = equipmentService.getEquipmentDetail(equipmentCode);
+        BaseResponse<UpdateEquipmentResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
 
         return ResponseEntity.ok(response);
     }
@@ -83,7 +83,7 @@ public class EquipmentController {
     // 설비 업데이트 (사용여부, 담당자만 수정 가능. 권한은 관리자만!)
     @PatchMapping("/{equipmentCode}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BaseResponse<EquipmentResponseDto>> updateEquipment(
+    public ResponseEntity<BaseResponse<CreateEquipmentResponseDto>> updateEquipment(
             // 현재 로그인 한, 사용자 정보를 가져옴.
             @AuthenticationPrincipal CustomUserDetails users,
             // {equipmentCode} 값으로 매핑해줌.
@@ -92,14 +92,8 @@ public class EquipmentController {
             @RequestBody UpdateEquipmentRequestDto request
 
     ) {
-        EquipmentResponseDto responseDto = equipmentService.updateEquipment(
-                // 요청 보내는 사람의 정보 가져오기 위함.
-                users.getUser(),
-                // 수정 요청 데이터
-                request,
-                // 설비 코드로, 설비 찾음.
-                equipmentCode
-        );
+        CreateEquipmentResponseDto responseDto = equipmentService.updateEquipment
+                (users.getUser(), request, equipmentCode);
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
 
     }

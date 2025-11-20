@@ -14,22 +14,22 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class EquipmentResponseDto {
+public class CreateEquipmentResponseDto {
         private String equipmentCode;
         private String equipmentName;
         private String equipmentType;
         private BigDecimal equipmentPpm;
         // 추가
-        private String equipmentStatus;
-        private String line;
+        private String equipmentStatusCode;
+        private String lineCode;
         // 추가
         private String userName;
         private String userDepartment;
         private String empNo;
         private Boolean isActive;
 
-        public static EquipmentResponseDto fromEntity(Equipments equipment, Users user) {
-                return EquipmentResponseDto.builder()
+        public static CreateEquipmentResponseDto fromEntity(Equipments equipment, Users user) {
+                return CreateEquipmentResponseDto.builder()
 
                         .equipmentCode(equipment.getEquipmentCode())
                         .equipmentName(equipment.getEquipmentName())

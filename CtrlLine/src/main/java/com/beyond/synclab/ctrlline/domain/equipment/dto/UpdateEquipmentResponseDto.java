@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 
-public class ProcessResponseDto {
+public class UpdateEquipmentResponseDto {
     private String equipmentCode;
     private String equipmentName;
     private String equipmentType;
@@ -35,8 +35,8 @@ public class ProcessResponseDto {
     private String equipmentStatusCode;
     private String lineCode;
 
-    public static ProcessResponseDto fromEntity(Equipments equipment, Users user, EquipmentStatuses status, Lines line) {
-        return ProcessResponseDto.builder()
+    public static UpdateEquipmentResponseDto fromEntity(Equipments equipment, Users user, EquipmentStatuses status, Lines line) {
+        return UpdateEquipmentResponseDto.builder()
                 .equipmentCode(equipment.getEquipmentCode())
                 .equipmentName(equipment.getEquipmentName())
                 .equipmentType(equipment.getEquipmentType())
