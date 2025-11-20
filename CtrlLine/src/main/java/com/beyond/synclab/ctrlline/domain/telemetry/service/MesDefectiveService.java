@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveXrefService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
@@ -24,6 +25,7 @@ public class MesDefectiveService {
 
     private final DefectiveRepository defectiveRepository;
     private final EquipmentRepository equipmentRepository;
+    private final PlanDefectiveXrefService planDefectiveXrefService;
     private final Map<Long, BigDecimal> lastProducedQuantityByEquipment = new ConcurrentHashMap<>();
     private final Map<Long, BigDecimal> lastDefectiveQuantityByEquipment = new ConcurrentHashMap<>();
 
@@ -39,17 +41,15 @@ public class MesDefectiveService {
                     payload.equipmentCode(), payload.equipmentId());
             return;
         }
-        if (defectiveRepository.existsByDefectiveName(payload.defectiveName())) {
-            log.debug("이미 등록된 불량명이 존재하여 건너뜁니다. defectiveName={}", payload.defectiveName());
-            return;
-        }
-        Defectives defective = Defectives.builder()
-                .equipmentId(equipmentId)
-                .defectiveCode(buildDefectiveCode(payload))
-                .defectiveName(payload.defectiveName())
-                .defectiveType(resolveDefectiveType(payload))
-                .build();
-        defectiveRepository.save(defective);
+        Defectives defective = defectiveRepository.findByDefectiveName(payload.defectiveName())
+                .orElseGet(() -> defectiveRepository.save(Defectives.builder()
+                        .equipmentId(equipmentId)
+                        .defectiveCode(buildDefectiveCode(payload))
+                        .defectiveName(payload.defectiveName())
+                        .defectiveType(resolveDefectiveType(payload))
+                        .build()));
+
+        planDefectiveXrefService.linkPlanDefective(defective.getId(), payload);
     }
 
     @Transactional
