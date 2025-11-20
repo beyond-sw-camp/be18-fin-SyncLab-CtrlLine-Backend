@@ -54,6 +54,7 @@ public class ItemServiceImpl implements ItemService {
                 .itemCode(itemCode)
                 .itemName(itemName)
                 .itemSpecification(itemSpecification)
+                .itemStatus(itemStatus)
                 .isActive(isActive)
                 .build();
 
