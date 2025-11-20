@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProcessServiceImplTest {
@@ -146,6 +148,65 @@ class ProcessServiceImplTest {
         assertThatThrownBy(() -> processService.getProcess("P001"))
                 .isInstanceOf(AppException.class)
                 .hasMessage(UserErrorCode.USER_NOT_FOUND.getMessage());
+    }
+
+    // 공정 업데이트 테스트 코드
+    @Test
+    @DisplayName("공정을 정상적으로 업데이트한다.")
+    void updateProcess_success() {
+        // 로그인 유저
+        Users loginUser = Users.builder()
+                .name("이인화")
+                .role(Users.UserRole.ADMIN)
+                .build();
+
+        // 기존 공정의 담당자
+        Users oldManager = Users.builder()
+                .empNo("M100")
+                .name("기존담당자")
+                .build();
+
+        // 새로운 담당자
+        Users newManager = Users.builder()
+                .empNo("M200")
+                .name("새담당자")
+                .build();
+
+        // 설비
+        Equipments equipment = Equipments.builder()
+                .equipmentCode("EQ-01")
+                .equipmentName("설비A")
+                .build();
+
+        // 기존 공정 상태
+        Processes process = Processes.builder()
+                .processCode("P001")
+                .equipment(equipment)
+                .user(oldManager)  // 기존 담당자
+                .isActive(true)
+                .build();
+
+        UpdateProcessRequestDto request = UpdateProcessRequestDto.builder()
+                .userName("새담당자")
+                .empNo("M200")
+                .isActive(false)
+                .build();
+
+        // 공정 코드로 공정을 찾아옴.
+        when(processRepository.findByProcessCode("P001"))
+                .thenReturn(Optional.of(process));
+
+        // 사번으로 담당자를 찾음.
+        when(userRepository.findByEmpNo("M200"))
+                .thenReturn(Optional.of(newManager));
+
+        ProcessResponseDto result = processService.updateProcess(loginUser, request,"P001");
+
+        // then
+        assertThat(process.getUser().getEmpNo()).isEqualTo("M200");
+        assertThat(result.getProcessCode()).isEqualTo("P001");
+        assertThat(result.getIsActive()).isFalse();
+        assertThat(result.getUserName()).isEqualTo("새담당자");
     }
 
 }
