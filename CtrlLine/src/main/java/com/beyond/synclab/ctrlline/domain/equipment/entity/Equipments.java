@@ -105,9 +105,9 @@ public class Equipments {
         this.isActive = isActive;
     }
 
-    // 담당자 업데이트
-    public void updateManager(Users manager) {
-        this.user = manager;
+    // 담당자 업데이트 (이렇게 해야, DB도 잘 바뀝니다..)
+    public void updateManager(Long userId) {
+        this.userId = userId;
     }
 
     public void accumulateProduction(BigDecimal producedDelta, BigDecimal defectiveDelta) {

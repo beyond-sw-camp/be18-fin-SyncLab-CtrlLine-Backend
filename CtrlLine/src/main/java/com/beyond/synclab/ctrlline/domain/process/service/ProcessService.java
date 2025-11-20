@@ -10,4 +10,7 @@ public interface ProcessService {
 
     // 공정 업데이트
     ProcessResponseDto updateProcess(Users user, UpdateProcessRequestDto request, String processCode);
+
+    // 공정 목록 조회
+
 }

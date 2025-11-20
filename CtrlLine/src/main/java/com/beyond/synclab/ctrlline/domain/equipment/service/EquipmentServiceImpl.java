@@ -97,6 +97,9 @@ public class EquipmentServiceImpl implements EquipmentService {
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
 
+        Users newManager = userRepository.findByEmpNo(request.getEmpNo())
+                .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
+
         // 1) 사용 여부 변경
         if (request.getIsActive() != null) {
             equipment.updateStatus(request.getIsActive());
@@ -104,9 +107,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         // 2) 담당자 변경
         if (request.getUserName() != null) {
-            Users newManager = userRepository.findByEmpNo(request.getEmpNo())
-                    .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
-            equipment.updateManager(newManager);
+            equipment.updateManager(newManager.getId());
         }
         return CreateEquipmentResponseDto.fromEntity(equipment, equipment.getUser());
     }

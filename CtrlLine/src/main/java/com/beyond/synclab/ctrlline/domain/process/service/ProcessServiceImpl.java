@@ -61,7 +61,7 @@ public class ProcessServiceImpl implements ProcessService {
 
         // 공정 담당자
         if(request.getUserName() != null){
-            process.updateManager(newManger);
+            process.updateManager(newManger.getId());
         }
         return ProcessResponseDto.fromEntity(process, process.getEquipment(), process.getUser());
     }
