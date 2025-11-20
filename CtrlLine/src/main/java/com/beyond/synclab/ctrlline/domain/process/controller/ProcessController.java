@@ -2,13 +2,19 @@ package com.beyond.synclab.ctrlline.domain.process.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.service.ProcessService;
+import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,4 +37,17 @@ public class ProcessController {
         BaseResponse<ProcessResponseDto> response = BaseResponse.of(HttpStatus.OK.value(), responseDto);
         return ResponseEntity.ok(response);
     }
+
+    // 공정 업데이트 (공정 담당자, 사용여부만 수정 가능함.)
+    @PatchMapping("/{processCode}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<ProcessResponseDto>> updateProcess(
+        @AuthenticationPrincipal CustomUserDetails users,
+        @PathVariable String processCode,
+        @RequestBody UpdateProcessRequestDto request){
+        ProcessResponseDto responseDto = processService.updateProcess(
+                users.getUser(), request, processCode);
+        return ResponseEntity.ok(BaseResponse.of(HttpStatus.OK.value(), responseDto));
+    }
+
 }
