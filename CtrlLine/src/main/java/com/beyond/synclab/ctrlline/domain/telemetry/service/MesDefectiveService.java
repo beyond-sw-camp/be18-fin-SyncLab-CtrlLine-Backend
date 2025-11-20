@@ -20,6 +20,8 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class MesDefectiveService {
+    private static final String UNKNOWN_VALUE = "UNKNOWN";
+
     private final DefectiveRepository defectiveRepository;
     private final EquipmentRepository equipmentRepository;
     private final Map<Long, BigDecimal> lastProducedQuantityByEquipment = new ConcurrentHashMap<>();
@@ -27,24 +29,26 @@ public class MesDefectiveService {
 
     @Transactional
     public void saveNgTelemetry(DefectiveTelemetryPayload payload) {
-        if (payload == null) {
-            log.warn("NG telemetry payload is null. Skipping save operation.");
+        if (!isValidNgPayload(payload)) {
+            log.warn("NG telemetry payload가 올바르지 않아 저장하지 않습니다. payload={}", payload);
             return;
         }
-        Equipments equipment = findEquipment(payload);
-        if (equipment == null) {
-            log.warn("설비 정보를 찾을 수 없어 불량 데이터를 저장하지 않습니다. equipmentId={}, equipmentCode={}",
-                    payload.equipmentId(), payload.equipmentCode());
+        Long equipmentId = resolveEquipmentId(payload);
+        if (equipmentId == null) {
+            log.warn("설비 정보를 찾을 수 없어 NG 데이터를 저장하지 않습니다. equipmentCode={}, equipmentId={}",
+                    payload.equipmentCode(), payload.equipmentId());
             return;
         }
-        if (!isPayloadValid(payload)) {
-            log.warn("필수 불량 정보가 누락되어 저장하지 않습니다. payload={}", payload);
+        if (defectiveRepository.existsByDefectiveName(payload.defectiveName())) {
+            log.debug("이미 등록된 불량명이 존재하여 건너뜁니다. defectiveName={}", payload.defectiveName());
             return;
         }
-
-        Defectives defective = payload.toEntity(
-                Defectives.builder().equipment(equipment)
-        );
+        Defectives defective = Defectives.builder()
+                .equipmentId(equipmentId)
+                .defectiveCode(buildDefectiveCode(payload))
+                .defectiveName(payload.defectiveName())
+                .defectiveType(resolveDefectiveType(payload))
+                .build();
         defectiveRepository.save(defective);
     }
 
@@ -95,37 +99,40 @@ public class MesDefectiveService {
 
     private record EquipmentSummaryDelta(BigDecimal producedDelta, BigDecimal defectiveDelta) {}
 
-    private boolean isPayloadValid(DefectiveTelemetryPayload payload) {
-        return payload.defectiveQuantity() != null
+    private boolean isValidNgPayload(DefectiveTelemetryPayload payload) {
+        return payload != null
+                && payload.defectiveQuantity() != null
                 && StringUtils.hasText(payload.defectiveCode())
-                && StringUtils.hasText(payload.defectiveName())
-                && StringUtils.hasText(payload.defectiveType());
+                && StringUtils.hasText(payload.defectiveName());
     }
 
-    private Equipments findEquipment(DefectiveTelemetryPayload payload) {
-        Equipments equipment = findByNumericEquipmentId(payload.equipmentId());
-        if (equipment != null) {
-            return equipment;
+    private String buildDefectiveCode(DefectiveTelemetryPayload payload) {
+        String equipmentCode = payload.equipmentCode();
+        if (!StringUtils.hasText(equipmentCode) && payload.equipmentId() != null) {
+            equipmentCode = payload.equipmentId().toString();
         }
-        if (StringUtils.hasText(payload.equipmentCode())) {
-            equipment = equipmentRepository.findByEquipmentCode(payload.equipmentCode()).orElse(null);
-            if (equipment != null) {
-                return equipment;
-            }
-        }
-        String fallbackCode = payload.equipmentId() != null ? payload.equipmentId().toString() : null;
-        if (StringUtils.hasText(fallbackCode)) {
-            return equipmentRepository.findByEquipmentCode(fallbackCode).orElse(null);
-        }
-        return null;
+        String defectiveCode = payload.defectiveCode();
+        String left = StringUtils.hasText(equipmentCode) ? equipmentCode : UNKNOWN_VALUE;
+        String right = StringUtils.hasText(defectiveCode) ? defectiveCode : UNKNOWN_VALUE;
+        return left + "-" + right;
     }
 
-    private Equipments findByNumericEquipmentId(Long equipmentId) {
-        if (equipmentId == null) {
+    private String resolveDefectiveType(DefectiveTelemetryPayload payload) {
+        if (StringUtils.hasText(payload.defectiveCode())) {
+            return payload.defectiveCode();
+        }
+        return UNKNOWN_VALUE;
+    }
+
+    private Long resolveEquipmentId(DefectiveTelemetryPayload payload) {
+        if (payload.equipmentId() != null) {
+            return payload.equipmentId();
+        }
+        if (!StringUtils.hasText(payload.equipmentCode())) {
             return null;
         }
-        Optional<Equipments> equipment = equipmentRepository.findById(equipmentId);
-        return equipment.orElse(null);
+        Optional<Equipments> equipment = equipmentRepository.findByEquipmentCode(payload.equipmentCode());
+        return equipment.map(Equipments::getId).orElse(null);
     }
 
 }
