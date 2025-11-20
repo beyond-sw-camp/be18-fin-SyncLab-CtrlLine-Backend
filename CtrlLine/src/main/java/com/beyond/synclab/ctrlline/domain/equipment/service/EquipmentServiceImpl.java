@@ -4,8 +4,8 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
@@ -39,7 +39,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
 
     // 설비 등록
-    public EquipmentResponseDto register(Users users, CreateEquipmentRequestDto requestDto) {
+    public CreateEquipmentResponseDto register(Users users, CreateEquipmentRequestDto requestDto) {
 
         // (1) 설비코드 중복 검사 (409)
         if (equipmentRepository.existsByEquipmentCode(requestDto.getEquipmentCode())) {
@@ -62,19 +62,19 @@ public class EquipmentServiceImpl implements EquipmentService {
         // DB 저장
         equipmentRepository.save(equipments);
         //Equipments equipment, Users user, EquipmentStatuses status, Lines line
-        return EquipmentResponseDto.fromEntity(equipments, user);
+        return CreateEquipmentResponseDto.fromEntity(equipments, user);
     }
 
     // 설비 상세 조회
     @Override
-    public ProcessResponseDto getEquipmentDetail(String equipmentCode){
+    public UpdateEquipmentResponseDto getEquipmentDetail(String equipmentCode){
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
         Users user = equipment.getUser();
         EquipmentStatuses status = equipment.getEquipmentStatus();
         Lines line = equipment.getLine();
 
-        return ProcessResponseDto.fromEntity(equipment, user, status, line);
+        return UpdateEquipmentResponseDto.fromEntity(equipment, user, status, line);
     }
 
     // 설비 목록 조회
@@ -92,7 +92,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     // 설비 업데이트 (사용여부, 담당자만 변경 가능하다.)
     @Override
     @Transactional
-    public EquipmentResponseDto updateEquipment(Users users, UpdateEquipmentRequestDto request, String equipmentCode) {
+    public CreateEquipmentResponseDto updateEquipment(Users users, UpdateEquipmentRequestDto request, String equipmentCode) {
         // 설비 코드로, 설비 조회
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
@@ -108,7 +108,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                     .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
             equipment.updateManager(newManager);
         }
-        return EquipmentResponseDto.fromEntity(equipment, equipment.getUser());
+        return CreateEquipmentResponseDto.fromEntity(equipment, equipment.getUser());
     }
 
 }

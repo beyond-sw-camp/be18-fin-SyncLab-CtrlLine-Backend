@@ -77,7 +77,7 @@ public class Processes {
     }
 
     // 담당자 업데이트
-    public void updateManager(Users manager) {
-        this.user = manager;
+    public void updateManager(Users user) {
+        this.user = user;
     }
 }

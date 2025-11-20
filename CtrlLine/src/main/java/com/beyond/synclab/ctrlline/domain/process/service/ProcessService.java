@@ -9,5 +9,5 @@ public interface ProcessService {
     ProcessResponseDto getProcess(String processCode);
 
     // 공정 업데이트
-    ProcessResponseDto updateProcess(Users user, UpdateProcessRequestDto request, String ProcessCode);
+    ProcessResponseDto updateProcess(Users user, UpdateProcessRequestDto request, String processCode);
 }

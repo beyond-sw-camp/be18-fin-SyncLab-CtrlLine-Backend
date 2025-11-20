@@ -3,7 +3,7 @@ package com.beyond.synclab.ctrlline.domain.equipment.service;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
@@ -215,7 +215,7 @@ class EquipmentServiceImplTest {
                 .thenReturn(Optional.of(equipment));
 
         // when
-        EquipmentResponseDto response = equipmentService.updateEquipment(users, request, equipmentCode);
+        CreateEquipmentResponseDto response = equipmentService.updateEquipment(users, request, equipmentCode);
 
         // then
         assertNotNull(response);
@@ -273,7 +273,7 @@ class EquipmentServiceImplTest {
                 .thenReturn(Optional.of(newManager));
 
         // when
-        EquipmentResponseDto response =
+        CreateEquipmentResponseDto response =
                 equipmentService.updateEquipment(admin, request, equipmentCode);
 
         // then
