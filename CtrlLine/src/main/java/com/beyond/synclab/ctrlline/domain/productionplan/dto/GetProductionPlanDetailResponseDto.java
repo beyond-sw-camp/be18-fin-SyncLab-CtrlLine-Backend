@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProductionPlanDetailResponseDto {
+public class GetProductionPlanDetailResponseDto {
     private Long id;
     private String planDocumentNo;
     private LocalDate dueDate;
@@ -36,8 +36,8 @@ public class ProductionPlanDetailResponseDto {
     private String lineName;
     private String remark;
 
-    public static ProductionPlanDetailResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items) {
-        return ProductionPlanDetailResponseDto.builder()
+    public static GetProductionPlanDetailResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items) {
+        return GetProductionPlanDetailResponseDto.builder()
             .id(productionPlans.getId())
             .planDocumentNo(productionPlans.getDocumentNo())
             .dueDate(productionPlans.getDueDate())

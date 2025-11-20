@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProductionPlanResponseDto {
+public class GetProductionPlanResponseDto {
     private Long id;
     private String lineCode;
     private String salesManagerNo;
@@ -31,8 +31,8 @@ public class ProductionPlanResponseDto {
     private String factoryCode;
     private String itemCode;
 
-    public static ProductionPlanResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items) {
-        return ProductionPlanResponseDto.builder()
+    public static GetProductionPlanResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items) {
+        return GetProductionPlanResponseDto.builder()
                 .id(productionPlans.getId())
                 .lineCode(productionPlans.getItemLine().getLine().getLineCode())
                 .salesManagerNo(productionPlans.getSalesManager().getEmpNo())

@@ -24,8 +24,10 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.ProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
@@ -45,9 +47,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class ProductionPlanServiceImplTest {
@@ -99,19 +108,16 @@ class ProductionPlanServiceImplTest {
     }
 
     private Lines line(Long id) {
-        return Lines.builder().id(id).lineCode("LINE01").build();
+        Factories factories = Factories.builder().factoryName("1공장").factoryCode("F001").build();
+        return Lines.builder().id(id).lineName("라인").lineCode("LINE01").factory(factories).build();
     }
 
     private Users user(String empNo) {
-        return Users.builder().empNo(empNo).build();
+        return Users.builder().name("유저").empNo(empNo).build();
     }
 
     private Items item(Long id) {
-        return Items.builder().id(id).itemCode("ITEM001").build();
-    }
-
-    private Factories factory() {
-        return Factories.builder().factoryCode("F001").build();
+        return Items.builder().id(id).itemName("아이템").itemCode("ITEM001").build();
     }
 
     private ItemsLines itemLine(Lines line, Items item) {
@@ -178,7 +184,7 @@ class ProductionPlanServiceImplTest {
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
 
         // then
         assertThat(responseDto).isNotNull();
@@ -236,7 +242,7 @@ class ProductionPlanServiceImplTest {
         when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        ProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
+        GetProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
 
         // then
         assertThat(result.getStartTime()).isEqualTo(existingEndTime.plusMinutes(30));
@@ -376,7 +382,7 @@ class ProductionPlanServiceImplTest {
             .thenReturn(Optional.of(itemsLines));
 
         // when
-        ProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
 
         // then
         assertThat(responseDto).isNotNull();
@@ -428,8 +434,7 @@ class ProductionPlanServiceImplTest {
         // given
         Long planId = 1L;
 
-        Factories factory = factory();
-        Lines line = Lines.builder().id(1L).factory(factory).build();
+        Lines line = line(1L);
         Items item = item(1L);
         ItemsLines itemLine = itemLine(line, item);
         Users salesManager = user("209901001");
@@ -448,7 +453,7 @@ class ProductionPlanServiceImplTest {
             .thenReturn(Optional.of(productionPlans));
 
         // when
-        ProductionPlanDetailResponseDto response =
+        GetProductionPlanDetailResponseDto response =
             productionPlanService.getProductionPlan(planId);
 
         // then
@@ -475,5 +480,128 @@ class ProductionPlanServiceImplTest {
             .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
 
         verify(productionPlanRepository, times(1)).findById(planId);
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 - Specification 정상 적용 및 DTO 매핑")
+    void getProductionPlanList_success() {
+        // given
+        SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
+            .status(PlanStatus.PENDING)
+            .factoryName("1공장")
+            .salesManagerName("유저")
+            .productionManagerName("유저")
+            .itemName("아이템")
+            .dueDate(LocalDate.now(fixedClock))
+            .startTime(LocalDateTime.now(fixedClock).minusDays(1))
+            .endTime(LocalDateTime.now(fixedClock).plusDays(1))
+            .build();
+
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "documentNo"));
+
+        ProductionPlans mockEntity = ProductionPlans.builder()
+            .id(1L)
+            .documentNo("PP-001")
+            .status(PlanStatus.PENDING)
+            .plannedQty(BigDecimal.valueOf(200))
+            .dueDate(LocalDate.of(2099, 1, 10))
+            .itemLine(itemLine(line(1L), item(1L)))
+            .salesManager(user("209901001"))
+            .productionManager(user("209901002"))
+            .remark("비고")
+            .build();
+
+        Page<ProductionPlans> mockPage = new PageImpl<>(List.of(mockEntity), pageable, 1);
+
+        when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
+            .thenReturn(mockPage);
+
+        // when
+        Page<GetProductionPlanListResponseDto> result =
+            productionPlanService.getProductionPlanList(command, pageable);
+
+        // then
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        GetProductionPlanListResponseDto dto = result.getContent().getFirst();
+
+        assertThat(dto.getId()).isEqualTo(mockEntity.getId());
+        assertThat(dto.getDocumentNo()).isEqualTo(mockEntity.getDocumentNo());
+        assertThat(dto.getStatus()).isEqualTo(mockEntity.getStatus());
+        assertThat(dto.getPlannedQty()).isEqualTo(mockEntity.getPlannedQty());
+        assertThat(dto.getDueDate()).isEqualTo(mockEntity.getDueDate());
+        assertThat(dto.getRemark()).isEqualTo(mockEntity.getRemark());
+
+        // repository 호출 검증
+        verify(productionPlanRepository, times(1))
+            .findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 - 계획 수량 오름차순 확인")
+    void getProductionPlanList_clientSortMerged() {
+        // given
+        SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
+            .status(PlanStatus.PENDING)
+            .build();
+
+        // 클라이언트가 name ASC 정렬 요청
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("plannedQty").ascending());
+
+        ProductionPlans mockEntity = ProductionPlans.builder()
+            .id(1L)
+            .documentNo("PP-003")
+            .status(PlanStatus.PENDING)
+            .plannedQty(BigDecimal.valueOf(200))
+            .dueDate(LocalDate.of(2099, 1, 10))
+            .itemLine(itemLine(line(1L), item(1L)))
+            .salesManager(user("209901001"))
+            .productionManager(user("209901002"))
+            .remark("비고")
+            .build();
+
+        Page<ProductionPlans> mockPage = new PageImpl<>(List.of(mockEntity), pageable, 1);
+        when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
+            .thenReturn(mockPage);
+
+        // when
+        Page<GetProductionPlanListResponseDto> result =
+            productionPlanService.getProductionPlanList(command, pageable);
+
+        // then
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        GetProductionPlanListResponseDto dto = result.getContent().getFirst();
+        assertThat(dto.getId()).isEqualTo(mockEntity.getId());
+
+        // 클라이언트 Sort(plannedQty ASC)로 되었는지 확인
+        verify(productionPlanRepository).findAll(
+            ArgumentMatchers.<Specification<ProductionPlans>>any(),
+            ArgumentMatchers.<Pageable>argThat(p -> {
+                Sort sort = p.getSort();
+                Sort.Order plannedQtyOrder = sort.getOrderFor("plannedQty");
+
+                return plannedQtyOrder != null
+                    && plannedQtyOrder.getDirection() == Sort.Direction.ASC;
+            }));
+    }
+
+    @Test
+    @DisplayName("생산 계획 목록 조회 - 엣지케이스: 빈 데이터")
+    void getProductionPlanList_emptyResult() {
+        // given
+        SearchProductionPlanCommand command = SearchProductionPlanCommand.builder().build();
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<ProductionPlans> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+        when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
+            .thenReturn(emptyPage);
+
+        // when
+        Page<GetProductionPlanListResponseDto> result =
+            productionPlanService.getProductionPlanList(command, pageable);
+
+        // then
+        assertThat(result.getTotalElements()).isZero();
+        assertThat(result.getContent()).isEmpty();
     }
 }
