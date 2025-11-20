@@ -73,3 +73,9 @@ milo:
   client:
     base-url: ${MILO_URL}
     secret-key: ${MILO_SECRET_KEY}
+
+production:
+  order:
+    dispatch:
+      enabled: ${IS_ACTIVE_SCHEDULE_ORDER_DISPATCH}
+      log-when-disabled: ${IS_ACTIVE_SCHEDULE_ORDER_DISPATCH_LOG}
