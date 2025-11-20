@@ -97,11 +97,11 @@ public class EquipmentServiceImpl implements EquipmentService {
         Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode)
                 .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
 
-        Users newManager_requested = userRepository.findByEmpNo(request.getEmpNo())
+        Users newManagerRequested = userRepository.findByEmpNo(request.getEmpNo())
                 .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
         // 사원명과 사번 매핑 검증
-        if(!newManager_requested.getName().equals(request.getUserName())){
+        if(!newManagerRequested.getName().equals(request.getUserName())){
             throw new AppException(UserErrorCode.USER_INFO_MISMATCH);
         }
 
@@ -112,7 +112,7 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         // 2) 담당자 변경
         if (request.getUserName() != null) {
-            equipment.updateManager(newManager_requested);
+            equipment.updateManager(newManagerRequested);
         }
         return CreateEquipmentResponseDto.fromEntity(equipment, equipment.getUser());
     }
