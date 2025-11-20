@@ -76,7 +76,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         perf.totalQty,
                         perf.performanceQty,
                         perf.performanceDefectiveRate,
-                        perf.remark
+                        perf.remark,
+                        perf.isDeleted
                 ))
                 .from(perf)
                 .leftJoin(perf.productionPlan, plan)
@@ -100,7 +101,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         dueDateEq(condition.getDueDate()),
                         totalQtyBetween(condition.getMinTotalQty(), condition.getMaxTotalQty()),
                         performanceQtyBetween(condition.getMinPerformanceQty(), condition.getMaxPerformanceQty()),
-                        defectRateBetween(condition.getMinDefectRate(), condition.getMaxDefectRate())
+                        defectRateBetween(condition.getMinDefectRate(), condition.getMaxDefectRate()),
+                        isDeletedEq(condition.getIsDeleted())
                 )
                 .orderBy(orders.toArray(OrderSpecifier[]::new))
                 .offset(pageable.getOffset())
@@ -132,7 +134,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         dueDateEq(condition.getDueDate()),
                         totalQtyBetween(condition.getMinTotalQty(), condition.getMaxTotalQty()),
                         performanceQtyBetween(condition.getMinPerformanceQty(), condition.getMaxPerformanceQty()),
-                        defectRateBetween(condition.getMinDefectRate(), condition.getMaxDefectRate())
+                        defectRateBetween(condition.getMinDefectRate(), condition.getMaxDefectRate()),
+                        isDeletedEq(condition.getIsDeleted())
                 );
 
         return PageableExecutionUtils.getPage(results, pageable, countQuery::fetchOne);
@@ -225,5 +228,10 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         if (min != null)
             return QProductionPerformances.productionPerformances.performanceDefectiveRate.goe(min);
         return QProductionPerformances.productionPerformances.performanceDefectiveRate.loe(max);
+    }
+
+    BooleanExpression isDeletedEq(Boolean isDeleted) {
+        return (isDeleted == null) ? null :
+                QProductionPerformances.productionPerformances.isDeleted.eq(isDeleted);
     }
 }

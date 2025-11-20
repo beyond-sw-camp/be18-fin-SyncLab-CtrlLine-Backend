@@ -61,6 +61,10 @@ public class ProductionPerformances {
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -68,4 +72,6 @@ public class ProductionPerformances {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
 }

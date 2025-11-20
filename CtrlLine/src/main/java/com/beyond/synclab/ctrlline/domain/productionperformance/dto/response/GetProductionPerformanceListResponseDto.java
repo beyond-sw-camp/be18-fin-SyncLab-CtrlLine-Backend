@@ -22,30 +22,5 @@ public class GetProductionPerformanceListResponseDto {
     private final BigDecimal performanceQty;
     private final BigDecimal defectRate;
     private final String remark;
-
-//    public static GetProductionPerformanceListResponseDto of(
-//            String documentNo,
-//            String salesManagerNo,
-//            String productionManagerNo,
-//            String factoryCode,
-//            String lineCode,
-//            String itemCode,
-//            BigDecimal totalQty,
-//            BigDecimal performanceQty,
-//            BigDecimal defectRate,
-//            String remark
-//    ) {
-//        return GetProductionPerformanceListResponseDto.builder()
-//                .documentNo(documentNo)
-//                .salesManagerNo(salesManagerNo)
-//                .productionManagerNo(productionManagerNo)
-//                .factoryCode(factoryCode)
-//                .lineCode(lineCode)
-//                .itemCode(itemCode)
-//                .totalQty(totalQty)
-//                .performanceQty(performanceQty)
-//                .defectRate(defectRate)
-//                .remark(remark)
-//                .build();
-//    }
+    private final Boolean isDeleted;
 }
