@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
@@ -35,6 +36,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -261,7 +263,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 관리자일때 수정 요청 확인
         if (!(newStatus == PlanStatus.PENDING || newStatus == PlanStatus.CONFIRMED)) {
-            log.debug("담당자는 PENDING 또는 CONFIRMED 요청으로만 수정가능합니다.");
+            log.debug("담당자는 PENDING, CONFIRMED 요청으로만 수정가능합니다.");
             throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
         }
     }
@@ -314,40 +316,70 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     }
 
     private void shiftAfterPlansIfNeeded(
+        LocalDateTime newStartTime,
         LocalDateTime newEndTime,
-        ProductionPlans currentPlan,
+        ProductionPlans newPlan,
         Users requester
     ) {
         List<ProductionPlans> afterPlans =
-            productionPlanRepository.findAllScheduledAfterEndTime(newEndTime);
+            new ArrayList<>(
+            productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(newStartTime, List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
+                );
+
+        afterPlans.forEach(p -> log.debug("id: {}, startTime : {}, endTime : {}",p.getId(),  p.getStartTime(), p.getEndTime()));
+
+        // 현재 수정 중인 계획을 리스트에서 제거
+        afterPlans.removeIf(newPlan::equals);
 
         if (afterPlans.isEmpty()) return;
 
-        if (requester.isManagerRole()) {
-            boolean hasConfirmed =
-                afterPlans.stream().anyMatch(p -> p.getStatus() == PlanStatus.CONFIRMED);
 
-            if (hasConfirmed) {
-                log.debug("이후에 변경되는 생산 계획 중 confirmed가 있습니다. 담당자 권한으로 수정 불가능합니다.");
-                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+        // Δ 시간 설정, 관리자면 30분
+        Duration delta = Duration.ofMinutes(30L);
+
+        // 이전 계획의 종료시각 기준으로 새 시작 시간을 계속 계산
+        LocalDateTime lastEndTime = newEndTime;
+
+        boolean isRequestManager = requester.isManagerRole();
+
+        for (ProductionPlans plan :  afterPlans) {
+            Duration originalDuration = Duration.between(plan.getStartTime(), plan.getEndTime());
+
+            LocalDateTime candidateStart;
+            LocalDateTime candidateEnd;
+
+            // 겹치면 lastEndTime 기준으로 시작 시간 이동
+            if (!plan.getStartTime().isAfter(lastEndTime)) {
+                candidateStart = lastEndTime.plus(delta);
+                candidateEnd = candidateStart.plus(originalDuration);
+
+                if (isRequestManager && plan.getStatus().equals(PlanStatus.CONFIRMED)) {
+                    log.debug("이후에 변경되는 생산 계획 중 confirmed가 있습니다. 담당자 권한으로 수정 불가능합니다.");
+                    throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+                }
             }
+            // 겹치지 않더라도 "간격이 delta 보다 작은 경우" -> 간격 보정
+            else {
+                Duration gap = Duration.between(lastEndTime, plan.getStartTime());
+
+                if (gap.compareTo(delta) < 0) {
+                    candidateStart = lastEndTime.plus(delta);
+                    candidateEnd = candidateStart.plus(originalDuration);
+                } else {
+                    // 완전히 여유 있는 경우 → 이동 없음, endTime 기준만 업데이트
+                    candidateStart = plan.getStartTime();
+                    candidateEnd = plan.getEndTime();
+                }
+            }
+
+            // 실제 업데이트
+            plan.updateStartTime(candidateStart);
+            plan.updateEndTime(candidateEnd);
+
+            lastEndTime = candidateEnd;
         }
 
-        Duration delta;
-        if (requester.isManagerRole()) {
-            // 앞 뒤로 30분씩 텀
-            delta = Duration.ofMinutes(60L);
-        } else {
-            // 앞 10분, 뒤로 30분씩 텀
-            delta = Duration.ofMinutes(40L);
-        }
-
-        Duration updatingPeriod =
-            Duration.between(currentPlan.getStartTime(), currentPlan.getEndTime()).plus(delta);
-
-        afterPlans.forEach(p -> p.updatePeriod(updatingPeriod));
-
-        productionPlanRepository.saveAllInBatch(afterPlans);
+        productionPlanRepository.saveAll(afterPlans);
     }
 
     @Override
@@ -355,6 +387,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     public GetProductionPlanResponseDto updateProductionPlan(
         UpdateProductionPlanRequestDto dto, Long planId, Users requester
     ) {
+        // 시작시간이 끝나는 시간보다 길진 않은지 확인
+        validateEndAndStartTime(dto.getStartTime(), dto.getEndTime());
+
         ProductionPlans productionPlan = productionPlanRepository.findById(planId)
             .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
 
@@ -380,12 +415,21 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 주어지는 종료 시각 이후에 존재하는 생산계획 중 시작시간이 그 이후인 것들 모두 조회
         // 5. 이후 계획들 이동 처리
-        shiftAfterPlansIfNeeded(dto.getEndTime(), productionPlan, requester);
+        shiftAfterPlansIfNeeded(dto.getStartTime(), dto.getEndTime(), productionPlan, requester);
 
         // 6. 최종 업데이트 (도메인 주도)
         productionPlan.update(dto, salesManager, productionManager, itemsLine);
 
         return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+    }
+
+    private void validateEndAndStartTime(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) return;
+
+        if (endTime.isBefore(startTime)) {
+            log.debug("시작시간이 종료시간 이후입니다.");
+            throw new AppException(CommonErrorCode.INVALID_REQUEST);
+        }
     }
 
 }
