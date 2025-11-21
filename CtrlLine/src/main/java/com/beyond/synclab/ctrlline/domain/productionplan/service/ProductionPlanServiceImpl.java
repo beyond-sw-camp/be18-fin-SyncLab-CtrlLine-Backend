@@ -115,12 +115,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDateTime.now(clock)
         );
 
-        PlanStatus requestedStatus;
-        if (user.isUserRole()) {
-            requestedStatus = PlanStatus.PENDING;
-        } else {
-            requestedStatus = PlanStatus.CONFIRMED;
-        }
+        PlanStatus requestedStatus = user.isAdminRole() ? PlanStatus.CONFIRMED : PlanStatus.PENDING;
 
         productionPlan.updateStatus(requestedStatus);
 
@@ -306,12 +301,20 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return itemsLinesOptional.get();
     }
 
-
     private void validateFactoryLine(Factories factory, Lines line) {
         if (factory == null || line == null) return;
 
         if (!line.getFactoryId().equals(factory.getId())) {
             throw new AppException(LineErrorCode.LINE_NOT_FOUND);
+        }
+    }
+
+    private void validateEndAndStartTime(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) return;
+
+        if (endTime.isBefore(startTime)) {
+            log.debug("시작시간이 종료시간 이후입니다.");
+            throw new AppException(CommonErrorCode.INVALID_REQUEST);
         }
     }
 
@@ -423,13 +426,5 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }
 
-    private void validateEndAndStartTime(LocalDateTime startTime, LocalDateTime endTime) {
-        if (startTime == null || endTime == null) return;
-
-        if (endTime.isBefore(startTime)) {
-            log.debug("시작시간이 종료시간 이후입니다.");
-            throw new AppException(CommonErrorCode.INVALID_REQUEST);
-        }
-    }
 
 }
