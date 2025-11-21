@@ -38,6 +38,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
+import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -68,6 +69,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("생산계획 서비스 테스트")
 class ProductionPlanServiceImplTest {
 
     @Mock
@@ -117,20 +119,95 @@ class ProductionPlanServiceImplTest {
     }
 
     private Factories factory() {
-        return Factories.builder().id(1L).factoryCode("F001").build();
+        return Factories.builder()
+            .id(1L)
+            .factoryCode("F001")
+            .build();
     }
 
     private Lines line(Long id) {
-        Factories factories = Factories.builder().id(1L).factoryName("1공장").factoryCode("F001").build();
-        return Lines.builder().id(id).lineName("라인").lineCode("LINE01").factoryId(1L).factory(factories).build();
+        Factories factories = factory();
+        return Lines.builder()
+            .id(id)
+            .lineName("라인")
+            .lineCode("LINE01")
+            .factoryId(factories.getId())
+            .factory(factories)
+            .build();
+    }
+
+    private Lines line() {
+        Factories factories = factory();
+        return Lines.builder()
+            .id(1L)
+            .lineName("라인")
+            .lineCode("LINE01")
+            .factoryId(factories.getId())
+            .factory(factories)
+            .build();
     }
 
     private Users user(String empNo) {
-        return Users.builder().name("유저").role(UserRole.MANAGER).empNo(empNo).build();
+        return Users.builder()
+            .name("유저")
+            .role(UserRole.MANAGER)
+            .empNo(empNo)
+            .build();
+    }
+
+    private Users salesManager() {
+        return Users.builder()
+            .id(1L)
+            .name("영업담당자1")
+            .role(UserRole.MANAGER)
+            .empNo("209901001")
+            .build();
+    }
+
+    private Users productionManager() {
+        return Users.builder()
+            .id(2L)
+            .name("생산담당자1")
+            .role(UserRole.MANAGER)
+            .empNo("209901002")
+            .build();
+    }
+
+    private Users user(UserRole role) {
+        return Users.builder()
+            .id(3L)
+            .name("요청자")
+            .role(role)
+            .empNo("209901003")
+            .build();
     }
 
     private Items item(Long id) {
-        return Items.builder().id(id).itemName("아이템").itemCode("ITEM001").build();
+        return Items.builder()
+            .id(id)
+            .itemName("아이템")
+            .itemCode("ITEM001")
+            .build();
+    }
+
+    private Items item() {
+        return Items.builder()
+            .id(1L)
+            .itemName("아이템")
+            .itemCode("ITEM001")
+            .build();
+    }
+
+    private ItemsLines itemLine() {
+        Lines lines = line();
+        Items items = item();
+        return ItemsLines.builder()
+            .id(1L)
+            .line(lines)
+            .lineId(lines.getId())
+            .item(items)
+            .itemId(items.getId())
+            .build();
     }
 
     private ItemsLines itemLine(Lines line, Items item) {
@@ -143,11 +220,11 @@ class ProductionPlanServiceImplTest {
             .build();
     }
 
-    private Equipments equipment(BigDecimal ppm) {
+    private Equipments equipment() {
         return Equipments.builder()
-            .equipmentPpm(ppm)
-            .totalCount(new BigDecimal("1000"))
-            .defectiveCount(new BigDecimal("10"))
+            .equipmentPpm(BigDecimal.valueOf(1000))
+            .totalCount(BigDecimal.valueOf(1000))
+            .defectiveCount(BigDecimal.valueOf(10))
             .build();
     }
 
@@ -161,293 +238,304 @@ class ProductionPlanServiceImplTest {
             .build();
     }
 
-    @Test
-    @DisplayName("유저 권한으로 생산 계획을 성공적으로 등록합니다.")
-    void createProductionPlan_WhenUser_success() {
-        // given
-        LocalDate dueDate = LocalDate.now(fixedClock);
-        LocalDateTime startTime = LocalDateTime.now(fixedClock);
+    @Nested
+    @DisplayName("생산계획 생성")
+    class createProductionPlanTest {
+        private LocalDate testDate;
+        private LocalDateTime testDateTime;
 
-        CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
-            .dueDate(dueDate)
-            .salesManagerNo("209901001")
-            .productionManagerNo("209901002")
-            .factoryCode("F001")
-            .itemCode("ITEM001")
-            .plannedQty(new BigDecimal("100"))
-            .lineCode("LINE01")
-            .remark("테스트 생산 계획")
-            .build();
+        private ItemsLines itemsLines;
+        private Lines line;
+        private Items item;
+        private Factories factory;
+        private Equipments equipment;
+        private Users salesManager;
+        private Users productionManager;
+        private Users requestUser;
 
-        Lines line = line(1L);
-        Items item = item(1L);
-        ItemsLines itemsLines = itemLine(line, item);
-        Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
-        Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
-        Users requestUser = Users.builder().role(Users.UserRole.USER).build();
-        Factories factory = Factories.builder().factoryCode("F001").build();
+        @BeforeEach
+        void setUp() {
+            itemsLines = itemLine();
+            line = itemsLines.getLine();
+            item = itemsLines.getItem();
+            factory = line.getFactory();
+            equipment = equipment();
+            salesManager = salesManager();
+            productionManager = productionManager();
+            requestUser = user(UserRole.USER);
+            testDate = LocalDate.now(fixedClock);
+            testDateTime = LocalDateTime.now(fixedClock);
+        }
 
-        Equipments equipment = equipment(new BigDecimal("100"));
+        private CreateProductionPlanRequestDto createRequestDto() {
+            return CreateProductionPlanRequestDto.builder()
+                .dueDate(testDate)
+                .salesManagerNo(salesManager.getEmpNo())
+                .productionManagerNo(productionManager.getEmpNo())
+                .factoryCode(factory.getFactoryCode())
+                .itemCode(item.getItemCode())
+                .plannedQty(BigDecimal.valueOf(100))
+                .lineCode(line.getLineCode())
+                .remark("테스트 생산 계획")
+                .build();
+        }
 
-        when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
-        when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
-        when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
-        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
-        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
-        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
-            .thenReturn(Optional.of(itemsLines));
-        when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-        when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            eq("LINE01"), anyList(), any(LocalDateTime.class)
-        )).thenReturn(Optional.empty());
-        when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
+        @Test
+        @DisplayName("유저 권한으로 생산 계획을 성공적으로 등록합니다.")
+        void createProductionPlan_WhenUser_success() {
+            // given
+            CreateProductionPlanRequestDto requestDto = createRequestDto();
 
-        when(productionPlanRepository.save(any(ProductionPlans.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+            when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
+            when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(factoryRepository.findByFactoryCode(factory.getFactoryCode())).thenReturn(Optional.of(factory));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
+                .thenReturn(Optional.of(itemsLines));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
+            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
+                eq(line.getLineCode()), anyList(), any(LocalDateTime.class)
+            )).thenReturn(Optional.empty());
+            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
 
-        // when
-        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+            when(productionPlanRepository.save(any(ProductionPlans.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // then
-        assertThat(responseDto).isNotNull();
-        assertThat(responseDto.getStartTime()).isAfterOrEqualTo(startTime);
-        assertThat(responseDto.getEndTime()).isAfter(responseDto.getStartTime());
+            // when
+            GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
 
-        verify(productionPlanRepository, times(1)).save(any(ProductionPlans.class));
-        verify(equipmentRepository, times(1)).findAllByLineId(line.getId());
-    }
+            // then
+            assertThat(responseDto).isNotNull();
+            assertThat(responseDto.getDocumentNo()).isEqualTo("2099/01/01-1");
+            assertThat(responseDto.getLineCode()).isEqualTo(line.getLineCode());
+            assertThat(responseDto.getPlannedQty()).isEqualTo(BigDecimal.valueOf(100));
+            assertThat(responseDto.getStatus()).isEqualTo(PlanStatus.PENDING);
+            assertThat(responseDto.getStartTime()).isAfterOrEqualTo(testDateTime);
+            assertThat(responseDto.getEndTime()).isAfter(responseDto.getStartTime());
 
-    @Test
-    @DisplayName("기존 생산계획이 존재하면 새로운 계획의 시작시간은 기존 종료시간 이후로 설정된다.")
-    void createProductionPlan_WhenExistingPlanExists_startTimeAfterPrevious() {
-        // given
-        LocalDateTime existingEndTime = LocalDateTime.now(fixedClock).plusHours(2);
-        ProductionPlans existingPlan = ProductionPlans.builder()
-            .endTime(existingEndTime)
-            .status(PlanStatus.CONFIRMED)
-            .build();
+            verify(productionPlanRepository, times(1)).save(any(ProductionPlans.class));
+            verify(equipmentRepository, times(1)).findAllByLineId(line.getId());
+        }
 
-        CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
-            .dueDate(LocalDate.now(fixedClock))
-            .plannedQty(new BigDecimal("100"))
-            .lineCode("LINE01")
-            .salesManagerNo("209901001")
-            .productionManagerNo("209901002")
-            .factoryCode("F001")
-            .itemCode("ITEM001")
-            .build();
+        @Test
+        @DisplayName("관리자 권한이면 PlanStatus가 CONFIRMED로 설정")
+        void createProductionPlan_admin_setsConfirmedStatus() {
 
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
-        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
-        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
-        Users salesManager = Users.builder().empNo("209901001").build();
-        Users productionManager = Users.builder().empNo("209901002").build();
-        Users requestUser = Users.builder().role(Users.UserRole.USER).build();
-        Factories factory = Factories.builder().factoryCode("F001").build();
-        Equipments equipment = Equipments.builder()
-            .equipmentPpm(new BigDecimal("100"))
-            .totalCount(new BigDecimal("1000"))
-            .defectiveCount(new BigDecimal("10"))
-            .build();
+            CreateProductionPlanRequestDto dto = createRequestDto();
+            Users adminUser = requestUser.toBuilder()
+                .role(UserRole.ADMIN)
+                .build();
 
-        when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
-        when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
-        when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
-        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
-            .thenReturn(Optional.of(itemsLines));
-        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
-        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
-        when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-        when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            eq("LINE01"), anyList(), any(LocalDateTime.class)
-        )).thenReturn(Optional.of(existingPlan));
-        when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager()));
+            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager()));
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
+            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
+                anyString(), anyList(), any(LocalDateTime.class))).thenReturn(Optional.empty());
+            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
+            when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // when
-        GetProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
+            GetProductionPlanResponseDto response = productionPlanService.createProductionPlan(dto, adminUser);
 
-        // then
-        assertThat(result.getStartTime()).isEqualTo(existingEndTime.plusMinutes(30));
-    }
+            assertThat(response.getStatus()).isEqualTo(PlanStatus.CONFIRMED);
+        }
 
-    @Test
-    @DisplayName("라인에 설비가 없으면 NO_EQUIPMENT_FOUND 예외 발생")
-    void createProductionPlan_WhenNoEquipment_ThrowsException() {
-        // given
-        Users requestUser = Users.builder().role(Users.UserRole.USER).build();
-        CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
-            .dueDate(LocalDate.now(fixedClock))
-            .plannedQty(new BigDecimal("100"))
-            .lineCode("LINE01")
-            .salesManagerNo("209901001")
-            .productionManagerNo("209901002")
-            .factoryCode("F001")
-            .itemCode("ITEM001")
-            .build();
+        @Test
+        @DisplayName("관리자 권한으로 CONFIRMED 생산 계획 생성 시 시작 시간이 PENDING보다 짧게 설정")
+        void createProductionPlan_WhenAdminConfirmed_StartTimeShorter() {
+            // given
+            LocalDateTime startTime = testDateTime;
 
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
-        Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
-        Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
-        Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
-        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
+            CreateProductionPlanRequestDto dto = createRequestDto();
 
-        // repository mocking
-        when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
-        when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
-        when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
-        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
-        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
-        when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(Collections.emptyList());
-        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
-            .thenReturn(Optional.of(itemsLines));
+            Users admin = requestUser.toBuilder()
+                .role(UserRole.ADMIN)
+                .build();
 
-        // when & then
-        assertThatThrownBy(() -> productionPlanService.createProductionPlan(requestDto, requestUser))
-            .isInstanceOf(AppException.class)
-            .hasMessageContaining(LineErrorCode.NO_EQUIPMENT_FOUND.getMessage());
-    }
+            // repository mocking
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager()));
+            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager()));
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
+            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
+                anyString(), anyList(), any(LocalDateTime.class))).thenReturn(Optional.empty());
+            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
+            when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
+            // when
+            GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(dto, admin);
 
-    @Test
-    @DisplayName("설비 PPM 계산 후 총합이 0이면 INVALID_EQUIPMENT_PPM 예외 발생")
-    void createProductionPlan_WhenEffectivePPMZero_ThrowsException() {
-        // given
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
-        Users requestUser = Users.builder().role(Users.UserRole.USER).build();
-        Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
-        Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
-        Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
-        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
+            // then
+            assertThat(responseDto).isNotNull();
+            assertThat(responseDto.getStartTime()).isAfterOrEqualTo(startTime.plusMinutes(10)); // CONFIRMED 권한이라 PENDING보다 짧음
+            assertThat(responseDto.getEndTime()).isAfter(responseDto.getStartTime());
 
-        // 설비 PPM 0, 불량률 100%
-        Equipments equipment = Equipments.builder()
-            .equipmentPpm(BigDecimal.ZERO)
-            .totalCount(new BigDecimal("1"))
-            .defectiveCount(new BigDecimal("1"))
-            .build();
+            verify(productionPlanRepository, times(1)).save(any(ProductionPlans.class));
+            verify(equipmentRepository, times(1)).findAllByLineId(line.getId());
+        }
 
-        CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
-            .dueDate(LocalDate.now(fixedClock))
-            .plannedQty(new BigDecimal("100"))
-            .lineCode("LINE01")
-            .salesManagerNo("209901001")
-            .productionManagerNo("209901002")
-            .factoryCode("F001")
-            .itemCode("ITEM001")
-            .build();
+        @Test
+        @DisplayName("SalesManager가 존재하지 않으면 예외 발생")
+        void createProductionPlan_salesManagerNotFound_throws() {
+            // given
+            CreateProductionPlanRequestDto dto = createRequestDto();
 
-        // repository mocking
-        when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
-        when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
-        when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
-        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
-        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
-        when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
-            .thenReturn(Optional.of(itemsLines));
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> productionPlanService.createProductionPlan(requestDto, requestUser))
-            .isInstanceOf(AppException.class)
-            .hasMessageContaining(LineErrorCode.INVALID_EQUIPMENT_PPM.getMessage());
-    }
+            // when and then
+            assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(UserErrorCode.USER_NOT_FOUND.getMessage());
+        }
 
-    @Test
-    @DisplayName("관리자 권한으로 CONFIRMED 생산 계획 생성 시 시작 시간이 PENDING보다 짧게 설정")
-    void createProductionPlan_WhenAdminConfirmed_StartTimeShorter() {
-        // given
-        LocalDate dueDate = LocalDate.now(fixedClock);
-        LocalDateTime startTime = LocalDateTime.now(fixedClock);
+        @Test
+        @DisplayName("ProductionManager가 존재하지 않으면 예외 발생")
+        void createProductionPlan_productionManagerNotFound_throws() {
+            CreateProductionPlanRequestDto dto = createRequestDto();
 
-        CreateProductionPlanRequestDto requestDto = CreateProductionPlanRequestDto.builder()
-            .dueDate(dueDate)
-            .salesManagerNo("209901001")
-            .productionManagerNo("209901002")
-            .factoryCode("F001")
-            .itemCode("ITEM001")
-            .plannedQty(new BigDecimal("100"))
-            .lineCode("LINE01")
-            .remark("CONFIRMED 유저 테스트")
-            .build();
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager()));
+            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.empty());
 
-        Lines line = Lines.builder().id(1L).lineCode("LINE01").build();
-        Users salesManager = Users.builder().id(10L).empNo("209901001").name("Sales").build();
-        Users productionManager = Users.builder().id(20L).empNo("209901002").name("Production").build();
-        Users requestUser = Users.builder().role(Users.UserRole.MANAGER).build(); // CONFIRMED 권한
-        Factories factory = Factories.builder().factoryCode("F001").build();
-        Items item = Items.builder().id(1L).itemCode("ITEM001").build();
-        ItemsLines itemsLines = ItemsLines.builder().id(1L).lineId(1L).line(line).item(item).itemId(1L).build();
+            assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(UserErrorCode.USER_NOT_FOUND.getMessage());
+        }
 
-        Equipments equipment = Equipments.builder()
-            .id(100L)
-            .equipmentPpm(new BigDecimal("100"))
-            .totalCount(new BigDecimal("1000"))
-            .defectiveCount(new BigDecimal("10"))
-            .build();
+        @Test
+        @DisplayName("라인이 존재하지 않으면 예외 발생")
+        void createProductionPlan_lineNotFound_throws() {
+            CreateProductionPlanRequestDto dto = createRequestDto();
 
-        // repository mocking
-        when(userRepository.findByEmpNo("209901001")).thenReturn(Optional.of(salesManager));
-        when(userRepository.findByEmpNo("209901002")).thenReturn(Optional.of(productionManager));
-        when(lineRepository.findBylineCode("LINE01")).thenReturn(Optional.of(line));
-        when(factoryRepository.findByFactoryCode("F001")).thenReturn(Optional.of(factory));
-        when(itemRepository.findByItemCode("ITEM001")).thenReturn(Optional.of(item));
-        when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-        when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            eq("LINE01"), anyList(), any(LocalDateTime.class)
-        )).thenReturn(Optional.empty());
-        when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
-        when(productionPlanRepository.save(any(ProductionPlans.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
-        when(itemLineRepository.findByLineIdAndItemId(1L, 1L))
-            .thenReturn(Optional.of(itemsLines));
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager()));
+            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager()));
+            when(lineRepository.findBylineCode(dto.getLineCode())).thenReturn(Optional.empty());
 
-        // when
-        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+            assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(LineErrorCode.LINE_NOT_FOUND.getMessage());
+        }
 
-        // then
-        assertThat(responseDto).isNotNull();
-        assertThat(responseDto.getStartTime()).isAfterOrEqualTo(startTime); // CONFIRMED 권한이라 PENDING보다 짧음
-        assertThat(responseDto.getEndTime()).isAfter(responseDto.getStartTime());
+        @Test
+        @DisplayName("라인에 설비가 없으면 예외 발생")
+        void createProductionPlan_noEquipment_throws() {
+            CreateProductionPlanRequestDto dto = createRequestDto();
 
-        verify(productionPlanRepository, times(1)).save(any(ProductionPlans.class));
-        verify(equipmentRepository, times(1)).findAllByLineId(line.getId());
-    }
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager()));
+            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager()));
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(Collections.emptyList());
 
+            assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(LineErrorCode.NO_EQUIPMENT_FOUND.getMessage());
+        }
 
-    @Test
-    @DisplayName("전표번호 생성 성공 - 신규 전표번호가 첫번째면 1번이어야한다")
-    void createDocumentNo_whenFirst_thenOne() {
-        // given
-        String prefix = "2099/01/01";
+        @Test
+        @DisplayName("PPM이 0 이하인 설비면 예외 발생")
+        void createProductionPlan_invalidPPM_throws() {
 
-        // repository mock 동작 정의 — 조회 결과 없음
-        Mockito.when(productionPlanRepository.findByDocumentNoByPrefix(prefix))
-            .thenReturn(List.of());
+            // given
+            Equipments ppmZeroEquipment = Equipments.builder()
+                .equipmentPpm(BigDecimal.ZERO)
+                .totalCount(BigDecimal.ONE)
+                .defectiveCount(BigDecimal.ZERO)
+                .build();
 
-        // when
-        String docNo = productionPlanService.createDocumentNo();
+            CreateProductionPlanRequestDto dto = createRequestDto();
 
-        // then
-        Assertions.assertEquals("2099/01/01-1", docNo);
-    }
+            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager()));
+            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager()));
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(ppmZeroEquipment));
 
-    @Test
-    @DisplayName("전표번호 생성 성공 - 기존 전표번호가 있으면 마지막번호에서 증가해야한다")
-    void createDocumentNo_whenExists_thenLastNumPlus() {
-        // given
-        String prefix = "2099/01/01";
+            assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(LineErrorCode.INVALID_EQUIPMENT_PPM.getMessage());
+        }
 
-        // 이미 2025/11/17-3 까지 있다고 가정
-        Mockito.when(productionPlanRepository.findByDocumentNoByPrefix(prefix))
-            .thenReturn(List.of("2099/01/01-3", "2099/01/01-2", "2099/01/01-1"));
+        @Test
+        @DisplayName("최근 생산계획이 존재하면 시작시간이 최근 종료시간 + 30분으로 설정")
+        void createProductionPlan_WhenExistingPlanExists_startTimeAfterPrevious() {
+            // given
+            LocalDateTime existingEndTime = LocalDateTime.now(fixedClock).plusHours(2);
+            ProductionPlans existingPlan = ProductionPlans.builder()
+                .documentNo("2099/01/01-1")
+                .endTime(existingEndTime)
+                .status(PlanStatus.CONFIRMED)
+                .build();
 
-        // when
-        String docNo = productionPlanService.createDocumentNo();
+            CreateProductionPlanRequestDto requestDto = createRequestDto();
 
-        // then
-        Assertions.assertEquals("2099/01/01-4", docNo);
+            when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
+            when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(factoryRepository.findByFactoryCode(factory.getFactoryCode())).thenReturn(Optional.of(factory));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
+                .thenReturn(Optional.of(itemsLines));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
+            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
+                eq(line.getLineCode()), anyList(), any(LocalDateTime.class)
+            )).thenReturn(Optional.of(existingPlan));
+            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of(existingPlan.getDocumentNo()));
+
+            when(productionPlanRepository.save(any(ProductionPlans.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            // when
+            GetProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
+
+            // then
+            assertThat(result.getStartTime()).isEqualTo(existingEndTime.plusMinutes(30));
+            assertThat(result.getDocumentNo()).isEqualTo("2099/01/01-2");
+        }
+
+        @Test
+        @DisplayName("전표번호 생성 성공 - 신규 전표번호가 첫번째면 1번이어야한다")
+        void createDocumentNo_whenFirst_thenOne() {
+            // given
+            String prefix = "2099/01/01";
+
+            // repository mock 동작 정의 — 조회 결과 없음
+            Mockito.when(productionPlanRepository.findByDocumentNoByPrefix(prefix))
+                .thenReturn(List.of());
+
+            // when
+            String docNo = productionPlanService.createDocumentNo();
+
+            // then
+            Assertions.assertEquals("2099/01/01-1", docNo);
+        }
+
+        @Test
+        @DisplayName("전표번호 생성 성공 - 기존 전표번호가 있으면 마지막번호에서 증가해야한다")
+        void createDocumentNo_whenExists_thenLastNumPlus() {
+            // given
+            String prefix = "2099/01/01";
+
+            // 이미 2025/11/17-3 까지 있다고 가정
+            Mockito.when(productionPlanRepository.findByDocumentNoByPrefix(prefix))
+                .thenReturn(List.of("2099/01/01-3", "2099/01/01-2", "2099/01/01-1"));
+
+            // when
+            String docNo = productionPlanService.createDocumentNo();
+
+            // then
+            Assertions.assertEquals("2099/01/01-4", docNo);
+        }
     }
 
     @Test
