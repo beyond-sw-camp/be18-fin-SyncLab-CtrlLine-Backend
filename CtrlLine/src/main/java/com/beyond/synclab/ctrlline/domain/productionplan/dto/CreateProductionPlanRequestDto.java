@@ -25,10 +25,10 @@ public class CreateProductionPlanRequestDto {
     @FutureOrPresent(message = "납기일은 오늘 포함 이후여야 합니다.")
     private LocalDate dueDate;
 
-    @NotNull(message = "Sales Manager 사번은 필수입니다.")
+    @NotBlank(message = "Sales Manager 사번은 필수입니다.")
     private String salesManagerNo;
 
-    @NotNull(message = "Production Manager 사번은 필수입니다.")
+    @NotBlank(message = "Production Manager 사번은 필수입니다.")
     private String productionManagerNo;
 
     @NotBlank(message = "공장 코드는 필수입니다.")
