@@ -667,7 +667,6 @@ class ProductionPlanServiceImplTest {
                 .factoryCode(factory.getFactoryCode())
                 .itemCode(item.getItemCode())
                 .plannedQty(BigDecimal.valueOf(500))
-                .endTime(testDateTime.plusDays(2))
                 .startTime(testDateTime.plusDays(1))
                 .remark("testRemark")
                 .build();
@@ -687,6 +686,7 @@ class ProductionPlanServiceImplTest {
             when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemId(line.getId(),item.getId())).thenReturn(Optional.of(itemsLines));
             when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(any(), anyList())).thenReturn(List.of());
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
 
             // when
             GetProductionPlanResponseDto response =
@@ -696,7 +696,7 @@ class ProductionPlanServiceImplTest {
             assertThat(response).isNotNull();
             assertThat(response.getStatus()).isEqualTo(PlanStatus.PENDING);
             assertThat(response.getPlannedQty()).isEqualTo(request.getPlannedQty());
-            assertThat(response.getEndTime()).isEqualTo(request.getEndTime());
+            assertThat(response.getEndTime()).isAfter(request.getStartTime());
 
             verify(productionPlanRepository, times(1)).findById(1L);
         }
@@ -831,10 +831,9 @@ class ProductionPlanServiceImplTest {
             return LocalDateTime.of(testDate, LocalTime.parse(localTime));
         }
 
-        private UpdateProductionPlanRequestDto updateDto(String start, String end) {
+        private UpdateProductionPlanRequestDto updateDto(String start) {
             return UpdateProductionPlanRequestDto.builder()
                 .startTime(time(start))
-                .endTime(time(end))
                 .status(PlanStatus.PENDING)
                 .factoryCode("F1")
                 .lineCode("L1")
@@ -844,8 +843,8 @@ class ProductionPlanServiceImplTest {
 
         /*
         Case: A(수정 대상)
-              A: 09:00~10:00 → 새로 09:00~10:30 로 변경
-              B: 10:15~11:00 → A와 겹침 → delta 30분 적용 → 11:00~11:45 로 변경
+              A: 09:00~10:00 → 새로 10:00~11:00 로 변경
+              B: 10:15~11:00 → A와 겹침 → delta 30분 적용 → 11:30~12:15 로 변경
          */
         @Test
         @DisplayName("겹치는 계획이 있으면 뒤로 밀린다")
@@ -854,7 +853,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
             ProductionPlans ppB = plan(2L, "10:15", "11:00", PlanStatus.PENDING);
 
-            UpdateProductionPlanRequestDto dto = updateDto("09:00", "10:30");
+            UpdateProductionPlanRequestDto dto = updateDto("10:00");
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
             when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
@@ -866,8 +865,8 @@ class ProductionPlanServiceImplTest {
             productionPlanService.updateProductionPlan(dto, 1L, salesManager);
 
             // then
-            assertThat(ppB.getStartTime()).isEqualTo(time("11:00"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("11:45"));
+            assertThat(ppB.getStartTime()).isEqualTo(time("11:30"));
+            assertThat(ppB.getEndTime()).isEqualTo(time("12:15"));
         }
 
         /*
@@ -881,7 +880,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
             ProductionPlans ppB = plan(2L, "10:20", "11:00", PlanStatus.PENDING);
 
-            UpdateProductionPlanRequestDto dto = updateDto("09:00", "10:00");
+            UpdateProductionPlanRequestDto dto = updateDto("09:00");
 
             when(productionPlanRepository.findById(1L))
                 .thenReturn(Optional.of(ppA));
@@ -896,6 +895,49 @@ class ProductionPlanServiceImplTest {
             assertThat(ppB.getEndTime()).isEqualTo(time("11:10"));
         }
 
+        @Test
+        @DisplayName("충돌도 없고 delta 조건이 넉넉하더라도 30분을 유지한다.")
+        void shift_no_move_when_no_overlap_and_gap_ok() {
+            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
+            ProductionPlans ppB = plan(2L, "10:40", "11:00", PlanStatus.PENDING);
+
+            UpdateProductionPlanRequestDto dto = updateDto("09:00");
+
+            when(productionPlanRepository.findById(1L))
+                .thenReturn(Optional.of(ppA));
+            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
+                dto.getStartTime(),
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+            )).thenReturn(List.of(ppA, ppB));
+
+            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
+
+            assertThat(ppB.getStartTime()).isEqualTo(time("10:30"));
+            assertThat(ppB.getEndTime()).isEqualTo(time("10:50"));
+        }
+
+        @Test
+        @DisplayName("PENDING 계획은 겹침 여부와 관계없이 A의 newEnd + 30분으로 이동된다")
+        void pendingPlan_should_shift_from_newPlan_end() {
+            // given
+            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
+            ProductionPlans ppB = plan(2L, "12:00", "13:00", PlanStatus.PENDING);
+
+            UpdateProductionPlanRequestDto dto = updateDto("09:00");
+
+            when(productionPlanRepository.findById(1L))
+                .thenReturn(Optional.of(ppA));
+            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
+                dto.getStartTime(),
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+            )).thenReturn(List.of(ppA, ppB));
+
+            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
+
+            assertThat(ppB.getStartTime()).isEqualTo(time("10:30"));
+            assertThat(ppB.getEndTime()).isEqualTo(time("11:30"));
+        }
+
         /*
          A 수정됨
          B (CONFIRMED)이 뒤로 밀려야 하는 상황 → 예외 발생
@@ -906,7 +948,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
             ProductionPlans ppB = plan(2L, "10:00", "11:00", PlanStatus.CONFIRMED);
 
-            UpdateProductionPlanRequestDto dto = updateDto("09:00", "10:30");
+            UpdateProductionPlanRequestDto dto = updateDto("09:00");
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
             when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
@@ -921,12 +963,36 @@ class ProductionPlanServiceImplTest {
         }
 
         @Test
+        @DisplayName("관리자라면 재배치 도중 CONFIRMED를 침해해도 수정이 가능하다.")
+        void confirmedPlan_overlap_requestedByManager_should_shift() {
+            requestUser = requestUser.toBuilder()
+                .role(UserRole.ADMIN)
+                .build();
+
+            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
+            ProductionPlans ppB = plan(2L, "10:00", "11:00", PlanStatus.CONFIRMED);
+
+            UpdateProductionPlanRequestDto dto = updateDto("10:00");
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
+            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
+                dto.getStartTime(),
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
+            ).thenReturn(List.of(ppA, ppB));
+
+            productionPlanService.updateProductionPlan(dto, 1L, requestUser);
+
+            assertThat(ppB.getStartTime()).isEqualTo(time("11:30"));
+            assertThat(ppB.getEndTime()).isEqualTo(time("12:30"));
+        }
+
+        @Test
         @DisplayName("자기 자신(newPlan)은 afterPlans 리스트에서 제거된다")
         void shift_should_remove_itself_from_afterPlans() {
             ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
             ProductionPlans ppB = plan(2L, "10:30", "11:00", PlanStatus.PENDING);
 
-            UpdateProductionPlanRequestDto dto = updateDto("09:00", "10:00");
+            UpdateProductionPlanRequestDto dto = updateDto("09:00");
 
             when(productionPlanRepository.findById(1L))
                 .thenReturn(Optional.of(ppA));
@@ -950,24 +1016,53 @@ class ProductionPlanServiceImplTest {
         }
 
         @Test
-        @DisplayName("충돌도 없고 delta 조건도 넉넉하면 이동하지 않는다")
-        void shift_no_move_when_no_overlap_and_gap_ok() {
+        @DisplayName("겹치지 않는 CONFIRMED 계획은 이동되지 않는다")
+        void confirmedPlan_notOverlap_should_not_shift() {
             ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:40", "11:00", PlanStatus.PENDING);
+            ProductionPlans ppB = plan(2L, "12:00", "13:00", PlanStatus.CONFIRMED);
 
-            UpdateProductionPlanRequestDto dto = updateDto("09:00", "10:00");
+            UpdateProductionPlanRequestDto dto = updateDto("10:00");
 
-            when(productionPlanRepository.findById(1L))
-                .thenReturn(Optional.of(ppA));
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
             when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
                 dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
-            )).thenReturn(List.of(ppA, ppB));
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
+            ).thenReturn(List.of(ppA, ppB));
 
-            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
+            productionPlanService.updateProductionPlan(dto, 1L, requestUser);
 
-            assertThat(ppB.getStartTime()).isEqualTo(time("10:40"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("11:00"));
+            assertThat(ppB.getStartTime()).isEqualTo(time("12:00"));
+            assertThat(ppB.getEndTime()).isEqualTo(time("13:00"));
+        }
+
+        @Test
+        @DisplayName("다건 이동 - 관리자의 경우 PENDING 이후 CONFIRMED 조합에서 모두 정상 이동된다")
+        void pendingThenConfirmed_should_shift_in_order() {
+            requestUser = requestUser.toBuilder()
+                .role(UserRole.ADMIN)
+                .build();
+
+            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
+            ProductionPlans ppB = plan(2L, "10:10", "10:40", PlanStatus.PENDING);
+            ProductionPlans ppC = plan(3L, "10:30", "11:00", PlanStatus.CONFIRMED);
+
+            UpdateProductionPlanRequestDto dto = updateDto("10:00");
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
+            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
+                dto.getStartTime(),
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
+            ).thenReturn(List.of(ppA, ppB, ppC));
+
+            productionPlanService.updateProductionPlan(dto, 1L, requestUser);
+
+            // B 이동
+            assertThat(ppB.getStartTime()).isEqualTo(time("11:30"));
+            assertThat(ppB.getEndTime()).isEqualTo(time("12:00"));
+
+            // C 이동 (B 끝 기준)
+            assertThat(ppC.getStartTime()).isEqualTo(time("12:30"));
+            assertThat(ppC.getEndTime()).isEqualTo(time("13:00"));
         }
     }
 }
