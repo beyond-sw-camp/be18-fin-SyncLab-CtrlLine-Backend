@@ -83,7 +83,6 @@ public class ProductionPlanController {
         Users user = userDetails.getUser();
         GetProductionPlanResponseDto responseDto = productionPlanService.updateProductionPlan(requestDto, planId, user);
 
-        log.debug(responseDto.toString());
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }
