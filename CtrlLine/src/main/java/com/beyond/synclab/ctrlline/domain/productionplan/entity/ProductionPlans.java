@@ -17,9 +17,9 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -145,46 +145,21 @@ public class ProductionPlans {
         return (status == PlanStatus.PENDING || status == PlanStatus.CONFIRMED);
     }
 
-    public void updatePeriod(Duration originalPeriod) {
-        this.startTime = this.startTime.plus(originalPeriod);
-        this.endTime = this.endTime.plus(originalPeriod);
-    }
+    public void update(UpdateProductionPlanRequestDto dto, LocalDateTime startTime, LocalDateTime endTime, Users salesManager, Users productionManager, ItemsLines itemLine) {
+        this.status = Optional.ofNullable(dto.getStatus()).orElse(this.status);
+        this.plannedQty = Optional.ofNullable(dto.getPlannedQty()).orElse(this.plannedQty);
+        this.salesManager = Optional.ofNullable(salesManager).orElse(this.salesManager);
+        this.salesManagerId = this.salesManager != null ? this.salesManager.getId() : this.salesManagerId;
+        this.productionManager = Optional.ofNullable(productionManager).orElse(this.productionManager);
+        this.productionManagerId = this.productionManager != null ? this.productionManager.getId() : this.productionManagerId;
+        this.itemLine = Optional.ofNullable(itemLine).orElse(this.itemLine);
+        this.itemLineId = this.itemLine != null ? this.itemLine.getId() : this.itemLineId;
 
-    public void update(UpdateProductionPlanRequestDto dto, Users salesManager, Users productionManager, ItemsLines itemLine) {
-        if (dto.getStatus() != null) {
-            this.status = dto.getStatus();
-        }
+        this.startTime = Optional.ofNullable(startTime).orElse(this.startTime);
+        this.endTime = Optional.ofNullable(endTime).orElse(this.endTime);
 
-        if (salesManager != null) {
-            this.salesManagerId = salesManager.getId();
-            this.salesManager = salesManager;
-        }
-
-        if (productionManager != null) {
-            this.productionManagerId = productionManager.getId();
-            this.productionManager = productionManager;
-        }
-
-        if (dto.getStartTime() != null) {
-            this.startTime = dto.getStartTime();
-        }
-
-        if (dto.getEndTime() != null) {
-            this.endTime = dto.getEndTime();
-        }
-
-        if (itemLine != null) {
-            this.itemLineId = itemLine.getId();
-            this.itemLine = itemLine;
-        }
-
-        if (dto.getDueDate() != null) {
-            this.dueDate = dto.getDueDate();
-        }
-
-        if (dto.getRemark() != null) {
-            this.remark = dto.getRemark();
-        }
+        this.dueDate = Optional.ofNullable(dto.getDueDate()).orElse(this.dueDate);
+        this.remark = Optional.ofNullable(dto.getRemark()).orElse(this.remark);
     }
 
     public enum PlanStatus {
