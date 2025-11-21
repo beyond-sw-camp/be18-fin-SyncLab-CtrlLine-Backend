@@ -19,7 +19,6 @@ public class UpdateProductionPlanRequestDto {
     private String salesManagerNo;
     private String productionManagerNo;
     private LocalDateTime startTime;
-    private LocalDateTime endTime;
     private String remark;
     private String factoryCode;
     private String itemCode;
