@@ -49,7 +49,7 @@ public class UserSpecification {
         return (root, query, cb) ->
             empNo == null || empNo.isBlank()
                 ? null
-                : cb.like(root.get("empNO"), "%" + empNo + "%");
+                : cb.like(root.get("empNo"), "%" + empNo + "%");
     }
 
     public Specification<Users> userNameContains(String name) {
