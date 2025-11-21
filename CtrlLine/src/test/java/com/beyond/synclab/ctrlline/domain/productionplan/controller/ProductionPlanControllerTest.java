@@ -256,7 +256,6 @@ class ProductionPlanControllerTest {
             .salesManagerNo("209901001")
             .productionManagerNo("209901002")
             .startTime(LocalDateTime.now(testClock))
-            .endTime(LocalDateTime.now(testClock))
             .remark("new remark")
             .factoryCode("F001")
             .lineCode("L001")
