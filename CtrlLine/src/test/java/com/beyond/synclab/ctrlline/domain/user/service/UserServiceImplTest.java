@@ -14,7 +14,7 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
+import com.beyond.synclab.ctrlline.domain.user.dto.SearchUserParameterDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
@@ -43,6 +43,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
+@DisplayName("유저서비스 테스트")
 class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
@@ -84,16 +85,18 @@ class UserServiceImplTest {
 
         Users users = createTestUser(1L, "209912999", "testDepartment", UserStatus.ACTIVE);
 
-        UserSearchCommand command = new UserSearchCommand(
-            "testDepartment",
-            UserStatus.ACTIVE,
-            UserRole.USER,
-            UserPosition.ASSISTANT,
-            "010-1234-1234",
-            "test@test.com",
-            LocalDate.now(),
-            LocalDate.now()
-        );
+        SearchUserParameterDto command = SearchUserParameterDto.builder()
+            .userDepartment("testDepartment")
+            .userStatus(UserStatus.ACTIVE)
+            .userRole(UserRole.USER)
+            .userPosition(UserPosition.ASSISTANT)
+            .userPhoneNumber("010-1234-1234")
+            .userEmail("test@test.com")
+            .hiredDate(LocalDate.now())
+            .terminationDate(LocalDate.now())
+            .userEmpNo("209901999")
+            .userName("홍길동")
+            .build();
 
         Pageable pageable = PageRequest.of(0, 10,  Sort.by("empNo").descending());
 
@@ -116,16 +119,18 @@ class UserServiceImplTest {
     @DisplayName("유저 목록 조회 - 필터 조건과 일치하지 않으면 빈 페이지 반환")
     void getUserList_EmptyResult() {
         // given
-        UserSearchCommand command = new UserSearchCommand(
-            "wrongDepartment",
-            UserStatus.RESIGNED,
-            UserRole.ADMIN,
-            UserPosition.MANAGER,
-            "010-9999-9999",
-            "no@test.com",
-            LocalDate.now(),
-            LocalDate.now()
-        );
+        SearchUserParameterDto command = SearchUserParameterDto.builder()
+            .userDepartment("wrongDepartment")
+            .userStatus(UserStatus.ACTIVE)
+            .userRole(UserRole.USER)
+            .userPosition(UserPosition.ASSISTANT)
+            .userPhoneNumber("010-1234-1234")
+            .userEmail("test@test.com")
+            .hiredDate(LocalDate.now())
+            .terminationDate(LocalDate.now())
+            .userEmpNo("209901999")
+            .userName("홍길동")
+            .build();
 
         Pageable pageable = PageRequest.of(0, 10, Sort.by("empNo").descending());
         Page<Users> emptyResponse = new PageImpl<>(List.of(), pageable, 0);
@@ -146,16 +151,7 @@ class UserServiceImplTest {
     @DisplayName("유저 목록 조회 - 사번 내림차순 정렬 확인")
     void getUserList_SortedByEmpNoDesc() {
         // given
-        UserSearchCommand command = new UserSearchCommand(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        );
+        SearchUserParameterDto command = SearchUserParameterDto.builder().build();
 
         Users user1 = createTestUser(1L, "209912999", "A팀", UserStatus.ACTIVE);
         Users user2 = createTestUser(2L, "209912998", "A팀", UserStatus.ACTIVE);
@@ -184,9 +180,12 @@ class UserServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Users> mockResponse = new PageImpl<>(List.of(user1), pageable, 1);
 
-        UserSearchCommand command = new UserSearchCommand(
-            "A팀", null, null, null, null, "match@test.com", null, null
-        );
+        SearchUserParameterDto command = SearchUserParameterDto.builder()
+            .userDepartment("A부서")
+            .userEmail("match@test.com")
+            .hiredDate(LocalDate.now())
+            .terminationDate(LocalDate.now())
+            .build();
 
         when(userRepository.findAll(ArgumentMatchers.<Specification<Users>>any(), eq(pageable)))
             .thenReturn(mockResponse);
