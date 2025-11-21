@@ -66,36 +66,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     @Transactional
     public GetProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user) {
 
-        Users salesManager = userRepository.findByEmpNo(requestDto.getSalesManagerNo())
-                .orElseThrow(() -> {
-                    log.debug("SalesManager 가 존재하지 않습니다.");
-                    return new AppException(UserErrorCode.USER_NOT_FOUND);
-                });
-
-        Users productionManager = userRepository.findByEmpNo(requestDto.getProductionManagerNo())
-                .orElseThrow(() -> {
-                    log.debug("ProductionManager 가 존재하지 않습니다.");
-                    return new AppException(UserErrorCode.USER_NOT_FOUND);
-                });
-
-        Lines line = lineRepository.findBylineCode(requestDto.getLineCode())
-                .orElseThrow(() -> {
-                    log.debug("Line 이 존재하지 않습니다.");
-                    return new AppException(LineErrorCode.LINE_NOT_FOUND);
-                });
-
-        Factories factory = factoryRepository.findByFactoryCode(requestDto.getFactoryCode())
-                .orElseThrow(() -> {
-                    log.debug("Factory 가 존재하지 않습니다.");
-                    return new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
-                });
-
-
-        Items item = itemRepository.findByItemCode(requestDto.getItemCode())
-            .orElseThrow(() -> {
-                log.debug("Item 이 존재하지 않습니다.");
-                return new AppException(ItemErrorCode.ITEM_NOT_FOUND);
-            });
+        Users salesManager = findUserByEmpNo(requestDto.getSalesManagerNo());
+        Users productionManager = findUserByEmpNo(requestDto.getProductionManagerNo());
+        Lines line = findLine(requestDto.getLineCode());
+        Factories factory = findFactory(requestDto.getFactoryCode());
+        Items item = findItem(requestDto.getItemCode());
 
         ItemsLines itemsLines = itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())
                 .orElseThrow(() -> {
@@ -121,15 +96,14 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 4. 시작 시간 계산
         LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
-        log.debug("예상 시작 시간 : {}", startTime);
+        log.debug("생산계획등록 - 예상 시작 시간 : {}", startTime);
         productionPlan.updateStartTime(startTime);
 
         // 5. 종료시간 설정
         List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
 
         LocalDateTime endTime = calculateEndTime(processingEquips, requestDto.getPlannedQty(), startTime);
-        log.debug("예상 종료 시간 : {}", endTime);
-
+        log.debug("생산계획등록 - 예상 종료 시간 : {}", endTime);
         productionPlan.updateEndTime(endTime);
 
         productionPlanRepository.save(productionPlan);
@@ -195,7 +169,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     String createDocumentNo() {
         LocalDate today = LocalDate.now(clock);
-        // 1️⃣ 현재날짜 기준 prefix 생성
+        // 1️현재날짜 기준 prefix 생성
         String prefix = String.format("%04d/%02d/%02d", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
 
         // 기존 전표 번호 조회 + Lock
@@ -309,11 +283,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
     }
 
-    private void validateEndAndStartTime(LocalDateTime startTime, LocalDateTime endTime) {
-        if (startTime == null || endTime == null) return;
+    private void validateEndAndStartTime(LocalDateTime startTime) {
+        if (startTime == null) return;
 
-        if (endTime.isBefore(startTime)) {
-            log.debug("시작시간이 종료시간 이후입니다.");
+        if (startTime.isBefore(LocalDateTime.now(clock))) {
+            log.debug("시작시간이 오늘 날짜 이전입니다.");
             throw new AppException(CommonErrorCode.INVALID_REQUEST);
         }
     }
@@ -326,8 +300,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     ) {
         List<ProductionPlans> afterPlans =
             new ArrayList<>(
-            productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(newStartTime, List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
-                );
+                productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
+                    newStartTime,
+                    List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+                ));
 
         afterPlans.forEach(p -> log.debug("id: {}, startTime : {}, endTime : {}",p.getId(),  p.getStartTime(), p.getEndTime()));
 
@@ -336,8 +312,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         if (afterPlans.isEmpty()) return;
 
-
-        // Δ 시간 설정, 관리자면 30분
+        // 델타 시간 30분 설정
         Duration delta = Duration.ofMinutes(30L);
 
         // 이전 계획의 종료시각 기준으로 새 시작 시간을 계속 계산
@@ -348,30 +323,27 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         for (ProductionPlans plan :  afterPlans) {
             Duration originalDuration = Duration.between(plan.getStartTime(), plan.getEndTime());
 
-            LocalDateTime candidateStart;
-            LocalDateTime candidateEnd;
+            LocalDateTime candidateStart = plan.getStartTime();
+            LocalDateTime candidateEnd = plan.getEndTime();
 
-            // 겹치면 lastEndTime 기준으로 시작 시간 이동
-            if (!plan.getStartTime().isAfter(lastEndTime)) {
+            // PENDING 인 계획일때
+            // - 이동되는 것과 겹치든 안겹치든 현재 생산계획의 30분뒤에서 시작되도록 땡겨오거나 미룸.
+            if (plan.getStatus().equals(PlanStatus.PENDING)) {
                 candidateStart = lastEndTime.plus(delta);
                 candidateEnd = candidateStart.plus(originalDuration);
-
-                if (isRequestManager && plan.getStatus().equals(PlanStatus.CONFIRMED)) {
-                    log.debug("이후에 변경되는 생산 계획 중 confirmed가 있습니다. 담당자 권한으로 수정 불가능합니다.");
-                    throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
-                }
             }
-            // 겹치지 않더라도 "간격이 delta 보다 작은 경우" -> 간격 보정
+            // CONFIRMED 인 계획일때
+            // - 이동되는 것과 겹친다. 담당자 -> 에러 / 관리자 -> 미룸
+            // - 안 겹친다. 담당자/관리자 -> 그대로 둠
             else {
-                Duration gap = Duration.between(lastEndTime, plan.getStartTime());
-
-                if (gap.compareTo(delta) < 0) {
+                if (!plan.getStartTime().isAfter(lastEndTime)) {
                     candidateStart = lastEndTime.plus(delta);
                     candidateEnd = candidateStart.plus(originalDuration);
-                } else {
-                    // 완전히 여유 있는 경우 → 이동 없음, endTime 기준만 업데이트
-                    candidateStart = plan.getStartTime();
-                    candidateEnd = plan.getEndTime();
+
+                    if (isRequestManager && plan.getStatus().equals(PlanStatus.CONFIRMED)) {
+                        log.debug("이후에 변경되는 생산 계획 중 CONFIRMED 가 있습니다. 담당자 권한으로 수정 불가능합니다.");
+                        throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+                    }
                 }
             }
 
@@ -390,8 +362,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     public GetProductionPlanResponseDto updateProductionPlan(
         UpdateProductionPlanRequestDto dto, Long planId, Users requester
     ) {
-        // 시작시간이 끝나는 시간보다 길진 않은지 확인
-        validateEndAndStartTime(dto.getStartTime(), dto.getEndTime());
+        // 시작시간이 현재시간 이후여야 한다.
+        validateEndAndStartTime(dto.getStartTime());
 
         ProductionPlans productionPlan = productionPlanRepository.findById(planId)
             .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
@@ -405,7 +377,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 2. 담당자 권한 검증
         validateRequestedStatusByRole(dto.getStatus(), requester);
 
-        // 3. 관련 엔티티 조회 (optional → safe wrapper)
+        // 3. 관련 엔티티 조회 (optional -> safe wrapper)
         Users salesManager = findUserByEmpNo(dto.getSalesManagerNo());
         Users productionManager = findUserByEmpNo(dto.getProductionManagerNo());
         Lines line = findLine(dto.getLineCode());
@@ -416,12 +388,22 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         ItemsLines itemsLine = findValidatedItemLine(line, item);
         validateFactoryLine(factory, line);
 
-        // 주어지는 종료 시각 이후에 존재하는 생산계획 중 시작시간이 그 이후인 것들 모두 조회
-        // 5. 이후 계획들 이동 처리
-        shiftAfterPlansIfNeeded(dto.getStartTime(), dto.getEndTime(), productionPlan, requester);
+        // 계획수량이 변경되면 종료시간 계산
+        LocalDateTime newStartTime = dto.getStartTime() == null ? productionPlan.getStartTime() : dto.getStartTime();
+        LocalDateTime newEndTime = newStartTime.plus(Duration.between(productionPlan.getStartTime(), productionPlan.getEndTime()));
 
-        // 6. 최종 업데이트 (도메인 주도)
-        productionPlan.update(dto, salesManager, productionManager, itemsLine);
+        if (dto.getPlannedQty() != null && productionPlan.getPlannedQty().compareTo(dto.getPlannedQty()) != 0) {
+            List<Equipments> equipments = equipmentRepository.findAllByLineId(line.getId());
+
+            newEndTime = calculateEndTime(equipments, dto.getPlannedQty(), newStartTime);
+        }
+
+        // 주어지는 종료시각 이후에 존재하는 생산계획 중 시작시간이 그 이후인 것들 모두 조회
+        // 5. 이후 계획들 이동 처리
+        shiftAfterPlansIfNeeded(newStartTime, newEndTime, productionPlan, requester);
+
+        // 6. 최종 업데이트
+        productionPlan.update(dto, newStartTime, newEndTime, salesManager, productionManager, itemsLine);
 
         return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }
