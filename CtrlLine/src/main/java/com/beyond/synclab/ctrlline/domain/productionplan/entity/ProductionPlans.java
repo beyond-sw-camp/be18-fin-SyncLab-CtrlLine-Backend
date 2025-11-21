@@ -30,7 +30,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @Entity
 @Table(
         name = "production_plan",
