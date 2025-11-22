@@ -17,6 +17,7 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.factory.errorcode.FactoryErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.repository.ItemRepository;
@@ -798,7 +799,7 @@ class ProductionPlanServiceImplTest {
                 productionPlanService.updateProductionPlan(requestDto, 1L, requestUser)
             )
                 .isInstanceOf(AppException.class)
-                .hasMessageContaining(LineErrorCode.LINE_NOT_FOUND.getMessage());
+                .hasMessageContaining(FactoryErrorCode.FACTORY_NOT_FOUND.getMessage());
         }
 
     }

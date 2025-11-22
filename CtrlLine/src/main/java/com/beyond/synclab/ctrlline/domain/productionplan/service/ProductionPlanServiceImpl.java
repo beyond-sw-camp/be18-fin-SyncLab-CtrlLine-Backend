@@ -279,7 +279,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         if (factory == null || line == null) return;
 
         if (!line.getFactoryId().equals(factory.getId())) {
-            throw new AppException(LineErrorCode.LINE_NOT_FOUND);
+            throw new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
         }
     }
 
