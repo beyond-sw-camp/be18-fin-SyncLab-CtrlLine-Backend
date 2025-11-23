@@ -1,9 +1,12 @@
 package com.beyond.synclab.ctrlline.domain.process.service;
 
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
@@ -16,9 +19,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +53,7 @@ class ProcessServiceImplTest {
 
     @Test
     @DisplayName("공정 상세 조회 성공")
-    void Sucess_getProcess() {
+    void success_getProcess() {
     // given
     Processes process = Processes.builder()
             .id(1L)
@@ -208,5 +217,65 @@ class ProcessServiceImplTest {
         assertThat(result.getIsActive()).isFalse();
         assertThat(result.getUserName()).isEqualTo("새담당자");
     }
+
+    // 공정 목록 조회
+    @Test
+    @DisplayName("공정 목록 조회. 1페이지에, 공정 10개를 보여줌.")
+    void success_get_process_list() {
+
+        // given
+        Users user = Users.builder()
+                .id(1L)
+                .name("홍길동")
+                .department("생산부")
+                .empNo("E001")
+                .build();
+
+        ProcessSearchDto searchDto = ProcessSearchDto.builder()
+                .build();  // 검색 조건 없음 → 전체 조회
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Processes process1 = Processes.builder()
+                .processCode("PRC-0001")
+                .processName("프레스 1라인")
+                .isActive(true)
+                .user(user)
+                .build();
+
+        Processes process2 = Processes.builder()
+                .processCode("PRC-0002")
+                .processName("프레스 2라인")
+                .isActive(true)
+                .user(user)
+                .build();
+
+        Page<Processes> page = new PageImpl<>(
+                List.of(process1, process2),
+                pageable,
+                2
+        );
+
+        Mockito.when(processQueryRepository.searchProcessList(searchDto, pageable))
+                .thenReturn(page);
+
+        // when
+        PageResponse<ProcessSearchResponseDto> response =
+                processService.getProcessList(user, searchDto, pageable);
+
+        // then
+        assertThat(response.getContent()).hasSize(2);
+
+        assertThat(response.getContent().get(0).getProcessCode()).isEqualTo("PRC-0001");
+        assertThat(response.getContent().get(1).getProcessCode()).isEqualTo("PRC-0002");
+
+        // PageInfo.currentPage = 1 (0번 index + 1)
+        assertThat(response.getPageInfo().getCurrentPage()).isEqualTo(1);
+
+        Mockito.verify(processQueryRepository, times(1))
+                .searchProcessList(searchDto, pageable);
+    }
+
+
 
 }
