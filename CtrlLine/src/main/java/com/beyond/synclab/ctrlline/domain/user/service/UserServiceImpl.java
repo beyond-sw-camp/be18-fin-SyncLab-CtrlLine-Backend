@@ -4,7 +4,7 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
+import com.beyond.synclab.ctrlline.domain.user.dto.SearchUserParameterDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
@@ -29,10 +29,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserListResponseDto> getUserList(UserSearchCommand command, Pageable pageable) {
+    public Page<UserListResponseDto> getUserList(SearchUserParameterDto command, Pageable pageable) {
         Specification<Users> spec = Specification.allOf(
             UserSpecification.userDepartmentEquals(command.userDepartment()),
             UserSpecification.userStatusEquals(command.userStatus()),
+            UserSpecification.userNameContains(command.userName()),
+            UserSpecification.userEmpNoContains(command.userEmpNo()),
             UserSpecification.userRoleEquals(command.userRole()),
             UserSpecification.userPositionEquals(command.userPosition()),
             UserSpecification.userPhoneNumberContains(command.userPhoneNumber()),
