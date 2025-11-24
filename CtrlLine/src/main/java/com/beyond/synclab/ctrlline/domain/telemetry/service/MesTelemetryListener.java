@@ -480,7 +480,7 @@ public class MesTelemetryListener {
                 continue;
             }
             BigDecimal quantity = firstDecimal(typeEntry, ORDER_NG_QTY_FIELD, VALUE_FIELD, "qty");
-            if (quantity == null || quantity.compareTo(BigDecimal.ZERO) < 0) {
+            if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
             String name = firstNonEmptyValue(typeEntry, ORDER_NG_NAME_FIELD, "name");

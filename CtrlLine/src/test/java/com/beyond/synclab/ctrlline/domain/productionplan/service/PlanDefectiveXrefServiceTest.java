@@ -84,7 +84,7 @@ class PlanDefectiveXrefServiceTest {
     }
 
     @Test
-    void linkPlanDefective_addsToTotalWhenReportedValueResets() {
+    void linkPlanDefective_resetsToLatestValueWhenReportedQtyDrops() {
         Long defectiveId = 11L;
         String orderNo = "PP-002";
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
@@ -118,7 +118,7 @@ class PlanDefectiveXrefServiceTest {
 
         ArgumentCaptor<PlanDefectiveXref> captor = ArgumentCaptor.forClass(PlanDefectiveXref.class);
         verify(planDefectiveXrefRepository).save(captor.capture());
-        assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(BigDecimal.valueOf(15));
+        assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(BigDecimal.valueOf(3));
         verify(lastReportedCache).save(planDefective.getId(), defectiveId, "code:EQP-2", BigDecimal.valueOf(3));
     }
 
