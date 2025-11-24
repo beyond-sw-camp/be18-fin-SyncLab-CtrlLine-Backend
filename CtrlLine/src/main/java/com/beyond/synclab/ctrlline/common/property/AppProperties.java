@@ -13,7 +13,7 @@ public class AppProperties {
     private final Redis redis;
 
     public record Redis(AppProperties.Redis.Prefix prefix) {
-        public record Prefix(String refresh, String blacklist) {
+        public record Prefix(String refresh, String blacklist, String planDefectiveLastReported) {
         }
     }
 }
