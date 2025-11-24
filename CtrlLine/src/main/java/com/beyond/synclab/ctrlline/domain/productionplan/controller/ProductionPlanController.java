@@ -7,6 +7,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
@@ -19,9 +20,11 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,5 +71,18 @@ public class ProductionPlanController {
         Page<GetProductionPlanListResponseDto> listResponseDto = productionPlanService.getProductionPlanList(searchCommand, pageable);
 
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(listResponseDto)));
+    }
+
+    @PatchMapping("/{planId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<GetProductionPlanResponseDto>> updateProductionPlan(
+        @RequestBody UpdateProductionPlanRequestDto requestDto,
+        @PathVariable Long planId,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user = userDetails.getUser();
+        GetProductionPlanResponseDto responseDto = productionPlanService.updateProductionPlan(requestDto, planId, user);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }

@@ -28,7 +28,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Table(name = "`user`")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
