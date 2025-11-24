@@ -37,7 +37,7 @@ public class ProductionPerformances {
     @JoinColumn(name = "production_plan_id", nullable = false, insertable = false, updatable = false)
     private ProductionPlans productionPlan;
 
-    @Column(name = "production_plan_id")
+    @Column(name = "production_plan_id", nullable = false)
     private Long productionPlanId;
 
     @Column(name = "performance_document_no", length = 32, nullable = false)

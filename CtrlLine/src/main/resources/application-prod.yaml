@@ -29,6 +29,7 @@ app:
     prefix:
       refresh: "ctrlline:refresh:"
       blacklist: "ctrlline:blacklist:"
+      plan-defective-last-reported: "ctrlline:plan-defective:last:"
 
 spring:
   datasource:
