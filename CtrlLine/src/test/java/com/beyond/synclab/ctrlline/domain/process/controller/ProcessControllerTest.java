@@ -1,7 +1,9 @@
 package com.beyond.synclab.ctrlline.domain.process.controller;
 
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
+import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.service.ProcessService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -10,14 +12,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -118,6 +125,48 @@ class ProcessControllerTest {
                 .andExpect(jsonPath("$.data.userDepartment").value("생산팀"))
                 .andExpect(jsonPath("$.data.isActive").value(true))
                 .andDo(print());
+    }
 
+    @Test
+    @DisplayName("공정 목록 조회 성공")
+    @WithCustomUser(username = "김영업", roles = {"USER"})
+    void get_process_list_success() throws Exception {
+        ProcessSearchResponseDto dto1 = ProcessSearchResponseDto.builder()
+                .processCode("PRO001")
+                .processName("절단공정")
+                .userDepartment("영업팀")
+                .userName("김영업")
+                .empNo("2025001")
+                .isActive(true)
+                .build();
+
+        ProcessSearchResponseDto dto2 = ProcessSearchResponseDto.builder()
+                .processCode("PRO002")
+                .processName("식각공정")
+                .userDepartment("설비팀")
+                .userName("나설비")
+                .empNo("2025002")
+                .isActive(false)
+                .build();
+
+        PageResponse<ProcessSearchResponseDto> pageResponse =
+                PageResponse.from(new PageImpl<>(
+                        List.of(dto1, dto2),
+                        PageRequest.of(0,10),
+                        2
+                ));
+
+        Mockito.when(processService.getProcessList(any(), any(), any()))
+                .thenReturn(pageResponse);
+
+        mockMvc.perform(get("/api/v1/processes")
+                .param("processCode", "PRO")
+                .param("page", "0")
+                .param("size", "10")
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content[0].processCode").value("PRO001"))
+                .andExpect(jsonPath("$.data.content[1].processCode").value("PRO002"));
     }
 }
