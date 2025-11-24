@@ -10,6 +10,7 @@ import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
+import com.beyond.synclab.ctrlline.domain.process.repository.ProcessQueryRepository;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
@@ -33,6 +34,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -256,7 +258,7 @@ class ProcessServiceImplTest {
                 2
         );
 
-        Mockito.when(processQueryRepository.searchProcessList(searchDto, pageable))
+        Mockito.when(processRepository.searchProcessList(searchDto, pageable))
                 .thenReturn(page);
 
         // when
@@ -265,14 +267,11 @@ class ProcessServiceImplTest {
 
         // then
         assertThat(response.getContent()).hasSize(2);
-
         assertThat(response.getContent().get(0).getProcessCode()).isEqualTo("PRC-0001");
         assertThat(response.getContent().get(1).getProcessCode()).isEqualTo("PRC-0002");
-
-        // PageInfo.currentPage = 1 (0번 index + 1)
         assertThat(response.getPageInfo().getCurrentPage()).isEqualTo(1);
 
-        Mockito.verify(processQueryRepository, times(1))
+        Mockito.verify(processRepository, times(1))
                 .searchProcessList(searchDto, pageable);
     }
 

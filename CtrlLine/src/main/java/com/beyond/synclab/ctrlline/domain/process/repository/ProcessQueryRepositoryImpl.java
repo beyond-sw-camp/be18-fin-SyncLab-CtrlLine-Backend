@@ -10,6 +10,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
@@ -19,10 +20,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProcessQueryRepositoryImpl implements ProcessQueryRepository {
 
-    private final JPAQueryFactory jpaQueryFactory;
+    private final JPAQueryFactory queryFactory;
 
     @Override
     public Page<Processes> searchProcessList(ProcessSearchDto searchDto, Pageable pageable) {
+
         QProcesses process = QProcesses.processes;
         QUsers user = QUsers.users;
 
@@ -39,7 +41,6 @@ public class ProcessQueryRepositoryImpl implements ProcessQueryRepository {
                 )
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                // 코드로 정렬
                 .orderBy(process.processCode.asc())
                 .fetch();
 
@@ -54,7 +55,7 @@ public class ProcessQueryRepositoryImpl implements ProcessQueryRepository {
                         userDepartmentContains(searchDto.getUserDepartment()),
                         isActiveEq(searchDto.getIsActive())
                 );
-        return PageableExcecutionUtils.getPage(processList, pageable, countQuery::fetchOne);
+        return PageableExecutionUtils.getPage(processList, pageable, countQuery::fetchOne);
     }
 
     // 검색 조건
@@ -68,7 +69,7 @@ public class ProcessQueryRepositoryImpl implements ProcessQueryRepository {
     // 2. 공정명
     private BooleanExpression processNameContains(String processName) {
         return StringUtils.hasText(processName)
-                ? QProcesses.users.name.containsIgnoreCase(processName)
+                ? QProcesses.processes.processName.containsIgnoreCase(processName)
                 :null;
     }
 
