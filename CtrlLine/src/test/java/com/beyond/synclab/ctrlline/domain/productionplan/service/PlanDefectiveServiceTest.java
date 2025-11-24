@@ -45,11 +45,11 @@ class PlanDefectiveServiceTest {
     void createPlanDefective_generatesDocumentNumberWithIncrement() {
         ProductionPlans plan = samplePlan(10L);
         when(planDefectiveRepository.existsByProductionPlanId(10L)).thenReturn(false);
-        when(planDefectiveRepository.findTopByDefectiveDocumentNoStartingWithOrderByIdDesc("20251030-"))
+        when(planDefectiveRepository.findTopByDefectiveDocumentNoStartingWithOrderByIdDesc("2025/10/30-"))
                 .thenReturn(Optional.of(PlanDefective.builder()
                         .id(5L)
                         .productionPlanId(9L)
-                        .defectiveDocumentNo("20251030-3")
+                        .defectiveDocumentNo("2025/10/30-3")
                         .build()));
         when(planDefectiveRepository.save(any(PlanDefective.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0, PlanDefective.class));
@@ -60,7 +60,7 @@ class PlanDefectiveServiceTest {
         verify(planDefectiveRepository).save(captor.capture());
         PlanDefective saved = captor.getValue();
         assertThat(saved.getProductionPlanId()).isEqualTo(10L);
-        assertThat(saved.getDefectiveDocumentNo()).isEqualTo("20251030-4");
+        assertThat(saved.getDefectiveDocumentNo()).isEqualTo("2025/10/30-4");
     }
 
     @Test
