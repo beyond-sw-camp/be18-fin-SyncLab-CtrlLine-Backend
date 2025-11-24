@@ -5,7 +5,7 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
+import com.beyond.synclab.ctrlline.domain.user.dto.SearchUserParameterDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
@@ -54,10 +54,10 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<UserListResponseDto>>> getUserList(
-        @ModelAttribute UserSearchCommand userSearchCommand,
+        @ModelAttribute SearchUserParameterDto searchUserParameterDto,
         @PageableDefault(sort = "empNo", direction = Direction.ASC) Pageable pageable
     ) {
-        Page<UserListResponseDto> users = userService.getUserList(userSearchCommand, pageable);
+        Page<UserListResponseDto> users = userService.getUserList(searchUserParameterDto, pageable);
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(users)));
     }
 
