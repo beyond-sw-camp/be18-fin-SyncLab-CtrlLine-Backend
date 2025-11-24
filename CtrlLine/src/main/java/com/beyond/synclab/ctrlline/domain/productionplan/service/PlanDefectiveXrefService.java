@@ -66,11 +66,9 @@ public class PlanDefectiveXrefService {
         PlanDefectiveXref xref = planDefectiveXrefRepository
                 .findByPlanDefectiveIdAndDefectiveId(planDefectiveId, defectiveId)
                 .map(existing -> {
-                    BigDecimal currentTotal = Optional.ofNullable(existing.getDefectiveQty()).orElse(BigDecimal.ZERO);
-                    BigDecimal lastReported = lastReportedCache.get(planDefectiveId, defectiveId, equipmentKey)
-                            .orElse(BigDecimal.ZERO);
-                    BigDecimal delta = calculateDelta(lastReported, reportedQty);
-                    existing.updateDefectiveQty(currentTotal.add(delta));
+                    BigDecimal updatedQty = calculateUpdatedQty(existing.getDefectiveQty(), reportedQty,
+                            lastReportedCache.get(planDefectiveId, defectiveId, equipmentKey).orElse(null));
+                    existing.updateDefectiveQty(updatedQty);
                     return existing;
                 })
                 .orElseGet(() -> PlanDefectiveXref.builder()
@@ -94,17 +92,17 @@ public class PlanDefectiveXrefService {
         return qty;
     }
 
-    private BigDecimal calculateDelta(BigDecimal lastReported, BigDecimal reportedQty) {
-        if (reportedQty == null) {
-            return BigDecimal.ZERO;
+    private BigDecimal calculateUpdatedQty(BigDecimal currentTotal, BigDecimal reportedQty, BigDecimal lastReported) {
+        BigDecimal current = Optional.ofNullable(currentTotal).orElse(BigDecimal.ZERO);
+        BigDecimal reported = sanitize(reportedQty);
+        if (lastReported == null) {
+            return current.add(reported);
         }
-        if (lastReported == null || lastReported.compareTo(BigDecimal.ZERO) < 0) {
-            return reportedQty;
+        if (reported.compareTo(lastReported) >= 0) {
+            return current.add(reported.subtract(lastReported));
         }
-        if (reportedQty.compareTo(lastReported) >= 0) {
-            return reportedQty.subtract(lastReported);
-        }
-        return reportedQty;
+        // 누적값이 줄어들면 라인 컨트롤러가 리셋한 것으로 간주하고 최신 누적값으로 덮어쓴다.
+        return reported;
     }
 
     private String resolveEquipmentKey(DefectiveTelemetryPayload payload) {

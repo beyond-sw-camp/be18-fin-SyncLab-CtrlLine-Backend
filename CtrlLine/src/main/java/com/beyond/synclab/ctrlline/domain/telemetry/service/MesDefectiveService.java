@@ -31,6 +31,10 @@ public class MesDefectiveService {
 
     @Transactional
     public void saveNgTelemetry(DefectiveTelemetryPayload payload) {
+        saveNgTelemetry(payload, true);
+    }
+
+    public void saveNgTelemetry(DefectiveTelemetryPayload payload, boolean linkPlanXref) {
         if (!isValidNgPayload(payload)) {
             log.warn("NG telemetry payload가 올바르지 않아 저장하지 않습니다. payload={}", payload);
             return;
@@ -56,7 +60,11 @@ public class MesDefectiveService {
                         .build()));
 
         if (payload.defectiveQuantity() != null && payload.defectiveQuantity().compareTo(BigDecimal.ZERO) > 0) {
-            planDefectiveXrefService.linkPlanDefective(defective.getId(), payload);
+            if (linkPlanXref) {
+                planDefectiveXrefService.linkPlanDefective(defective.getId(), payload);
+            } else {
+                log.debug("linkPlanXref=false 설정으로 xref 업데이트를 건너뜁니다. payload={}", payload);
+            }
         } else {
             log.debug("defectiveQuantity가 0 이하이므로 xref에 저장하지 않습니다. payload={}", payload);
         }
