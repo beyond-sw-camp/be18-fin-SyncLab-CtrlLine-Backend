@@ -320,9 +320,9 @@ class ProductionPlanControllerTest {
             .endTime(LocalDateTime.now(testClock))
             .dueDate(LocalDate.now(testClock))
             .salesManagerName("김영업")
-            .salesManagerEmpNo("202511001")
+            .salesManagerNo("202511001")
             .productionManagerName("박생산")
-            .productionManagerEmpNo("202511001")
+            .productionManagerNo("202511001")
             .remark("테스트 생산계획")
             .build();
 
@@ -337,4 +337,5 @@ class ProductionPlanControllerTest {
             .andExpect(jsonPath("$.data[0].factoryName").value("A공장"))
             .andExpect(jsonPath("$.data[0].itemName").value("샘플제품"));
     }
+
 }
