@@ -30,7 +30,6 @@ public class ProcessServiceImpl implements ProcessService {
     private final ProcessRepository processRepository;
     private final UserRepository userRepository;
     private final EquipmentRepository equipmentRepository;
-    private final ProcessQueryRepository processQueryRepository;
 
     // 공정 상세 조회
     // ErrorCode 404, 409
@@ -84,7 +83,7 @@ public class ProcessServiceImpl implements ProcessService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ProcessSearchResponseDto> getProcessList(Users users, ProcessSearchDto searchDto, Pageable pageable) {
-        Page<Processes> page = processQueryRepository.searchProcessList(searchDto, pageable);
+        Page<Processes> page = processRepository.searchProcessList(searchDto, pageable);
         Page<ProcessSearchResponseDto> dtoPage = page.map(process ->
                 ProcessSearchResponseDto.fromEntity(process, process.getUser())
         );
