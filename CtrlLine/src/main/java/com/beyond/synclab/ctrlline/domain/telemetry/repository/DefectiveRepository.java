@@ -9,4 +9,6 @@ public interface DefectiveRepository extends JpaRepository<Defectives, Long> {
     boolean existsByDefectiveName(String defectiveName);
 
     Optional<Defectives> findByDefectiveName(String defectiveName);
+
+    Optional<Defectives> findByEquipmentIdAndDefectiveCode(Long equipmentId, String defectiveCode);
 }

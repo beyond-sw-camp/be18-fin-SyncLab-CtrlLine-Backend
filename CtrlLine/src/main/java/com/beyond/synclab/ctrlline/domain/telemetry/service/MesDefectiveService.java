@@ -35,21 +35,31 @@ public class MesDefectiveService {
             log.warn("NG telemetry payload가 올바르지 않아 저장하지 않습니다. payload={}", payload);
             return;
         }
+        Integer ngType = parseNgType(payload.defectiveType());
+        if (ngType == null || ngType < 1 || ngType > 4) {
+            log.debug("NG 타입이 유효하지 않아 저장하지 않습니다. type={}", payload.defectiveType());
+            return;
+        }
         Long equipmentId = resolveEquipmentId(payload);
         if (equipmentId == null) {
             log.warn("설비 정보를 찾을 수 없어 NG 데이터를 저장하지 않습니다. equipmentCode={}, equipmentId={}",
                     payload.equipmentCode(), payload.equipmentId());
             return;
         }
-        Defectives defective = defectiveRepository.findByDefectiveName(payload.defectiveName())
+        String defectiveCode = buildDefectiveCode(payload);
+        Defectives defective = defectiveRepository.findByEquipmentIdAndDefectiveCode(equipmentId, defectiveCode)
                 .orElseGet(() -> defectiveRepository.save(Defectives.builder()
                         .equipmentId(equipmentId)
-                        .defectiveCode(buildDefectiveCode(payload))
+                        .defectiveCode(defectiveCode)
                         .defectiveName(payload.defectiveName())
                         .defectiveType(resolveDefectiveType(payload))
                         .build()));
 
-        planDefectiveXrefService.linkPlanDefective(defective.getId(), payload);
+        if (payload.defectiveQuantity() != null && payload.defectiveQuantity().compareTo(BigDecimal.ZERO) > 0) {
+            planDefectiveXrefService.linkPlanDefective(defective.getId(), payload);
+        } else {
+            log.debug("defectiveQuantity가 0 이하이므로 xref에 저장하지 않습니다. payload={}", payload);
+        }
     }
 
     @Transactional
@@ -133,6 +143,17 @@ public class MesDefectiveService {
         }
         Optional<Equipments> equipment = equipmentRepository.findByEquipmentCode(payload.equipmentCode());
         return equipment.map(Equipments::getId).orElse(null);
+    }
+
+    private Integer parseNgType(String type) {
+        if (!StringUtils.hasText(type)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(type.trim());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
 }
