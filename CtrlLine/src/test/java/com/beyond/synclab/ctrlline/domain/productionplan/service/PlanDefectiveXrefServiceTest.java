@@ -44,7 +44,7 @@ class PlanDefectiveXrefServiceTest {
     }
 
     @Test
-    void linkPlanDefective_updatesWithLatestQuantityWhenReportedIncreases() throws Exception {
+    void linkPlanDefective_updatesWithLatestQuantityWhenReportedIncreases() {
         Long defectiveId = 10L;
         String orderNo = "PP-001";
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
@@ -84,7 +84,7 @@ class PlanDefectiveXrefServiceTest {
     }
 
     @Test
-    void linkPlanDefective_addsToTotalWhenReportedValueResets() throws Exception {
+    void linkPlanDefective_addsToTotalWhenReportedValueResets() {
         Long defectiveId = 11L;
         String orderNo = "PP-002";
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()

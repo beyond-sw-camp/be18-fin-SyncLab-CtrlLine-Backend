@@ -63,14 +63,14 @@ class MesDefectiveServiceTest {
                 .status("NG")
                 .defectiveType("1")
                 .build();
-        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(eq(10L), eq("EQP-10-DF-01")))
+        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(10L, "EQP-10-DF-01"))
                 .thenReturn(Optional.empty());
         when(equipmentRepository.findByEquipmentCode("EQP-10")).thenReturn(Optional.of(sampleEquipment(10L)));
 
         mesDefectiveService.saveNgTelemetry(payload);
 
         verify(defectiveRepository).save(defectiveCaptor.capture());
-        verify(planDefectiveXrefService).linkPlanDefective(eq(1L), eq(payload));
+        verify(planDefectiveXrefService).linkPlanDefective(1L, payload);
         Defectives saved = defectiveCaptor.getValue();
         assertThat(saved.getEquipmentId()).isEqualTo(10L);
         assertThat(saved.getDefectiveCode()).isEqualTo("EQP-10-DF-01");
@@ -89,7 +89,7 @@ class MesDefectiveServiceTest {
                 .status("NG")
                 .defectiveType("2")
                 .build();
-        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(eq(5L), eq("EQP-5-DF-02")))
+        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(5L, "EQP-5-DF-02"))
                 .thenReturn(Optional.of(existingDefective(1L)));
         when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(sampleEquipment(5L)));
 
@@ -189,7 +189,7 @@ class MesDefectiveServiceTest {
                 .status("NG")
                 .defectiveType("3")
                 .build();
-        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(eq(7L), eq("EQP-7-DF-09")))
+        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(7L, "EQP-7-DF-09"))
                 .thenReturn(Optional.empty());
         when(equipmentRepository.findByEquipmentCode("EQP-7")).thenReturn(Optional.of(sampleEquipment(7L)));
 
