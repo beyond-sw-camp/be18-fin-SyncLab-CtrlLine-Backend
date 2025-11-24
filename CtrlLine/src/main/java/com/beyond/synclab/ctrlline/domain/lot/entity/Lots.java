@@ -23,7 +23,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(of = "id")
-public class Lot {
+public class Lots {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
