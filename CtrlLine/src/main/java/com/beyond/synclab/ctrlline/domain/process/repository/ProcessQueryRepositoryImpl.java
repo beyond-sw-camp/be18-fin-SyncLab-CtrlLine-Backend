@@ -2,8 +2,8 @@ package com.beyond.synclab.ctrlline.domain.process.repository;
 
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
-import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
 import com.beyond.synclab.ctrlline.domain.process.entity.QProcesses;
+import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;

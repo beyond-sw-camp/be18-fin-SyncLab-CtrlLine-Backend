@@ -10,7 +10,6 @@ import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
-import com.beyond.synclab.ctrlline.domain.process.repository.ProcessQueryRepository;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
