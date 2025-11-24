@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 @Table(name = "factory")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")

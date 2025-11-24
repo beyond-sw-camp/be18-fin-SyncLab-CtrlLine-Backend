@@ -1,9 +1,12 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,7 +17,9 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -238,5 +243,59 @@ class ProductionPlanControllerTest {
                 .param("size", "0")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("생산 계획 수정 - 수정 성공")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void updateProductionPlan_success() throws Exception {
+        // given
+        UpdateProductionPlanRequestDto updateDto = UpdateProductionPlanRequestDto.builder()
+            .dueDate(LocalDate.now(testClock))
+            .status(PlanStatus.PENDING)
+            .salesManagerNo("209901001")
+            .productionManagerNo("209901002")
+            .startTime(LocalDateTime.now(testClock))
+            .remark("new remark")
+            .factoryCode("F001")
+            .lineCode("L001")
+            .itemCode("I001")
+            .build();
+
+        Long planId = 1L;
+
+        GetProductionPlanResponseDto responseDto = GetProductionPlanResponseDto.builder()
+                .id(planId)
+                .lineCode("L001")
+                .salesManagerNo("209901001")
+                .productionManagerNo("209901002")
+                .documentNo("2099/01/01-1")
+                .status(PlanStatus.PENDING)
+                .dueDate(LocalDate.now(testClock))
+                .plannedQty(new BigDecimal("100"))
+                .startTime(LocalDateTime.now(testClock))
+                .endTime(LocalDateTime.now(testClock))
+                .remark("new remark")
+                .factoryCode("F001")
+                .itemCode("I001")
+                .build();
+
+        when(productionPlanService.updateProductionPlan(any(UpdateProductionPlanRequestDto.class), eq(planId), any(Users.class)))
+            .thenReturn(responseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(patch("/api/v1/production-plans/{planId}", planId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)));
+
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.data.id").value(planId))
+            .andExpect(jsonPath("$.data.lineCode").value("L001"))
+            .andExpect(jsonPath("$.data.factoryCode").value("F001"))
+            .andExpect(jsonPath("$.data.dueDate").value(LocalDate.now(testClock).toString()))
+            .andExpect(jsonPath("$.data.startTime").value(startsWith("2099-01-01T09:00")))
+            .andExpect(jsonPath("$.data.endTime").value(startsWith("2099-01-01T09:00")));
     }
 }

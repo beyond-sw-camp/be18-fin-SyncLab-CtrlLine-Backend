@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Builder
+@Builder(toBuilder = true)
 @Table(
         name = "line",
         uniqueConstraints = {
