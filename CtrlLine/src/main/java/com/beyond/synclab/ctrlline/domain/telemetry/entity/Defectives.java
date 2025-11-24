@@ -43,10 +43,10 @@ public class Defectives {
     @JoinColumn(name = "equipment_id", updatable = false, insertable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Equipments equipment;
 
-    @Column(name = "defective_code", nullable = false, length = 64)
+    @Column(name = "defective_code", nullable = false, length = 32)
     private String defectiveCode;
 
-    @Column(name = "defective_name", nullable = false, length = 255)
+    @Column(name = "defective_name", nullable = false, length = 32)
     private String defectiveName;
 
     @Column(name = "defective_type", nullable = false, length = 255)
