@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionplan.entity;
 
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,6 +19,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +30,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @Entity
 @Table(
         name = "production_plan",
@@ -136,6 +138,28 @@ public class ProductionPlans {
 
     public void updateStatus(PlanStatus requestedStatus) {
         this.status = requestedStatus;
+    }
+
+    // 기존 생산계획은 pending 이나 confirmed 일때만 변경 가능하다.
+    public boolean isUpdatable() {
+        return (status == PlanStatus.PENDING || status == PlanStatus.CONFIRMED);
+    }
+
+    public void update(UpdateProductionPlanRequestDto dto, LocalDateTime startTime, LocalDateTime endTime, Users salesManager, Users productionManager, ItemsLines itemLine) {
+        this.status = Optional.ofNullable(dto.getStatus()).orElse(this.status);
+        this.plannedQty = Optional.ofNullable(dto.getPlannedQty()).orElse(this.plannedQty);
+        this.salesManager = Optional.ofNullable(salesManager).orElse(this.salesManager);
+        this.salesManagerId = this.salesManager != null ? this.salesManager.getId() : this.salesManagerId;
+        this.productionManager = Optional.ofNullable(productionManager).orElse(this.productionManager);
+        this.productionManagerId = this.productionManager != null ? this.productionManager.getId() : this.productionManagerId;
+        this.itemLine = Optional.ofNullable(itemLine).orElse(this.itemLine);
+        this.itemLineId = this.itemLine != null ? this.itemLine.getId() : this.itemLineId;
+
+        this.startTime = Optional.ofNullable(startTime).orElse(this.startTime);
+        this.endTime = Optional.ofNullable(endTime).orElse(this.endTime);
+
+        this.dueDate = Optional.ofNullable(dto.getDueDate()).orElse(this.dueDate);
+        this.remark = Optional.ofNullable(dto.getRemark()).orElse(this.remark);
     }
 
     public enum PlanStatus {
