@@ -476,11 +476,10 @@ public class MesTelemetryListener {
         }
         for (JsonNode typeEntry : typesNode) {
             int type = typeEntry.path("type").asInt(-1);
-            if (type < 1 || type > 4) {
-                continue;
-            }
             BigDecimal quantity = firstDecimal(typeEntry, ORDER_NG_QTY_FIELD, VALUE_FIELD, "qty");
-            if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
+            boolean validType = type >= 1 && type <= 4;
+            boolean validQuantity = quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0;
+            if (!(validType && validQuantity)) {
                 continue;
             }
             String name = firstNonEmptyValue(typeEntry, ORDER_NG_NAME_FIELD, "name");
