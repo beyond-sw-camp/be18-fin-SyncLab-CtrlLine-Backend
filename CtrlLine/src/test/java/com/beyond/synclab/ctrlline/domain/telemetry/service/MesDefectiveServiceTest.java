@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveXrefService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
@@ -24,10 +25,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MesDefectiveServiceTest {
 
     @Mock
-    private DefectiveRepository defectiveRepository;
+    private EquipmentRepository equipmentRepository;
 
     @Mock
-    private EquipmentRepository equipmentRepository;
+    private DefectiveRepository defectiveRepository;
+    @Mock
+    private PlanDefectiveXrefService planDefectiveXrefService;
 
     @Captor
     private ArgumentCaptor<Defectives> defectiveCaptor;
@@ -36,47 +39,76 @@ class MesDefectiveServiceTest {
 
     @BeforeEach
     void setUp() {
-        mesDefectiveService = new MesDefectiveService(defectiveRepository, equipmentRepository);
+        mesDefectiveService = new MesDefectiveService(defectiveRepository, equipmentRepository, planDefectiveXrefService);
+        lenient().when(defectiveRepository.save(any(Defectives.class))).thenAnswer(invocation -> {
+            Defectives entity = invocation.getArgument(0);
+            return Defectives.builder()
+                    .id(entity.getId() != null ? entity.getId() : 1L)
+                    .equipmentId(entity.getEquipmentId())
+                    .defectiveCode(entity.getDefectiveCode())
+                    .defectiveName(entity.getDefectiveName())
+                    .defectiveType(entity.getDefectiveType())
+                    .build();
+        });
     }
 
     @Test
-    void saveNgTelemetry_persistsRecord() {
+    void saveNgTelemetry_insertsWhenNameMissing() {
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
-                .equipmentId(5L)
+                .equipmentCode("EQP-10")
                 .defectiveCode("DF-01")
-                .defectiveName("Scratch")
-                .defectiveQuantity(BigDecimal.valueOf(4))
-                .producedQuantity(BigDecimal.valueOf(10))
+                .defectiveName("Dent")
+                .defectiveQuantity(BigDecimal.ONE)
+                .orderNo("PLAN-100")
                 .status("NG")
-                .defectiveType("ORDER_NG")
+                .defectiveType("1")
                 .build();
-
-        Equipments equipment = sampleEquipment(5L);
-        when(equipmentRepository.findById(5L)).thenReturn(Optional.of(equipment));
+        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(10L, "EQP-10-DF-01"))
+                .thenReturn(Optional.empty());
+        when(equipmentRepository.findByEquipmentCode("EQP-10")).thenReturn(Optional.of(sampleEquipment(10L)));
 
         mesDefectiveService.saveNgTelemetry(payload);
 
         verify(defectiveRepository).save(defectiveCaptor.capture());
+        verify(planDefectiveXrefService).linkPlanDefective(1L, payload);
         Defectives saved = defectiveCaptor.getValue();
-        assertThat(saved.getDefectiveCode()).isEqualTo("DF-01");
-        assertThat(saved.getDefectiveQty()).isEqualByComparingTo("4");
-        assertThat(saved.getDefectiveType()).isEqualTo("ORDER_NG");
-        assertThat(equipment.getTotalCount()).isEqualByComparingTo("0");
-        assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("0");
+        assertThat(saved.getEquipmentId()).isEqualTo(10L);
+        assertThat(saved.getDefectiveCode()).isEqualTo("EQP-10-DF-01");
+        assertThat(saved.getDefectiveType()).isEqualTo("DF-01");
+        assertThat(saved.getDefectiveName()).isEqualTo("Dent");
     }
 
     @Test
-    void saveNgTelemetry_skipsWhenEquipmentMissing() {
+    void saveNgTelemetry_skipsWhenNameAlreadyExists() {
         DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
-                .equipmentId(999L)
-                .defectiveCode("DF-00")
-                .defectiveName("Unknown")
+                .equipmentCode("EQP-5")
+                .defectiveCode("DF-02")
+                .defectiveName("Scratch")
                 .defectiveQuantity(BigDecimal.TEN)
+                .orderNo("PLAN-200")
                 .status("NG")
-                .defectiveType("ORDER_NG")
+                .defectiveType("2")
+                .build();
+        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(5L, "EQP-5-DF-02"))
+                .thenReturn(Optional.of(existingDefective(1L)));
+        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(sampleEquipment(5L)));
+
+        mesDefectiveService.saveNgTelemetry(payload);
+
+        verify(defectiveRepository, never()).save(any());
+    }
+
+    @Test
+    void saveNgTelemetry_skipsWhenEquipmentNotFound() {
+        DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
+                .equipmentCode("UNKNOWN")
+                .defectiveCode("DF-99")
+                .defectiveName("Unknown")
+                .defectiveQuantity(BigDecimal.ONE)
+                .defectiveType("1")
                 .build();
 
-        when(equipmentRepository.findById(999L)).thenReturn(Optional.empty());
+        when(equipmentRepository.findByEquipmentCode("UNKNOWN")).thenReturn(Optional.empty());
 
         mesDefectiveService.saveNgTelemetry(payload);
 
@@ -98,7 +130,6 @@ class MesDefectiveServiceTest {
 
         assertThat(equipment.getTotalCount()).isEqualByComparingTo("40");
         assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("8");
-        verifyNoInteractions(defectiveRepository);
     }
 
     @Test
@@ -145,6 +176,53 @@ class MesDefectiveServiceTest {
 
         assertThat(equipment.getTotalCount()).isEqualByComparingTo("35"); // 30 + 5 (reset)
         assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("4");
+    }
+
+    @Test
+    void saveNgTelemetry_skipsWhenQuantityZero() {
+        DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
+                .equipmentCode("EQP-7")
+                .defectiveCode("DF-09")
+                .defectiveName("Dummy")
+                .defectiveQuantity(BigDecimal.ZERO)
+                .orderNo("PLAN-400")
+                .status("NG")
+                .defectiveType("3")
+                .build();
+        when(defectiveRepository.findByEquipmentIdAndDefectiveCode(7L, "EQP-7-DF-09"))
+                .thenReturn(Optional.empty());
+        when(equipmentRepository.findByEquipmentCode("EQP-7")).thenReturn(Optional.of(sampleEquipment(7L)));
+
+        mesDefectiveService.saveNgTelemetry(payload);
+
+        verify(planDefectiveXrefService, never()).linkPlanDefective(anyLong(), any());
+    }
+
+    @Test
+    void saveNgTelemetry_skipsWhenNgTypeOutOfRange() {
+        DefectiveTelemetryPayload payload = DefectiveTelemetryPayload.builder()
+                .equipmentCode("EQP-8")
+                .defectiveCode("DF-03")
+                .defectiveName("Invalid")
+                .defectiveQuantity(BigDecimal.ONE)
+                .orderNo("PLAN-500")
+                .status("NG")
+                .defectiveType("0")
+                .build();
+        mesDefectiveService.saveNgTelemetry(payload);
+
+        verifyNoInteractions(defectiveRepository);
+        verifyNoInteractions(planDefectiveXrefService);
+    }
+
+    private Defectives existingDefective(Long id) {
+        return Defectives.builder()
+                .id(id)
+                .equipmentId(5L)
+                .defectiveCode("CODE")
+                .defectiveName("Scratch")
+                .defectiveType("TYPE")
+                .build();
     }
 
     private Equipments sampleEquipment(Long id) {
