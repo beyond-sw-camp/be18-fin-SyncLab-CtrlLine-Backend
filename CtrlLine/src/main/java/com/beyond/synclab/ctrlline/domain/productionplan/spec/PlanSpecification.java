@@ -118,4 +118,10 @@ public class PlanSpecification {
             return cb.equal(item.get("itemCode"), itemCode);
         };
     }
+    public Specification<ProductionPlans> planStatusNotEquals(PlanStatus status) {
+        return (root, query, cb) ->
+            status == null
+                ? null
+                : cb.notEqual(root.get("status"), status);
+    }
 }
