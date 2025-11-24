@@ -29,6 +29,8 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
@@ -1064,6 +1066,103 @@ class ProductionPlanServiceImplTest {
             // C 이동 (B 끝 기준)
             assertThat(ppC.getStartTime()).isEqualTo(time("12:30"));
             assertThat(ppC.getEndTime()).isEqualTo(time("13:00"));
+        }
+    }
+
+    @Nested
+    @DisplayName("생산계획현황 조회")
+    class GetAllProductionPlanTest {
+        private GetAllProductionPlanRequestDto requestDto;
+
+        @BeforeEach
+        void setUp() {
+            requestDto = GetAllProductionPlanRequestDto.builder()
+                .factoryName("A공장")
+                .lineName("1호라인")
+                .itemName("샘플제품")
+                .itemCode("ITEM001")
+                .salesManagerName("김영업")
+                .productionManagerName("박생산")
+                .dueDate(testDate)
+                .startTime(testDateTime)
+                .endTime(testDateTime)
+                .build();
+        }
+
+        @Test
+        @DisplayName("정상 파라미터로 전체 목록 조회 성공")
+        void getAllProductionPlan_success() {
+            // given
+            ProductionPlans planA = productionPlan.toBuilder()
+                .documentNo("2099/01/01-1")
+                .status(PlanStatus.PENDING)
+                .build();
+
+            ProductionPlans planB = productionPlan.toBuilder()
+                .documentNo("2099/01/01-2")
+                .status(PlanStatus.PENDING)
+                .build();
+
+            // Repository mock 결과: documentNo DESC (PP-002 → PP-001)
+            when(productionPlanRepository.findAll(
+                ArgumentMatchers.<Specification<ProductionPlans>>any(),
+                ArgumentMatchers.any(Sort.class)))
+                .thenReturn(List.of(planB, planA));
+
+            // when
+            List<GetAllProductionPlanResponseDto> result =
+                productionPlanService.getAllProductionPlan(requestDto);
+
+            // then
+            assertThat(result).hasSize(2);
+
+            // 매핑 검증
+            assertThat(result.get(0).getDocumentNo()).isEqualTo("2099/01/01-2");
+            assertThat(result.get(1).getDocumentNo()).isEqualTo("2099/01/01-1");
+
+            // 정렬 조건(documentNo DESC) 검증
+            verify(productionPlanRepository, times(1))
+                .findAll(
+                    ArgumentMatchers.<Specification<ProductionPlans>>any(),
+                    ArgumentMatchers.<Sort>argThat(sort -> {
+                        Sort.Order order = sort.getOrderFor("documentNo");
+                        return order != null && order.getDirection() == Sort.Direction.DESC;
+                    })
+                );
+        }
+
+
+        @Test
+        @DisplayName("파라미터 없이 전체 조회 시 기본 정렬(documentNo DESC) 적용")
+        void getAllProductionPlan_defaultSort() {
+            // given
+            GetAllProductionPlanRequestDto dto = GetAllProductionPlanRequestDto.builder()
+                .build();
+
+            ProductionPlans planA = productionPlan.toBuilder().documentNo("2099/01/01-2").build();
+            ProductionPlans planB = productionPlan.toBuilder().documentNo("2099/01/01-1").build();
+
+            when(productionPlanRepository.findAll(
+                ArgumentMatchers.<Specification<ProductionPlans>>any(),
+                ArgumentMatchers.any(Sort.class)))
+                .thenReturn(List.of(planA, planB));
+
+            // when
+            List<GetAllProductionPlanResponseDto> result =
+                productionPlanService.getAllProductionPlan(dto);
+
+            // then
+            assertThat(result).hasSize(2);
+            assertThat(result.getFirst().getDocumentNo()).isEqualTo("2099/01/01-2");
+
+            // 정렬 검증
+            verify(productionPlanRepository).findAll(
+                ArgumentMatchers.<Specification<ProductionPlans>>any(),
+                ArgumentMatchers.<Sort>argThat(sort -> {
+                    Sort.Order order = sort.getOrderFor("documentNo");
+                    return order != null && order.getDirection() == Sort.Direction.DESC;
+                })
+            );
         }
     }
 }
