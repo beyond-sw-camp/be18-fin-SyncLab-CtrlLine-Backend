@@ -14,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
@@ -297,5 +299,42 @@ class ProductionPlanControllerTest {
             .andExpect(jsonPath("$.data.dueDate").value(LocalDate.now(testClock).toString()))
             .andExpect(jsonPath("$.data.startTime").value(startsWith("2099-01-01T09:00")))
             .andExpect(jsonPath("$.data.endTime").value(startsWith("2099-01-01T09:00")));
+    }
+
+    @Test
+    @DisplayName("생산 계획 현황 조회 성공 - 검색 필터 적용")
+    @WithMockUser
+    void getAllProductionPlan_success_withSearch() throws Exception {
+        // given
+        GetAllProductionPlanResponseDto testDto = GetAllProductionPlanResponseDto.builder()
+            .id(1L)
+            .documentNo("2025/11/22-1")
+            .status(ProductionPlans.PlanStatus.PENDING)
+            .factoryName("A공장")
+            .lineName("1호라인")
+            .itemCode("ITEM-1001")
+            .itemName("샘플제품")
+            .itemSpecification("SPEC-01")
+            .plannedQty(new BigDecimal("1500"))
+            .startTime(LocalDateTime.now(testClock))
+            .endTime(LocalDateTime.now(testClock))
+            .dueDate(LocalDate.now(testClock))
+            .salesManagerName("김영업")
+            .salesManagerEmpNo("202511001")
+            .productionManagerName("박생산")
+            .productionManagerEmpNo("202511001")
+            .remark("테스트 생산계획")
+            .build();
+
+        when(productionPlanService.getAllProductionPlan(any(GetAllProductionPlanRequestDto.class))).thenReturn(List.of(testDto));
+
+        // when & then
+        mockMvc.perform(get("/api/v1/production-plans/all")
+                .param("factoryName", "A공장")
+                .param("itemName", "샘플제품")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].factoryName").value("A공장"))
+            .andExpect(jsonPath("$.data[0].itemName").value("샘플제품"));
     }
 }

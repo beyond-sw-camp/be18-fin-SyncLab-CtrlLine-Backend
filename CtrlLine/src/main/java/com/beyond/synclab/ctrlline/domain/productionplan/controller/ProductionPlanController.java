@@ -3,6 +3,8 @@ package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
@@ -12,6 +14,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanS
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -84,5 +87,14 @@ public class ProductionPlanController {
         GetProductionPlanResponseDto responseDto = productionPlanService.updateProductionPlan(requestDto, planId, user);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<BaseResponse<List<GetAllProductionPlanResponseDto>>> getAllProductionPlan(
+        @ModelAttribute GetAllProductionPlanRequestDto requestDto
+    ) {
+        List<GetAllProductionPlanResponseDto> responseDto = productionPlanService.getAllProductionPlan(requestDto);
+
+        return  ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }
