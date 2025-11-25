@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceService;
 import lombok.RequiredArgsConstructor;
@@ -10,10 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
@@ -77,5 +75,16 @@ public class ProductionPerformanceController {
                 PageResponse.from(result);
 
         return ResponseEntity.ok(ok(response));
+    }
+
+    // 생산실적 상세 조회
+    @GetMapping("/{productionPerformanceId}")
+    public ResponseEntity<BaseResponse<GetProductionPerformanceDetailResponseDto>> getDetail(
+            @PathVariable Long productionPerformanceId
+    ) {
+        GetProductionPerformanceDetailResponseDto result =
+                productionPerformanceService.getProductionPerformanceDetail(productionPerformanceId);
+
+        return ResponseEntity.ok(ok(result));
     }
 }
