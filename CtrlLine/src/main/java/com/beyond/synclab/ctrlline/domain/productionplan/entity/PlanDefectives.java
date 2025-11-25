@@ -1,10 +1,15 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -23,7 +28,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(of = "id")
-public class PlanDefective {
+public class PlanDefectives {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +37,10 @@ public class PlanDefective {
 
     @Column(name = "production_plan_id", nullable = false)
     private Long productionPlanId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "production_plan_Id", insertable = false, updatable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private ProductionPlans productionPlan;
 
     @Column(name = "defective_document_no", nullable = false, length = 32)
     private String defectiveDocumentNo;

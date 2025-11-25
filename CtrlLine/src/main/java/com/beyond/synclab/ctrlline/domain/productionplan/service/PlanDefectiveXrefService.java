@@ -1,8 +1,8 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefective;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXref;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
@@ -55,7 +55,7 @@ public class PlanDefectiveXrefService {
             return;
         }
         Optional<Long> planDefectiveIdOptional = planDefectiveRepository.findByProductionPlanId(plan.getId())
-                .map(PlanDefective::getId);
+                .map(PlanDefectives::getId);
         if (planDefectiveIdOptional.isEmpty()) {
             log.warn("plan_defective 정보를 찾을 수 없어 저장하지 않습니다. orderNo={}", orderNo);
             return;
@@ -63,7 +63,7 @@ public class PlanDefectiveXrefService {
         Long planDefectiveId = planDefectiveIdOptional.get();
         BigDecimal reportedQty = sanitize(defectiveQty);
         String equipmentKey = resolveEquipmentKey(payload);
-        PlanDefectiveXref xref = planDefectiveXrefRepository
+        PlanDefectiveXrefs xref = planDefectiveXrefRepository
                 .findByPlanDefectiveIdAndDefectiveId(planDefectiveId, defectiveId)
                 .map(existing -> {
                     BigDecimal updatedQty = calculateUpdatedQty(existing.getDefectiveQty(), reportedQty,
@@ -71,7 +71,7 @@ public class PlanDefectiveXrefService {
                     existing.updateDefectiveQty(updatedQty);
                     return existing;
                 })
-                .orElseGet(() -> PlanDefectiveXref.builder()
+                .orElseGet(() -> PlanDefectiveXrefs.builder()
                         .planDefectiveId(planDefectiveId)
                         .defectiveId(defectiveId)
                         .defectiveQty(reportedQty)

@@ -1,10 +1,16 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.entity;
 
+import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import jakarta.persistence.Column;
+import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,7 +30,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(of = "id")
-public class PlanDefectiveXref {
+public class PlanDefectiveXrefs {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,8 +40,16 @@ public class PlanDefectiveXref {
     @Column(name = "defective_id", nullable = false)
     private Long defectiveId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "defective_Id", insertable = false, updatable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private Defectives defective;
+
     @Column(name = "plan_defective_id", nullable = false)
     private Long planDefectiveId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plan_defective_Id", insertable = false, updatable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private PlanDefectives planDefectives;
 
     @Column(name = "defective_qty", nullable = false, precision = 10, scale = 2)
     private BigDecimal defectiveQty;

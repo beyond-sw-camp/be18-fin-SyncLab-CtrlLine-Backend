@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefective;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
 import java.time.Clock;
@@ -32,21 +32,21 @@ public class PlanDefectiveService {
             return;
         }
         String documentNo = generateDocumentNo();
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefectives = PlanDefectives.builder()
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo(documentNo)
                 .build();
-        planDefectiveRepository.save(planDefective);
+        planDefectiveRepository.save(planDefectives);
         log.info("Plan defective document created planId={} documentNo={}", plan.getId(), documentNo);
     }
 
     private String generateDocumentNo() {
         LocalDate today = LocalDate.now(clock);
         String prefix = today.format(DOCUMENT_DATE_FORMATTER) + "-";
-        Optional<PlanDefective> latest = planDefectiveRepository
+        Optional<PlanDefectives> latest = planDefectiveRepository
                 .findTopByDefectiveDocumentNoStartingWithOrderByIdDesc(prefix);
         int sequence = latest
-                .map(PlanDefective::getDefectiveDocumentNo)
+                .map(PlanDefectives::getDefectiveDocumentNo)
                 .map(this::extractSequence)
                 .orElse(0) + 1;
         return prefix + sequence;
