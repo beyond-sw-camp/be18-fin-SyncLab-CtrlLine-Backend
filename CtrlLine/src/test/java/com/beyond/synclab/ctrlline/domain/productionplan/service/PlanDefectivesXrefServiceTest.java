@@ -56,7 +56,7 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(5L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefectives planDefective = PlanDefectives.builder()
+        PlanDefective planDefective = PlanDefective.builder()
                 .id(20L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-1")
