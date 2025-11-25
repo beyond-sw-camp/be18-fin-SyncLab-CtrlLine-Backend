@@ -1,7 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.lot.entity;
 
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
-import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

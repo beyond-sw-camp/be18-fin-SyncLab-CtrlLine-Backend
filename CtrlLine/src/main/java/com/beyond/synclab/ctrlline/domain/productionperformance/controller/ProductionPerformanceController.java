@@ -14,8 +14,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-
 import static com.beyond.synclab.ctrlline.common.dto.BaseResponse.ok;
 
 @Slf4j
