@@ -87,7 +87,6 @@ public class SecurityConfig {
         // 🔹 요청 인가 설정
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/production-performances/**").permitAll()
                         .requestMatchers(AUTH_WHITE_LIST).permitAll()
                         .anyRequest().authenticated()
                 );
