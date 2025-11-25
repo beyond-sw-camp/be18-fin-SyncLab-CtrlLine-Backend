@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface ProcessRepository extends JpaRepository<Processes, Long> {
+public interface ProcessRepository extends JpaRepository<Processes, Long>, ProcessQueryRepository {
     Optional<Processes> findByProcessCode(String processCode);
 }
