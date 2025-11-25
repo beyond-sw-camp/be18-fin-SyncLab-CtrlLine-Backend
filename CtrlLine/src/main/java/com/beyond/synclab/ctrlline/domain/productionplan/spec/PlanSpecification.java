@@ -16,6 +16,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 @UtilityClass
 public class PlanSpecification {
+    private final String itemLineColumn = "itemLine";
 
     public Specification<ProductionPlans> planStatusEquals(PlanStatus planStatus) {
         return (root, query, cb) ->
@@ -30,7 +31,7 @@ public class PlanSpecification {
                 return null;
 
             // plan -> itemLine -> line -> factory
-            Join<ProductionPlans, ItemsLines> itemLine = root.join("itemLine", JoinType.LEFT);
+            Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
             Join<ItemsLines, Lines> line = itemLine.join("line", JoinType.LEFT);
             Join<Lines, Factories> factory = line.join("factory", JoinType.LEFT);
 
@@ -44,7 +45,7 @@ public class PlanSpecification {
                 return null;
 
             // plan -> itemLine -> item
-            Join<ProductionPlans, ItemsLines> itemLine = root.join("itemLine", JoinType.LEFT);
+            Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
             Join<ItemsLines, Items> item = itemLine.join("item", JoinType.LEFT);
 
             return cb.like(item.get("itemName"), "%" + itemName + "%");
@@ -89,6 +90,32 @@ public class PlanSpecification {
         return (root, query, cb) -> {
             if (end == null) return null;
             return cb.lessThanOrEqualTo(root.get("endTime"), end);
+        };
+    }
+
+    public Specification<ProductionPlans> planLineNameContains(String lineName) {
+        return (root, query, cb) -> {
+            if (lineName == null)
+                return null;
+
+            // plan -> itemLine -> line
+            Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
+            Join<ItemsLines, Lines> line = itemLine.join("line", JoinType.LEFT);
+
+            return cb.like(line.get("lineName"), "%" + lineName + "%");
+        };
+    }
+
+    public Specification<ProductionPlans> planItemCodeEquals(String itemCode) {
+        return (root, query, cb) -> {
+            if (itemCode == null)
+                return null;
+
+            // plan -> itemLine -> line
+            Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
+            Join<ItemsLines, Items> item = itemLine.join("item", JoinType.LEFT);
+
+            return cb.equal(item.get("itemCode"), itemCode);
         };
     }
 }
