@@ -5,12 +5,11 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
-import com.beyond.synclab.ctrlline.domain.process.repository.ProcessQueryRepository;
 import com.beyond.synclab.ctrlline.domain.process.repository.ProcessRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
@@ -82,10 +81,10 @@ public class ProcessServiceImpl implements ProcessService {
     // 공정 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ProcessSearchResponseDto> getProcessList(Users users, ProcessSearchDto searchDto, Pageable pageable) {
+    public PageResponse<SearchProcessResponseDto> getProcessList(Users users, SearchProcessDto searchDto, Pageable pageable) {
         Page<Processes> page = processRepository.searchProcessList(searchDto, pageable);
-        Page<ProcessSearchResponseDto> dtoPage = page.map(process ->
-                ProcessSearchResponseDto.fromEntity(process, process.getUser())
+        Page<SearchProcessResponseDto> dtoPage = page.map(process ->
+                SearchProcessResponseDto.fromEntity(process, process.getUser())
         );
         return PageResponse.from(dtoPage);
     }

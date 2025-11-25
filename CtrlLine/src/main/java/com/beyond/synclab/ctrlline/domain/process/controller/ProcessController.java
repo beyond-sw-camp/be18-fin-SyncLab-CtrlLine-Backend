@@ -3,8 +3,8 @@ package com.beyond.synclab.ctrlline.domain.process.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.service.ProcessService;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
@@ -58,15 +58,15 @@ public class ProcessController {
 
     // 공정 목록 조회
     @GetMapping
-    public ResponseEntity<BaseResponse<PageResponse<ProcessSearchResponseDto>>> getProcessList (
+    public ResponseEntity<BaseResponse<PageResponse<SearchProcessResponseDto>>> getProcessList (
           @AuthenticationPrincipal CustomUserDetails user,
-          ProcessSearchDto searchDto,
+          SearchProcessDto searchDto,
           @PageableDefault(size = 10, sort = "processCode", direction = Sort.Direction.ASC)
           Pageable pageable
     ){
-        PageResponse<ProcessSearchResponseDto> responseDto
+        PageResponse<SearchProcessResponseDto> responseDto
                 = processService.getProcessList(user.getUser(), searchDto, pageable);
-        BaseResponse<PageResponse<ProcessSearchResponseDto>> baseResponse = BaseResponse.of(HttpStatus.OK.value(), responseDto);
+        BaseResponse<PageResponse<SearchProcessResponseDto>> baseResponse = BaseResponse.of(HttpStatus.OK.value(), responseDto);
         return ResponseEntity.ok(baseResponse);
     }
 

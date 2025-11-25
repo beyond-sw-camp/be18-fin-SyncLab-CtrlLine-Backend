@@ -11,7 +11,7 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 
-public class ProcessSearchResponseDto {
+public class SearchProcessResponseDto {
     private final String processCode;
     private final String processName;
     private final String userDepartment;
@@ -19,8 +19,8 @@ public class ProcessSearchResponseDto {
     private final String empNo;
     private final Boolean isActive;
 
-    public static ProcessSearchResponseDto fromEntity (Processes process, Users user) {
-        return ProcessSearchResponseDto.builder()
+    public static SearchProcessResponseDto fromEntity (Processes process, Users user) {
+        return SearchProcessResponseDto.builder()
                 .processCode(process.getProcessCode())
                 .processName(process.getProcessName())
                 .userDepartment(user.getDepartment())

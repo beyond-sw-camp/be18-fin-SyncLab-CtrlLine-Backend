@@ -3,7 +3,7 @@ package com.beyond.synclab.ctrlline.domain.process.controller;
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.service.ProcessService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -131,7 +131,7 @@ class ProcessControllerTest {
     @DisplayName("공정 목록 조회 성공")
     @WithCustomUser(username = "김영업", roles = {"USER"})
     void get_process_list_success() throws Exception {
-        ProcessSearchResponseDto dto1 = ProcessSearchResponseDto.builder()
+        SearchProcessResponseDto dto1 = SearchProcessResponseDto.builder()
                 .processCode("PRO001")
                 .processName("절단공정")
                 .userDepartment("영업팀")
@@ -140,7 +140,7 @@ class ProcessControllerTest {
                 .isActive(true)
                 .build();
 
-        ProcessSearchResponseDto dto2 = ProcessSearchResponseDto.builder()
+        SearchProcessResponseDto dto2 = SearchProcessResponseDto.builder()
                 .processCode("PRO002")
                 .processName("식각공정")
                 .userDepartment("설비팀")
@@ -149,7 +149,7 @@ class ProcessControllerTest {
                 .isActive(false)
                 .build();
 
-        PageResponse<ProcessSearchResponseDto> pageResponse =
+        PageResponse<SearchProcessResponseDto> pageResponse =
                 PageResponse.from(new PageImpl<>(
                         List.of(dto1, dto2),
                         PageRequest.of(0,10),

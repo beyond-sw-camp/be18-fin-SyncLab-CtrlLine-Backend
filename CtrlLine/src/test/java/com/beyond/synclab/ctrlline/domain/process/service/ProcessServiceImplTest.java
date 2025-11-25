@@ -5,8 +5,8 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchDto;
-import com.beyond.synclab.ctrlline.domain.process.dto.ProcessSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
@@ -232,7 +232,7 @@ class ProcessServiceImplTest {
                 .empNo("E001")
                 .build();
 
-        ProcessSearchDto searchDto = ProcessSearchDto.builder()
+        SearchProcessDto searchDto = SearchProcessDto.builder()
                 .build();  // 검색 조건 없음 → 전체 조회
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -261,7 +261,7 @@ class ProcessServiceImplTest {
                 .thenReturn(page);
 
         // when
-        PageResponse<ProcessSearchResponseDto> response =
+        PageResponse<SearchProcessResponseDto> response =
                 processService.getProcessList(user, searchDto, pageable);
 
         // then
