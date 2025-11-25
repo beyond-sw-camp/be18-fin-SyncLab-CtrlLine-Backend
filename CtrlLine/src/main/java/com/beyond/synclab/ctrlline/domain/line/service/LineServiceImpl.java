@@ -8,12 +8,14 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.line.spec.LineSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LineServiceImpl implements LineService {
@@ -33,11 +35,15 @@ public class LineServiceImpl implements LineService {
     public Page<LineResponseDto> getLineList(LineSearchCommand command,
                                              Pageable pageable) {
         Specification<Lines> spec = Specification.allOf(
+                LineSpecification.factoryEquals(command.factoryId()),
+                LineSpecification.itemEquals(command.itemId()),
                 LineSpecification.lineNameContains(command.lineName()),
                 LineSpecification.lineCodeEquals(command.lineCode()),
                 LineSpecification.withUserConditions(command.userName(), command.userDepartment()),
                 LineSpecification.activeEquals(command.isActive())
         );
+
+        log.debug(">>>> 라인 필터링: {}",command.factoryId());
 
         return lineRepository.findAll(spec, pageable)
                              .map(line -> LineResponseDto.fromEntity(line, line.getUser(), line.getFactory()));
