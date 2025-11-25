@@ -63,6 +63,7 @@ public class Lines {
     @JoinColumn(name = "factory_id", updatable = false, insertable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Factories factory; // 조회용
 
+    // JOIN을 위해 추가된 관계 코드, 조회용으로 사용 불가
     @OneToMany(mappedBy = "line", fetch = FetchType.LAZY)
     private List<ItemsLines> itemLines = new ArrayList<>();
 
