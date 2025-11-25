@@ -10,6 +10,7 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.Get
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
+import com.beyond.synclab.ctrlline.domain.lot.entity.QLots;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Projections;
@@ -45,6 +46,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         QItems item = QItems.items;
         QUsers salesManager = QUsers.users;
         QUsers prodManager = new QUsers("prodManager");
+        QLots lot = QLots.lots;
 
         // 정렬 매핑
         Map<String, Path<? extends Comparable<?>>> sortMapping = Map.of(
@@ -87,6 +89,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 .leftJoin(factory).on(factory.id.eq(line.factoryId))
                 .leftJoin(plan.salesManager, salesManager)
                 .leftJoin(plan.productionManager, prodManager)
+                .leftJoin(lot).on(lot.productionPlanId.eq(plan.id))
                 .where(
                         documentNoContains(condition.getDocumentNo()),
                         planDocumentNoContains(condition.getProductionPlanDocumentNo()),
@@ -102,7 +105,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         totalQtyBetween(condition.getMinTotalQty(), condition.getMaxTotalQty()),
                         performanceQtyBetween(condition.getMinPerformanceQty(), condition.getMaxPerformanceQty()),
                         defectRateBetween(condition.getMinDefectRate(), condition.getMaxDefectRate()),
-                        isDeletedEq(condition.getIsDeleted())
+                        isDeletedEq(condition.getIsDeleted()),
+                        lotNoContains(condition.getLotNo())
                 )
                 .orderBy(orders.toArray(OrderSpecifier[]::new))
                 .offset(pageable.getOffset())
@@ -135,7 +139,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         totalQtyBetween(condition.getMinTotalQty(), condition.getMaxTotalQty()),
                         performanceQtyBetween(condition.getMinPerformanceQty(), condition.getMaxPerformanceQty()),
                         defectRateBetween(condition.getMinDefectRate(), condition.getMaxDefectRate()),
-                        isDeletedEq(condition.getIsDeleted())
+                        isDeletedEq(condition.getIsDeleted()),
+                        lotNoContains(condition.getLotNo())
                 );
 
         return PageableExecutionUtils.getPage(results, pageable, countQuery::fetchOne);
@@ -175,6 +180,11 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
     private BooleanExpression producerManagerNameContains(String name) {
         return (name == null || name.isEmpty())
                 ? null : new QUsers("prodManager").name.contains(name);
+    }
+
+    private BooleanExpression lotNoContains(String lotNo) {
+        return (lotNo == null || lotNo.isEmpty())
+                ? null : QLots.lots.lotNo.contains(lotNo);
     }
 
     private BooleanExpression remarkContains(String remark) {

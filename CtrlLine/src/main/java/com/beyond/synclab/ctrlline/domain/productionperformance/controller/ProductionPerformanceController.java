@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceService;
@@ -28,48 +29,13 @@ public class ProductionPerformanceController {
     // 생산실적 목록 조회
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<GetProductionPerformanceListResponseDto>>> getProductionPerformanceList(
-            @RequestParam(required = false) String documentNo,
-            @RequestParam(required = false) String factoryCode,
-            @RequestParam(required = false) String lineCode,
-            @RequestParam(required = false) String itemCode,
-            @RequestParam(required = false) String productionPlanDocumentNo,
-            @RequestParam(required = false) BigDecimal minTotalQty,
-            @RequestParam(required = false) BigDecimal maxTotalQty,
-            @RequestParam(required = false) BigDecimal minPerformanceQty,
-            @RequestParam(required = false) BigDecimal maxPerformanceQty,
-            @RequestParam(required = false) BigDecimal minDefectRate,
-            @RequestParam(required = false) BigDecimal maxDefectRate,
-            @RequestParam(required = false) String salesManagerName,
-            @RequestParam(required = false) String producerManagerName,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate,
-            @RequestParam(required = false) String dueDate,
-            @RequestParam(required = false) String remark,
-            @RequestParam(required = false) Boolean isDeleted,
+            @ModelAttribute SearchProductionPerformanceRequestDto condition,
             @PageableDefault(size = 10) Pageable pageable
     ) {
 
         Page<GetProductionPerformanceListResponseDto> result =
                 productionPerformanceService.getProductionPerformanceList(
-                        documentNo,
-                        factoryCode,
-                        lineCode,
-                        itemCode,
-                        productionPlanDocumentNo,
-                        minTotalQty,
-                        maxTotalQty,
-                        minPerformanceQty,
-                        maxPerformanceQty,
-                        minDefectRate,
-                        maxDefectRate,
-                        salesManagerName,
-                        producerManagerName,
-                        startDate,
-                        endDate,
-                        dueDate,
-                        remark,
-                        isDeleted,
-                        pageable
+                        condition, pageable
                 );
         PageResponse<GetProductionPerformanceListResponseDto> response =
                 PageResponse.from(result);

@@ -21,13 +21,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureMockMvc(addFilters = false)
@@ -278,16 +280,16 @@ class ProductionPerformanceQueryRepositoryTest {
                         SearchProductionPerformanceRequestDto.builder().build(), pageable
                 );
 
-        // ✅ SonarQube 권장 패턴 (List 자체를 검사)
+        // SonarQube 권장 패턴 (List 자체를 검사)
         assertThat(result.getContent()).hasSize(1);
 
-        // ✅ 총 건수는 size() 비검증이라 OK
+        // 총 건수는 size() 비검증이라 OK
         assertThat(result.getTotalElements()).isEqualTo(2);
     }
 
     // =============================================================
-// 5. 공장 + 라인 + 품목 다중 조건 테스트
-// =============================================================
+    // 5. 공장 + 라인 + 품목 다중 조건 테스트
+    // =============================================================
     @Test
     @DisplayName("공장 + 라인 + 품목 다중 조건 검색")
     void testSearch_multiCondition_factory_line_item() {
@@ -309,8 +311,8 @@ class ProductionPerformanceQueryRepositoryTest {
     }
 
     // =============================================================
-// 6. 날짜 범위 + 품목 + 영업담당자 다중 조건 테스트
-// =============================================================
+    // 6. 날짜 범위 + 품목 + 영업담당자 다중 조건 테스트
+    // =============================================================
     @Test
     @DisplayName("기간 + 품목 + 영업담당자 다중 조건 검색")
     void testSearch_multiCondition_date_item_salesManager() {
@@ -334,6 +336,7 @@ class ProductionPerformanceQueryRepositoryTest {
         assertThat(result.getContent().get(0).getItemCode()).isEqualTo("ITEM-B");
         assertThat(result.getContent().get(0).getSalesManagerNo()).isEqualTo("E1000");
     }
+
     // =============================================================
     // 7. 수량범위 + 불량률범위 다중 조건 테스트
     // =============================================================

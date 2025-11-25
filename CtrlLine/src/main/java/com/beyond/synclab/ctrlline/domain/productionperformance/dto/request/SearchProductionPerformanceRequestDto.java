@@ -16,6 +16,7 @@ public class SearchProductionPerformanceRequestDto {
     private String itemCode;
     private String productionPlanDocumentNo;
     private String defectiveDocumentNo;
+    private String lotNo;
     private BigDecimal minTotalQty;
     private BigDecimal maxTotalQty;
     private BigDecimal minPerformanceQty;
