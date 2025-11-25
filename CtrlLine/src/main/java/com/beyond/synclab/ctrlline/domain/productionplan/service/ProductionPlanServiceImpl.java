@@ -18,6 +18,8 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
@@ -44,6 +46,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -406,6 +410,28 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         productionPlan.update(dto, newStartTime, newEndTime, salesManager, productionManager, itemsLine);
 
         return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GetAllProductionPlanResponseDto> getAllProductionPlan(
+        GetAllProductionPlanRequestDto requestDto
+    ) {
+        Specification<ProductionPlans> spec = Specification.allOf(
+            PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
+            PlanSpecification.planLineNameContains(requestDto.lineName()),
+            PlanSpecification.planItemNameContains(requestDto.itemName()),
+            PlanSpecification.planItemCodeEquals(requestDto.itemCode()),
+            PlanSpecification.planSalesManagerNameContains(requestDto.salesManagerName()),
+            PlanSpecification.planProductionManagerNameContains(requestDto.productionManagerName()),
+            PlanSpecification.planDueDateBefore(requestDto.dueDate()),
+            PlanSpecification.planStartTimeAfter(requestDto.startTime()),
+            PlanSpecification.planEndTimeBefore(requestDto.endTime())
+        );
+
+        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.DESC, "documentNo"));
+
+        return result.stream().map(GetAllProductionPlanResponseDto::fromEntity).toList();
     }
 
 
