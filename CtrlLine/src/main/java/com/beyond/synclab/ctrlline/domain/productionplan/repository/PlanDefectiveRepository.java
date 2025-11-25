@@ -11,4 +11,6 @@ public interface PlanDefectiveRepository extends JpaRepository<PlanDefectives, L
     Optional<PlanDefectives> findTopByDefectiveDocumentNoStartingWithOrderByIdDesc(String defectiveDocumentNo);
 
     Optional<PlanDefectives> findByProductionPlanId(Long productionPlanId);
+
+    Optional<PlanDefectives> findByDefectiveDocumentNo(String documentNo);
 }
