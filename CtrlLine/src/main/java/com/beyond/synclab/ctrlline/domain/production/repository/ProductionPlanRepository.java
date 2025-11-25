@@ -37,4 +37,13 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     """)
     Optional<ProductionPlans> findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(String lineCode, List<PlanStatus> statuses,
         LocalDateTime now);
+
+    @Query("""
+        SELECT p
+        FROM ProductionPlans p
+        WHERE (p.startTime >= :startTime OR p.endTime >= :startTime)
+            AND p.status IN :statuses
+        ORDER BY p.startTime ASC
+    """)
+    List<ProductionPlans> findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(@Param("startTime") LocalDateTime startTime, List<PlanStatus> statuses);
 }

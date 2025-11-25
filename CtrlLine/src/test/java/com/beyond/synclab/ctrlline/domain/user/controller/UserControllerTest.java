@@ -17,7 +17,7 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserSearchCommand;
+import com.beyond.synclab.ctrlline.domain.user.dto.SearchUserParameterDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserSignupResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
@@ -203,7 +203,7 @@ class UserControllerTest {
             1
         );
 
-        when(userService.getUserList(any(UserSearchCommand.class), any(Pageable.class)))
+        when(userService.getUserList(any(SearchUserParameterDto.class), any(Pageable.class)))
             .thenReturn(mockPage);
 
         // when & then
@@ -228,7 +228,7 @@ class UserControllerTest {
     void getUserList_noSearchParams() throws Exception {
         // given
         Page<UserListResponseDto> emptyPage = new PageImpl<>(List.of());
-        when(userService.getUserList(any(UserSearchCommand.class), any(Pageable.class)))
+        when(userService.getUserList(any(SearchUserParameterDto.class), any(Pageable.class)))
             .thenReturn(emptyPage);
 
         // when & then

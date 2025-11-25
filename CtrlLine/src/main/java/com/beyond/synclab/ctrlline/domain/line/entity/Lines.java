@@ -29,7 +29,7 @@ import java.util.List;
 
 @Getter
 @Entity
-@Builder
+@Builder(toBuilder = true)
 @Table(
         name = "line",
         uniqueConstraints = {
