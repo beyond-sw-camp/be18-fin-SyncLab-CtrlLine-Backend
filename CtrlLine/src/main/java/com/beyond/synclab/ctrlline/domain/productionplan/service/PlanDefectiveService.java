@@ -32,11 +32,11 @@ public class PlanDefectiveService {
             return;
         }
         String documentNo = generateDocumentNo();
-        PlanDefectives planDefective = PlanDefectives.builder()
+        PlanDefectives planDefectives = PlanDefectives.builder()
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo(documentNo)
                 .build();
-        planDefectiveRepository.save(planDefective);
+        planDefectiveRepository.save(planDefectives);
         log.info("Plan defective document created planId={} documentNo={}", plan.getId(), documentNo);
     }
 
