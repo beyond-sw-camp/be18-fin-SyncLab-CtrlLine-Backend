@@ -15,6 +15,24 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class LineSpecification {
 
+    public static Specification<Lines> factoryEquals(Long factoryId) {
+        return (root, query, cb) ->
+                factoryId == null
+                        ? null
+                        : cb.equal(root.get("factoryId"), factoryId);
+    }
+
+    public static Specification<Lines> itemEquals(Long itemId) {
+        return (root, query, cb) -> {
+            if (itemId == null) return null;
+
+            Join<Object, Object> join = root.join("itemLines", JoinType.INNER);
+            return cb.equal(join.get("itemId"), itemId);
+        };
+    }
+
+
+
     public static Specification<Lines> lineNameContains(String lineName) {
         return (root, query, cb) ->
                 (lineName == null || lineName.isEmpty())

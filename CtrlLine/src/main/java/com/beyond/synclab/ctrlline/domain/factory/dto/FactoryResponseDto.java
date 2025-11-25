@@ -11,6 +11,7 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class FactoryResponseDto {
+    private final Long factoryId;
     private final String factoryCode;
     private final String factoryName;
     private final String empNo;
@@ -20,6 +21,7 @@ public class FactoryResponseDto {
 
     public static FactoryResponseDto fromEntity(Factories factory, Users user) {
         return FactoryResponseDto.builder()
+                                 .factoryId(factory.getId())
                                  .factoryCode(factory.getFactoryCode())
                                  .factoryName(factory.getFactoryName())
                                  .empNo(user.getEmpNo())

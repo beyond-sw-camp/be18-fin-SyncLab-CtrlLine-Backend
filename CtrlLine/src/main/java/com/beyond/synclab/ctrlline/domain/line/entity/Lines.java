@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.line.entity;
 
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -15,6 +16,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.*;
@@ -22,6 +24,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
@@ -58,6 +62,10 @@ public class Lines {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "factory_id", updatable = false, insertable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Factories factory; // 조회용
+
+    // JOIN을 위해 추가된 관계 코드, 조회용으로 사용 불가
+    @OneToMany(mappedBy = "line", fetch = FetchType.LAZY)
+    private List<ItemsLines> itemLines = new ArrayList<>();
 
     @Column(name = "line_code", nullable = false, unique = true)
     private String lineCode;

@@ -13,6 +13,7 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class LineResponseDto {
+    private final Long lineId;
     private final String lineCode;
     private final String lineName;
     private final String empNo;
@@ -24,6 +25,7 @@ public class LineResponseDto {
 
     public static LineResponseDto fromEntity(Lines line, Users user, Factories factory) {
         return LineResponseDto.builder()
+                                 .lineId(line.getId())
                                  .lineCode(line.getLineCode())
                                  .lineName(line.getLineName())
                                  .empNo(user.getEmpNo())

@@ -139,7 +139,7 @@ class LineServiceImplTest {
     @Test
     @DisplayName("lineName 으로 검색시 특정 라인만 조회된다")
     void getLineList_success_searchBylineName() {
-        LineSearchCommand cmd = new LineSearchCommand(null, "전지", null, null, null);
+        LineSearchCommand cmd = new LineSearchCommand(null, null,null, "전지", null, null, null);
 
         Page<LineResponseDto> result = lineService.getLineList(cmd, PageRequest.of(0, 10));
 
@@ -152,7 +152,7 @@ class LineServiceImplTest {
     @Test
     @DisplayName("userName으로 검색하면 해당 사용자의 라인만 조회된다")
     void getLineList_success_searchByUserName() {
-        LineSearchCommand cmd = new LineSearchCommand(null, null, "홍길동", null, null);
+        LineSearchCommand cmd = new LineSearchCommand(null,null,null, null, "홍길동", null, null);
 
         Page<LineResponseDto> result = lineService.getLineList(cmd, PageRequest.of(0, 10));
 
@@ -162,7 +162,7 @@ class LineServiceImplTest {
     @Test
     @DisplayName("isActive=true 검색시 활성화 라인만")
     void getLineList_success_searchByIsActive() {
-        LineSearchCommand cmd = new LineSearchCommand(null, null, null, null, true);
+        LineSearchCommand cmd = new LineSearchCommand(null,null,null, null, null, null, true);
 
         Page<LineResponseDto> result = lineService.getLineList(cmd, PageRequest.of(0, 10));
 
@@ -172,7 +172,7 @@ class LineServiceImplTest {
     @Test
     @DisplayName("복합 조건 검색 적용 확인")
     void getLineList_success_searchByMultipleConditions() {
-        LineSearchCommand cmd = new LineSearchCommand(null, "라인", "홍길동", "IT", true);
+        LineSearchCommand cmd = new LineSearchCommand(null,null,null, "라인", "홍길동", "IT", true);
 
         Page<LineResponseDto> result = lineService.getLineList(cmd, PageRequest.of(0, 10));
 
