@@ -104,12 +104,23 @@ public class MesProductionPerformanceService {
         LocalDate today = LocalDate.now(clock);
         String prefix = String.format("%04d/%02d/%02d", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
         List<String> documentNos = productionPerformanceRepository.findDocumentNosByPrefix(prefix);
-        int nextSeq = 1;
-        if (!documentNos.isEmpty()) {
-            String lastDocNo = documentNos.getFirst();
-            String lastSeqStr = lastDocNo.substring(lastDocNo.indexOf("-") + 1);
-            nextSeq = Integer.parseInt(lastSeqStr) + 1;
-        }
+        int maxSeq = documentNos.stream()
+                .map(docNo -> {
+                    int delimiterIdx = docNo.indexOf("-");
+                    if (delimiterIdx < 0 || delimiterIdx == docNo.length() - 1) {
+                        return 0;
+                    }
+                    try {
+                        return Integer.parseInt(docNo.substring(delimiterIdx + 1));
+                    } catch (NumberFormatException e) {
+                        log.warn("전표번호 시퀀스 파싱 실패 documentNo={}", docNo, e);
+                        return 0;
+                    }
+                })
+                .max(Integer::compareTo)
+                .orElse(0);
+
+        int nextSeq = maxSeq + 1;
         return prefix + String.format("-%d", nextSeq);
     }
 }

@@ -20,7 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class PlanDefectivesXrefServiceTest {
+class PlanDefectiveXrefServiceTest {
 
     @Mock
     private ProductionPlanRepository productionPlanRepository;
@@ -56,23 +56,22 @@ class PlanDefectivesXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(5L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefectives planDefectives = PlanDefectives.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(20L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-1")
                 .build();
         PlanDefectiveXrefs existing = PlanDefectiveXrefs.builder()
                 .id(30L)
-                .planDefectiveId(planDefectives.getId())
+                .planDefectiveId(planDefective.getId())
                 .defectiveId(defectiveId)
                 .defectiveQty(BigDecimal.valueOf(15))
                 .build();
-        when(lastReportedCache.get(planDefectives.getId(), defectiveId, "id:100"))
+        when(lastReportedCache.get(planDefective.getId(), defectiveId, "id:100"))
                 .thenReturn(Optional.of(BigDecimal.valueOf(5)));
         when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
-        when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(
-            planDefectives));
-        when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefectives.getId(), defectiveId))
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(planDefective));
+        when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefective.getId(), defectiveId))
                 .thenReturn(Optional.of(existing));
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
@@ -81,7 +80,7 @@ class PlanDefectivesXrefServiceTest {
         verify(planDefectiveXrefRepository, times(1)).save(captor.capture());
         // base=10 (15-5) + new(7) = 17
         assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(BigDecimal.valueOf(17));
-        verify(lastReportedCache).save(planDefectives.getId(), defectiveId, "id:100", BigDecimal.valueOf(7));
+        verify(lastReportedCache).save(planDefective.getId(), defectiveId, "id:100", BigDecimal.valueOf(7));
     }
 
     @Test
@@ -97,23 +96,22 @@ class PlanDefectivesXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(6L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefectives planDefectives = PlanDefectives.builder()
+        PlanDefective planDefective = PlanDefective.builder()
                 .id(21L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-2")
                 .build();
         PlanDefectiveXrefs existing = PlanDefectiveXrefs.builder()
                 .id(31L)
-                .planDefectiveId(planDefectives.getId())
+                .planDefectiveId(planDefective.getId())
                 .defectiveId(defectiveId)
                 .defectiveQty(BigDecimal.valueOf(12))
                 .build();
-        when(lastReportedCache.get(planDefectives.getId(), defectiveId, "code:EQP-2"))
+        when(lastReportedCache.get(planDefective.getId(), defectiveId, "code:EQP-2"))
                 .thenReturn(Optional.of(BigDecimal.valueOf(12)));
         when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
-        when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(
-            planDefectives));
-        when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefectives.getId(), defectiveId))
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(planDefective));
+        when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefective.getId(), defectiveId))
                 .thenReturn(Optional.of(existing));
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
@@ -121,7 +119,7 @@ class PlanDefectivesXrefServiceTest {
         ArgumentCaptor<PlanDefectiveXrefs> captor = ArgumentCaptor.forClass(PlanDefectiveXrefs.class);
         verify(planDefectiveXrefRepository).save(captor.capture());
         assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(BigDecimal.valueOf(3));
-        verify(lastReportedCache).save(planDefectives.getId(), defectiveId, "code:EQP-2", BigDecimal.valueOf(3));
+        verify(lastReportedCache).save(planDefective.getId(), defectiveId, "code:EQP-2", BigDecimal.valueOf(3));
     }
 
     @Test
@@ -137,15 +135,14 @@ class PlanDefectivesXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(7L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefectives planDefectives = PlanDefectives.builder()
+        PlanDefective planDefective = PlanDefective.builder()
                 .id(22L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-3")
                 .build();
         when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
-        when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(
-            planDefectives));
-        when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefectives.getId(), defectiveId))
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(planDefective));
+        when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefective.getId(), defectiveId))
                 .thenReturn(Optional.empty());
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
@@ -153,7 +150,7 @@ class PlanDefectivesXrefServiceTest {
         ArgumentCaptor<PlanDefectiveXrefs> captor = ArgumentCaptor.forClass(PlanDefectiveXrefs.class);
         verify(planDefectiveXrefRepository).save(captor.capture());
         assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(payloadQty);
-        verify(lastReportedCache).save(planDefectives.getId(), defectiveId, "default", payloadQty);
+        verify(lastReportedCache).save(planDefective.getId(), defectiveId, "default", payloadQty);
     }
 
     @Test
