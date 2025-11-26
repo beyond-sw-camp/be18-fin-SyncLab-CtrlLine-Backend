@@ -9,4 +9,6 @@ public interface LotRepository extends JpaRepository<Lots, Long> {
     boolean existsByProductionPlanId(Long productionPlanId);
 
     Optional<Lots> findTopByLotNoStartingWithOrderByIdDesc(String lotNoPrefix);
+
+    Optional<Lots> findByProductionPlanId(Long productionPlanId);
 }
