@@ -20,6 +20,7 @@ public class GetProductionPerformanceListResponseDto {
     private final String itemCode;
     private final BigDecimal totalQty;
     private final BigDecimal performanceQty;
+    private final BigDecimal defectiveQty;
     private final BigDecimal defectRate;
     private final String remark;
     private final Boolean isDeleted;
