@@ -117,10 +117,3 @@ sourceSets {
 clean {
     delete file(querydslSrcDir)
 }
-
-flyway {
-    url = System.getenv('FLYWAY_URL') ?: 'jdbc:mariadb://121.170.161.72:30028/ctrlline'
-    user = System.getenv('FLYWAY_USER') ?: 'ctrlline'
-    password = System.getenv('FLYWAY_PASSWORD') ?: 'AriaMSyncFlow176!&^'
-    locations = ['classpath:db/migration']
-}
