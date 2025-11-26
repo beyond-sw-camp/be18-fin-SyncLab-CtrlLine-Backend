@@ -13,7 +13,12 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayloa
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.zip.GZIPOutputStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -166,9 +171,9 @@ class MesTelemetryListenerTest {
 
     @Test
     void onTelemetry_handlesOrderSummaryPayload() {
-        String payload = """
-                {"order_summary_payload":{"equipment_code":"EQP-20","produced_qty":120,"ng_qty":5}}
-                """;
+        String compressed = gzipBase64("[\"SR-001\",\"SR-002\"]");
+        String payload = String.format("{\"order_summary_payload\":{\"equipment_code\":\"EQP-20\",\"order_no\":\"PLAN-900\",\"status\":\"WAITING_ACK\",\"produced_qty\":120,\"ng_qty\":5,\"good_serials_gzip\":\"%s\"}}",
+                compressed);
 
         listener.onTelemetry(consumerRecord(payload));
 
@@ -178,13 +183,17 @@ class MesTelemetryListenerTest {
         assertThat(saved.equipmentCode()).isEqualTo("EQP-20");
         assertThat(saved.producedQuantity()).isEqualByComparingTo("120");
         assertThat(saved.defectiveQuantity()).isEqualByComparingTo("5");
+        assertThat(saved.orderNo()).isEqualTo("PLAN-900");
+        assertThat(saved.status()).isEqualTo("WAITING_ACK");
+        assertThat(saved.goodSerials()).containsExactly("SR-001", "SR-002");
+        assertThat(saved.goodSerialsGzip()).isEqualTo(compressed);
     }
 
     @Test
     void onTelemetry_handlesOrderSummaryTagPayload() {
-        String payload = """
-                {"records":[{"value":{"machine":"F0001.CL0001.TrayCleaner01","tag":"order_summary_payload","value":{"equipmentCode":"EQP-30","order_produced_qty":50,"order_ng_qty":4}}}]}
-                """;
+        String compressed = gzipBase64("[\"SR-010\"]");
+        String payload = String.format("{\"records\":[{\"value\":{\"machine\":\"F0001.CL0001.TrayCleaner01\",\"tag\":\"order_summary_payload\",\"value\":{\"equipmentCode\":\"EQP-30\",\"order_no\":\"PLAN-901\",\"status\":\"WAITING_ACK\",\"order_produced_qty\":50,\"order_ng_qty\":4,\"good_serials_gzip\":\"%s\"}}}]}",
+                compressed);
 
         listener.onTelemetry(consumerRecord(payload));
 
@@ -194,6 +203,10 @@ class MesTelemetryListenerTest {
         assertThat(saved.equipmentCode()).isEqualTo("EQP-30");
         assertThat(saved.producedQuantity()).isEqualByComparingTo("50");
         assertThat(saved.defectiveQuantity()).isEqualByComparingTo("4");
+        assertThat(saved.orderNo()).isEqualTo("PLAN-901");
+        assertThat(saved.status()).isEqualTo("WAITING_ACK");
+        assertThat(saved.goodSerials()).containsExactly("SR-010");
+        assertThat(saved.goodSerialsGzip()).isEqualTo(compressed);
     }
 
     @Test
@@ -257,5 +270,16 @@ class MesTelemetryListenerTest {
 
     private ConsumerRecord<String, String> consumerRecord(String payload) {
         return new ConsumerRecord<>("mes-machine-telemetry", 0, 0L, "key", payload);
+    }
+
+    private String gzipBase64(String json) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             GZIPOutputStream gzip = new GZIPOutputStream(baos)) {
+            gzip.write(json.getBytes(StandardCharsets.UTF_8));
+            gzip.finish();
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }
