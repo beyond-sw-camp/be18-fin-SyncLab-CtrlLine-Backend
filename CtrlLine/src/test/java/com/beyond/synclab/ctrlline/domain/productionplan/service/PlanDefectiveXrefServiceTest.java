@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefective;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXref;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveXrefRepository;
@@ -56,12 +56,12 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(5L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(20L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-1")
                 .build();
-        PlanDefectiveXref existing = PlanDefectiveXref.builder()
+        PlanDefectiveXrefs existing = PlanDefectiveXrefs.builder()
                 .id(30L)
                 .planDefectiveId(planDefective.getId())
                 .defectiveId(defectiveId)
@@ -76,7 +76,7 @@ class PlanDefectiveXrefServiceTest {
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
 
-        ArgumentCaptor<PlanDefectiveXref> captor = ArgumentCaptor.forClass(PlanDefectiveXref.class);
+        ArgumentCaptor<PlanDefectiveXrefs> captor = ArgumentCaptor.forClass(PlanDefectiveXrefs.class);
         verify(planDefectiveXrefRepository, times(1)).save(captor.capture());
         // base=10 (15-5) + new(7) = 17
         assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(BigDecimal.valueOf(17));
@@ -96,12 +96,12 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(6L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(21L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-2")
                 .build();
-        PlanDefectiveXref existing = PlanDefectiveXref.builder()
+        PlanDefectiveXrefs existing = PlanDefectiveXrefs.builder()
                 .id(31L)
                 .planDefectiveId(planDefective.getId())
                 .defectiveId(defectiveId)
@@ -116,7 +116,7 @@ class PlanDefectiveXrefServiceTest {
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
 
-        ArgumentCaptor<PlanDefectiveXref> captor = ArgumentCaptor.forClass(PlanDefectiveXref.class);
+        ArgumentCaptor<PlanDefectiveXrefs> captor = ArgumentCaptor.forClass(PlanDefectiveXrefs.class);
         verify(planDefectiveXrefRepository).save(captor.capture());
         assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(BigDecimal.valueOf(3));
         verify(lastReportedCache).save(planDefective.getId(), defectiveId, "code:EQP-2", BigDecimal.valueOf(3));
@@ -135,7 +135,7 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(7L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(22L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-3")
@@ -147,7 +147,7 @@ class PlanDefectiveXrefServiceTest {
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
 
-        ArgumentCaptor<PlanDefectiveXref> captor = ArgumentCaptor.forClass(PlanDefectiveXref.class);
+        ArgumentCaptor<PlanDefectiveXrefs> captor = ArgumentCaptor.forClass(PlanDefectiveXrefs.class);
         verify(planDefectiveXrefRepository).save(captor.capture());
         assertThat(captor.getValue().getDefectiveQty()).isEqualByComparingTo(payloadQty);
         verify(lastReportedCache).save(planDefective.getId(), defectiveId, "default", payloadQty);

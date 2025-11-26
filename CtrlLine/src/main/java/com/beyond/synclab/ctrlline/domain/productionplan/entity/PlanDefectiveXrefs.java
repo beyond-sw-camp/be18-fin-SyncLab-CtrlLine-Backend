@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -17,24 +18,27 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "plan_defective")
+@Table(name = "plan_defective_xref")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(of = "id")
-public class PlanDefective {
+public class PlanDefectiveXrefs {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "plan_defective_id")
+    @Column(name = "defective_xref_id")
     private Long id;
 
-    @Column(name = "production_plan_id", nullable = false)
-    private Long productionPlanId;
+    @Column(name = "defective_id", nullable = false)
+    private Long defectiveId;
 
-    @Column(name = "defective_document_no", nullable = false, length = 32)
-    private String defectiveDocumentNo;
+    @Column(name = "plan_defective_id", nullable = false)
+    private Long planDefectiveId;
+
+    @Column(name = "defective_qty", nullable = false, precision = 10, scale = 2)
+    private BigDecimal defectiveQty;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -43,4 +47,9 @@ public class PlanDefective {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void updateDefectiveQty(BigDecimal defectiveQty) {
+        this.defectiveQty = defectiveQty;
+    }
+
 }
