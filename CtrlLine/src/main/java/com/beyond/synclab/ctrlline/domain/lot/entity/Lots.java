@@ -18,26 +18,36 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-@Getter
-@Builder
+import java.time.LocalDateTime;
+
 @Entity
-@Table(name = "lot")
+@Table(
+        name = "lot",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uq_lot_no",
+                        columnNames = "lot_no"
+                )
+        }
+)
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
+@EntityListeners(AuditingEntityListener.class)
 @EqualsAndHashCode(of = "id")
 public class Lots {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "lot_id")
+    @Column(name = "lot_id", updatable = false)
     private Long id;
-
-    @Builder.Default
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted = false;
 
     @Column(name = "item_id", nullable = false)
     private Long itemId;
@@ -55,6 +65,10 @@ public class Lots {
 
     @Column(name = "lot_no", nullable = false, length = 32)
     private String lotNo;
+
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
