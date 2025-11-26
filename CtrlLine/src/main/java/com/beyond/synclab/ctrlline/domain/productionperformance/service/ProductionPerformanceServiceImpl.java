@@ -6,6 +6,7 @@ import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
+import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
@@ -13,6 +14,7 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.Get
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
@@ -62,7 +64,8 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         // 공장
         Factories factory = line.getFactory();
         // LOT
-        Lots lot = lotRepository.findByProductionPlanId(plan.getId());
+        Lots lot = lotRepository.findByProductionPlanId(plan.getId())
+                .orElseThrow(LotNotFoundException::new);
 
         return GetProductionPerformanceDetailResponseDto.builder()
                 .documentNo(perf.getPerformanceDocumentNo())
@@ -107,7 +110,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 productionPerformanceAllQueryRepository.searchAll(condition);
 
         if (results == null || results.isEmpty()) {
-            throw new AppException(CommonErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND);
+            throw new AppException(ProductionPerformanceErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND);
         }
         return productionPerformanceAllQueryRepository.searchAll(condition);
     }
