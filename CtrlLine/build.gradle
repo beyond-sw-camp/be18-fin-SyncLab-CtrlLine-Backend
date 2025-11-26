@@ -68,6 +68,9 @@ dependencies {
     // OpenApi Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
 
+    // AWS SDK
+    implementation 'software.amazon.awssdk:s3:2.26.26'
+
     // QueryDsl
     // Open Feign QueryDSL (latest security patched version)
     implementation 'io.github.openfeign.querydsl:querydsl-core:7.1'
@@ -113,4 +116,11 @@ sourceSets {
 // gradle clean 시에 QClass 디렉토리 삭제
 clean {
     delete file(querydslSrcDir)
+}
+
+flyway {
+    url = System.getenv('FLYWAY_URL') ?: 'jdbc:mariadb://121.170.161.72:30028/ctrlline'
+    user = System.getenv('FLYWAY_USER') ?: 'ctrlline'
+    password = System.getenv('FLYWAY_PASSWORD') ?: 'AriaMSyncFlow176!&^'
+    locations = ['classpath:db/migration']
 }
