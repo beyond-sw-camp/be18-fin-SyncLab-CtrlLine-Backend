@@ -17,6 +17,10 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(
                         name = "uq_performance_document_no",
                         columnNames = "performance_document_no"
+                ),
+                @UniqueConstraint(
+                        name = "uq_production_performance_plan",
+                        columnNames = "production_plan_id"
                 )
         }
 )
@@ -77,4 +81,17 @@ public class ProductionPerformances {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
+    public void updatePerformance(BigDecimal totalQty, BigDecimal producedQty, BigDecimal defectiveRate,
+                                  LocalDateTime startTime, LocalDateTime endTime) {
+        this.totalQty = totalQty;
+        this.performanceQty = producedQty;
+        this.performanceDefectiveRate = defectiveRate;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.isDeleted = Boolean.FALSE;
+    }
+
+
 }
