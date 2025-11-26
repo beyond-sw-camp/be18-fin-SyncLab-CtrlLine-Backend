@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GetDefectiveDetailResponseDto {
+    private Long id;
     private String defectiveDocNo;     // 불량 전표번호
     private String factoryName;        // 공장명
     private String lineName;           // 라인명
@@ -31,9 +32,11 @@ public class GetDefectiveDetailResponseDto {
     private List<DefectiveItem> defectiveItems;
 
     public static GetDefectiveDetailResponseDto fromEntity(PlanDefectives planDefectives, List<PlanDefectiveXrefs> planDefectiveXrefs) {
-        BigDecimal totalDefectiveQty = planDefectiveXrefs.stream().map(p -> p.getDefectiveQty()).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalDefectiveQty = planDefectiveXrefs.stream().map(
+            PlanDefectiveXrefs::getDefectiveQty).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return GetDefectiveDetailResponseDto.builder()
+            .id(planDefectives.getId())
             .defectiveDocNo(planDefectives.getDefectiveDocumentNo())
             .factoryName(planDefectives.getProductionPlan().getItemLine().getLine().getFactory().getFactoryName())
             .lineName(planDefectives.getProductionPlan().getItemLine().getLine().getLineName())

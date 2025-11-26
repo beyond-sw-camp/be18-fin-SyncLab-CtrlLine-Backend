@@ -23,8 +23,8 @@ public class DefectiveServiceImpl implements DefectiveService {
 
     @Override
     @Transactional(readOnly = true)
-    public GetDefectiveDetailResponseDto getDefective(String documentNo) {
-        PlanDefectives planDefectives = planDefectiveRepository.findByDefectiveDocumentNo(documentNo)
+    public GetDefectiveDetailResponseDto getDefective(Long id) {
+        PlanDefectives planDefectives = planDefectiveRepository.findById(id)
             .orElseThrow(() -> new AppException(DefectiveErrorCode.PLAN_DEFECTIVE_NOT_FOUND));
 
         List<PlanDefectiveXrefs> planDefectiveXrefList = planDefectiveXrefRepository.findAllByPlanDefectiveId(planDefectives.getId());

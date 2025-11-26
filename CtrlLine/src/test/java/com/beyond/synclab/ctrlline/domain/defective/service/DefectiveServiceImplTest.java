@@ -114,7 +114,7 @@ class DefectiveServiceImplTest {
     @DisplayName("불량 상세 조회 - 정상 흐름")
     void getDefective_success() {
         // given
-        String docNo = "2099/01/01-1";
+        Long id = 1234L;
         PlanDefectiveXrefs pdxA = planDefectiveXref.toBuilder()
             .id(1L)
             .defectiveQty(BigDecimal.valueOf(100))
@@ -125,14 +125,14 @@ class DefectiveServiceImplTest {
             .defectiveQty(BigDecimal.valueOf(100))
             .build();
 
-        when(planDefectiveRepository.findByDefectiveDocumentNo(docNo)).thenReturn(Optional.of(planDefectives));
+        when(planDefectiveRepository.findById(id)).thenReturn(Optional.of(planDefectives));
         when(planDefectiveXrefRepository.findAllByPlanDefectiveId(1L)).thenReturn(List.of(pdxA, pdxB));
 
         // when
-        GetDefectiveDetailResponseDto result = defectiveService.getDefective(docNo);
+        GetDefectiveDetailResponseDto result = defectiveService.getDefective(id);
 
         // then
-        assertThat(result.getDefectiveDocNo()).isEqualTo(docNo);
+        assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getFactoryName()).isEqualTo("A공장");
         assertThat(result.getLineName()).isEqualTo("1호라인");
         assertThat(result.getItemCode()).isEqualTo("I001");
@@ -140,7 +140,7 @@ class DefectiveServiceImplTest {
         assertThat(result.getDefectiveItems().getFirst().getDefectiveCode()).isEqualTo("D001");
         assertThat(result.getDefectiveItems().getFirst().getDefectiveRate()).isEqualTo(0.5); // 100 / 200
 
-        verify(planDefectiveRepository, times(1)).findByDefectiveDocumentNo(docNo);
+        verify(planDefectiveRepository, times(1)).findById(id);
         verify(planDefectiveXrefRepository, times(1)).findAllByPlanDefectiveId(1L);
     }
 
@@ -148,17 +148,17 @@ class DefectiveServiceImplTest {
     @DisplayName("불량 상세 조회 - 대상 없음 예외 발생")
     void getDefective_notFound() {
         // given
-        String docNo = "NOT-FOUND";
+        Long id = 1234L;
 
-        when(planDefectiveRepository.findByDefectiveDocumentNo(docNo))
+        when(planDefectiveRepository.findById(id))
             .thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> defectiveService.getDefective(docNo))
+        assertThatThrownBy(() -> defectiveService.getDefective(id))
             .isInstanceOf(AppException.class)
             .hasMessageContaining(DefectiveErrorCode.PLAN_DEFECTIVE_NOT_FOUND.getMessage());
 
-        verify(planDefectiveRepository, times(1)).findByDefectiveDocumentNo(docNo);
+        verify(planDefectiveRepository, times(1)).findById(id);
         verify(planDefectiveXrefRepository, never()).findAllByPlanDefectiveId(any());
     }
 }

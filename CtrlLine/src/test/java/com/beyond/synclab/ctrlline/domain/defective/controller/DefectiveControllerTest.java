@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.defective.controller;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,7 +56,7 @@ class DefectiveControllerTest {
     @DisplayName("불량 상세 조회 성공 - 200")
     void getDefective() throws Exception {
         // given
-        String documentNo = "12345";
+        Long id = 12345L;
 
         GetDefectiveDetailResponseDto getDefectiveDetailResponseDto = GetDefectiveDetailResponseDto.builder()
             .defectiveDocNo("2099/01/01-1")
@@ -80,9 +80,9 @@ class DefectiveControllerTest {
             ))
             .build();
 
-        when(defectiveService.getDefective(anyString())).thenReturn(getDefectiveDetailResponseDto);
+        when(defectiveService.getDefective(anyLong())).thenReturn(getDefectiveDetailResponseDto);
 
-        ResultActions resultActions = mockMvc.perform(get("/api/v1/defectives/{docNo}", documentNo)
+        ResultActions resultActions = mockMvc.perform(get("/api/v1/defectives/{id}", id)
             .contentType(MediaType.APPLICATION_JSON));
 
         resultActions

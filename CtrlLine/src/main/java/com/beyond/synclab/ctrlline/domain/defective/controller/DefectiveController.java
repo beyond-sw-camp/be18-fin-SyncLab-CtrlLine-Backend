@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class DefectiveController {
     private final DefectiveService defectiveService;
 
-    @GetMapping("/{documentNo}")
+    @GetMapping("/{id}")
     public ResponseEntity<BaseResponse<GetDefectiveDetailResponseDto>> getDefective(
-        @PathVariable String documentNo
+        @PathVariable Long id
     ) {
-        GetDefectiveDetailResponseDto responseDto = defectiveService.getDefective(documentNo);
+        GetDefectiveDetailResponseDto responseDto = defectiveService.getDefective(id);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }

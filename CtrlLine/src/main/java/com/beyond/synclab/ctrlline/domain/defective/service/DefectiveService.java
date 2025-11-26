@@ -4,5 +4,5 @@ import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailRespon
 
 public interface DefectiveService {
 
-    GetDefectiveDetailResponseDto getDefective(String documentNo);
+    GetDefectiveDetailResponseDto getDefective(Long id);
 }
