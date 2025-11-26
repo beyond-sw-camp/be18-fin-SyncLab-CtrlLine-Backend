@@ -149,7 +149,7 @@ class ProductionPerformanceServiceTest {
                 .thenReturn(Optional.of(perf));
 
         when(lotRepository.findByProductionPlanId(plan.getId()))
-                .thenReturn(lot);
+                .thenReturn(Optional.of(lot));
 
         // when
         GetProductionPerformanceDetailResponseDto response =
