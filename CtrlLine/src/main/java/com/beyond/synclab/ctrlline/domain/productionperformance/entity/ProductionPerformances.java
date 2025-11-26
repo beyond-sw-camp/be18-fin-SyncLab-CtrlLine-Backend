@@ -53,6 +53,11 @@ public class ProductionPerformances {
     @Column(name = "performance_qty", precision = 10, scale = 2, nullable = false)
     private BigDecimal performanceQty;
 
+    public BigDecimal getPerformanceDefectiveQty() {
+        if (totalQty == null || performanceQty == null) return BigDecimal.ZERO;
+        return totalQty.subtract(performanceQty);
+    }
+
     @Column(name = "performance_defective_rate", precision = 10, scale = 2, nullable = false)
     private BigDecimal performanceDefectiveRate;
 
@@ -77,6 +82,7 @@ public class ProductionPerformances {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+
     public void updatePerformance(BigDecimal totalQty, BigDecimal producedQty, BigDecimal defectiveRate,
                                   LocalDateTime startTime, LocalDateTime endTime) {
         this.totalQty = totalQty;
@@ -86,5 +92,6 @@ public class ProductionPerformances {
         this.endTime = endTime;
         this.isDeleted = Boolean.FALSE;
     }
+
 
 }
