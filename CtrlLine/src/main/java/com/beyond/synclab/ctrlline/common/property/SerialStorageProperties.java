@@ -23,6 +23,6 @@ public class SerialStorageProperties {
     public record Local(String baseDir) {
     }
 
-    public record S3(String bucket, String basePath) {
+    public record S3(String bucket, String basePath, String region) {
     }
 }
