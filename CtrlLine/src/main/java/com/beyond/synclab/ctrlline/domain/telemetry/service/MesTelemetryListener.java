@@ -62,17 +62,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PreDestroy;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.GZIPInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -425,6 +432,10 @@ public class MesTelemetryListener {
                 ORDER_SUMMARY_DEFECTIVE_QTY_FIELD,
                 ORDER_NG_QTY_FIELD,
                 NG_QTY_FIELD);
+        String orderNo = firstNonEmptyValue(summaryNode, PRODUCTION_PERFORMANCE_ORDER_NO_FIELD, "order_no");
+        String status = firstNonEmptyValue(summaryNode, STATUS_FIELD, ORDER_NG_STATUS_FIELD);
+        String compressedSerials = extractCompressedSerials(summaryNode);
+        List<String> goodSerials = extractGoodSerials(summaryNode, compressedSerials);
         if (!StringUtils.hasText(equipmentCode) || producedQuantity == null) {
             return null;
         }
@@ -432,7 +443,66 @@ public class MesTelemetryListener {
                 .equipmentCode(equipmentCode)
                 .producedQuantity(producedQuantity)
                 .defectiveQuantity(defectiveQuantity)
+                .orderNo(orderNo)
+                .status(status)
+                .goodSerials(goodSerials)
+                .goodSerialsGzip(compressedSerials)
                 .build();
+    }
+
+    private String extractCompressedSerials(JsonNode summaryNode) {
+        JsonNode compressedNode = summaryNode.get("good_serials_gzip");
+        if (compressedNode != null && compressedNode.isTextual()) {
+            return compressedNode.asText();
+        }
+        return null;
+    }
+
+    private List<String> extractGoodSerials(JsonNode summaryNode, String compressedValue) {
+        if (StringUtils.hasText(compressedValue)) {
+            List<String> serials = decompressSerials(compressedValue);
+            if (!serials.isEmpty()) {
+                return serials;
+            }
+        }
+        JsonNode serialsNode = summaryNode.get("good_serials");
+        if (serialsNode == null || !serialsNode.isArray()) {
+            return Collections.emptyList();
+        }
+        List<String> serials = new ArrayList<>();
+        for (JsonNode serialNode : serialsNode) {
+            if (serialNode.isTextual()) {
+                serials.add(serialNode.asText());
+            }
+        }
+        return serials;
+    }
+
+    private List<String> decompressSerials(String compressed) {
+        if (!StringUtils.hasText(compressed)) {
+            return Collections.emptyList();
+        }
+        try {
+            byte[] gzipped = Base64.getDecoder().decode(compressed);
+            try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(gzipped))) {
+                byte[] buffer = gzip.readAllBytes();
+                String json = new String(buffer, StandardCharsets.UTF_8);
+                JsonNode node = objectMapper.readTree(json);
+                if (node == null || !node.isArray()) {
+                    return Collections.emptyList();
+                }
+                List<String> serials = new ArrayList<>();
+                for (JsonNode entry : node) {
+                    if (entry.isTextual()) {
+                        serials.add(entry.asText());
+                    }
+                }
+                return serials;
+            }
+        } catch (IOException | IllegalArgumentException ex) {
+            log.warn("Failed to decompress good_serials payload", ex);
+            return Collections.emptyList();
+        }
     }
 
     private ProductionPerformanceTelemetryPayload buildProductionPerformancePayload(JsonNode performanceNode) {

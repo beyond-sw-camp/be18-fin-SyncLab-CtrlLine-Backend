@@ -59,18 +59,25 @@ public class MesProductionPerformanceService {
         BigDecimal totalQty = producedQty.add(ngQty);
         BigDecimal defectiveRate = calculateDefectiveRate(totalQty, ngQty);
 
-        ProductionPerformances performance = ProductionPerformances.builder()
-                .productionPlan(productionPlan)
-                .productionPlanId(productionPlan.getId())
-                .performanceDocumentNo(createDocumentNo())
-                .totalQty(totalQty)
-                .performanceQty(producedQty)
-                .performanceDefectiveRate(defectiveRate)
-                .startTime(payload.executeAt())
-                .endTime(payload.waitingAckAt())
-                .remark(null)
-                .isDeleted(Boolean.FALSE)
-                .build();
+        ProductionPerformances performance = productionPerformanceRepository
+                .findByProductionPlanId(productionPlan.getId())
+                .map(existing -> {
+                    existing.updatePerformance(totalQty, producedQty, defectiveRate,
+                            payload.executeAt(), payload.waitingAckAt());
+                    return existing;
+                })
+                .orElseGet(() -> ProductionPerformances.builder()
+                        .productionPlan(productionPlan)
+                        .productionPlanId(productionPlan.getId())
+                        .performanceDocumentNo(createDocumentNo())
+                        .totalQty(totalQty)
+                        .performanceQty(producedQty)
+                        .performanceDefectiveRate(defectiveRate)
+                        .startTime(payload.executeAt())
+                        .endTime(payload.waitingAckAt())
+                        .remark(null)
+                        .isDeleted(Boolean.FALSE)
+                        .build());
 
         productionPerformanceRepository.save(performance);
         log.info("생산실적 저장 완료. performanceDocumentNo={}, planDocumentNo={}",

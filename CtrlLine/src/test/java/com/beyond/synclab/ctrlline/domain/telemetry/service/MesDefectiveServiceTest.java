@@ -31,6 +31,8 @@ class MesDefectiveServiceTest {
     private DefectiveRepository defectiveRepository;
     @Mock
     private PlanDefectiveXrefService planDefectiveXrefService;
+    @Mock
+    private OrderSerialArchiveService orderSerialArchiveService;
 
     @Captor
     private ArgumentCaptor<Defectives> defectiveCaptor;
@@ -39,7 +41,7 @@ class MesDefectiveServiceTest {
 
     @BeforeEach
     void setUp() {
-        mesDefectiveService = new MesDefectiveService(defectiveRepository, equipmentRepository, planDefectiveXrefService);
+        mesDefectiveService = new MesDefectiveService(defectiveRepository, equipmentRepository, planDefectiveXrefService, orderSerialArchiveService);
         lenient().when(defectiveRepository.save(any(Defectives.class))).thenAnswer(invocation -> {
             Defectives entity = invocation.getArgument(0);
             return Defectives.builder()
@@ -130,6 +132,7 @@ class MesDefectiveServiceTest {
 
         assertThat(equipment.getTotalCount()).isEqualByComparingTo("40");
         assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("8");
+        verify(orderSerialArchiveService, never()).archive(any());
     }
 
     @Test
@@ -153,6 +156,7 @@ class MesDefectiveServiceTest {
 
         assertThat(equipment.getTotalCount()).isEqualByComparingTo("15"); // 10 + (15-10)
         assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("2");
+        verify(orderSerialArchiveService, never()).archive(any());
     }
 
     @Test
@@ -176,6 +180,23 @@ class MesDefectiveServiceTest {
 
         assertThat(equipment.getTotalCount()).isEqualByComparingTo("35"); // 30 + 5 (reset)
         assertThat(equipment.getDefectiveCount()).isEqualByComparingTo("4");
+        verify(orderSerialArchiveService, never()).archive(any());
+    }
+
+    @Test
+    void saveOrderSummaryTelemetry_archivesSerialsWhenCompressed() {
+        OrderSummaryTelemetryPayload payload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-9")
+                .producedQuantity(BigDecimal.valueOf(25))
+                .defectiveQuantity(BigDecimal.ZERO)
+                .goodSerialsGzip("QkFTRTY0")
+                .build();
+        Equipments equipment = sampleEquipment(9L);
+        when(equipmentRepository.findByEquipmentCode("EQP-9")).thenReturn(Optional.of(equipment));
+
+        mesDefectiveService.saveOrderSummaryTelemetry(payload);
+
+        verify(orderSerialArchiveService).archive(payload);
     }
 
     @Test

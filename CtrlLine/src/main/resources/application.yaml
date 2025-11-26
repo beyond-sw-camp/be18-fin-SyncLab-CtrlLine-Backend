@@ -9,3 +9,9 @@ spring:
 
 server:
   port: 8080
+
+app:
+  serial-storage:
+    type: local
+    local:
+      base-dir: ./serial-archive

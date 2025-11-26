@@ -12,4 +12,6 @@ public interface LotRepository extends JpaRepository<Lots, Long> {
     Lots findByProductionPlanId(Long productionPerformanceId);
 
     Optional<Lots> findTopByLotNoStartingWithOrderByIdDesc(String lotNoPrefix);
+
+    Optional<Lots> findByProductionPlanId(Long productionPlanId);
 }

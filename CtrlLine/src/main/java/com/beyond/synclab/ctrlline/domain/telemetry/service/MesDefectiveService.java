@@ -26,6 +26,7 @@ public class MesDefectiveService {
     private final DefectiveRepository defectiveRepository;
     private final EquipmentRepository equipmentRepository;
     private final PlanDefectiveXrefService planDefectiveXrefService;
+    private final OrderSerialArchiveService orderSerialArchiveService;
     private final Map<Long, BigDecimal> lastProducedQuantityByEquipment = new ConcurrentHashMap<>();
     private final Map<Long, BigDecimal> lastDefectiveQuantityByEquipment = new ConcurrentHashMap<>();
 
@@ -84,6 +85,9 @@ public class MesDefectiveService {
         Equipments equipment = equipmentOptional.get();
         EquipmentSummaryDelta delta = calculateSummaryDelta(equipment.getId(), payload.producedQuantity(), payload.defectiveQuantity());
         equipment.accumulateProduction(delta.producedDelta(), delta.defectiveDelta());
+        if (StringUtils.hasText(payload.goodSerialsGzip())) {
+            orderSerialArchiveService.archive(payload);
+        }
     }
 
     private EquipmentSummaryDelta calculateSummaryDelta(Long equipmentId, BigDecimal producedQuantity, BigDecimal defectiveQuantity) {
