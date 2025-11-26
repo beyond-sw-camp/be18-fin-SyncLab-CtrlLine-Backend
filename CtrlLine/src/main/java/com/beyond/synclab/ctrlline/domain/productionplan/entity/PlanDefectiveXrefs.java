@@ -26,7 +26,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(name = "plan_defective_xref")
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(of = "id")
