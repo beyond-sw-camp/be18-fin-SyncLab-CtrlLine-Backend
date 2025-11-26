@@ -16,9 +16,14 @@ public class GetProductionPerformanceDetailResponseDto {
 
     private final String documentNo;
     private final String factoryCode;
+    private final String factoryName;
     private final String lineCode;
+    private final String lineName;
     private final String salesManagerNo;
+    private final String salesManagerName;
     private final String productionManagerNo;
+    private final String productionManagerName;
+    private final String remark;
     private final String lotNo;
     private final String itemCode;
     private final String itemName;
@@ -26,6 +31,7 @@ public class GetProductionPerformanceDetailResponseDto {
     private final String itemUnit;
     private final BigDecimal totalQty;
     private final BigDecimal performanceQty;
+    private final BigDecimal defectiveQty;
     private final BigDecimal defectiveRate;
     private final LocalDateTime startTime;
     private final LocalDateTime endTime;

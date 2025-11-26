@@ -4,13 +4,16 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+@Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
+@ToString
 public class SearchProductionPerformanceRequestDto {
 
-    private String documentNo;
+    private String documentDateFrom;
+    private String documentDateTo;
     private String factoryCode;
     private String lineCode;
     private String itemCode;
@@ -23,11 +26,14 @@ public class SearchProductionPerformanceRequestDto {
     private BigDecimal maxPerformanceQty;
     private BigDecimal minDefectRate;
     private BigDecimal maxDefectRate;
-    private String salesManagerName;
-    private String producerManagerName;
-    private String startDate;
-    private String endDate;
-    private String dueDate;
+    private String salesManagerNo;
+    private String producerManagerNo;
+    private String startTimeFrom;
+    private String startTimeTo;
+    private String endTimeFrom;
+    private String endTimeTo;
+    private String dueDateFrom;
+    private String dueDateTo;
     private String remark;
     private Boolean isDeleted;
 }

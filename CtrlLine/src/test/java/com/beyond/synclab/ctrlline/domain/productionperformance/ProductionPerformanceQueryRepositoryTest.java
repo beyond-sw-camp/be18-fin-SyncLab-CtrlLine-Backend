@@ -235,7 +235,8 @@ class ProductionPerformanceQueryRepositoryTest {
     void testSearch_documentNoFilter() {
         SearchProductionPerformanceRequestDto condition =
                 SearchProductionPerformanceRequestDto.builder()
-                        .documentNo("18")   // 2025/11/18-1
+                        .documentDateFrom("2025/11/18")
+                        .documentDateTo("2025/11/18")
                         .build();
 
         Pageable pageable = PageRequest.of(0, 10);
@@ -321,10 +322,10 @@ class ProductionPerformanceQueryRepositoryTest {
 
         SearchProductionPerformanceRequestDto condition =
                 SearchProductionPerformanceRequestDto.builder()
-                        .startDate(today.minusDays(2).toString())
-                        .endDate(today.plusDays(1).toString())
+                        .startTimeFrom(today.minusDays(2).toString())
+                        .startTimeTo(today.plusDays(1).toString())
                         .itemCode("ITEM-B")
-                        .salesManagerName("홍길동")
+                        .salesManagerNo("E1000")
                         .build();
 
         Pageable pageable = PageRequest.of(0, 10);

@@ -1,16 +1,21 @@
 package com.beyond.synclab.ctrlline.domain.productionperformance.service;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -28,6 +33,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
 
     private final ProductionPerformanceRepository performanceRepository;
     private final LotRepository lotRepository;
+    private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
 
     // 생산실적 목록 조회
     @Override
@@ -76,6 +82,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
 
                 .totalQty(perf.getTotalQty())
                 .performanceQty(perf.getPerformanceQty())
+                .defectiveQty(perf.getPerformanceDefectiveQty())
                 .defectiveRate(perf.getPerformanceDefectiveRate())
 
                 .startTime(perf.getStartTime())
@@ -86,5 +93,22 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 .updatedAt(perf.getUpdatedAt())
 
                 .build();
+    }
+
+    // 생산실적 현황 조회
+    @Override
+    @Transactional(readOnly = true)
+    public List<GetAllProductionPerformanceResponseDto> getAllProductionPerformances(
+            SearchAllProductionPerformanceRequestDto condition
+    ) {
+        log.debug(condition.toString());
+
+        List<GetAllProductionPerformanceResponseDto> results =
+                productionPerformanceAllQueryRepository.searchAll(condition);
+
+        if (results == null || results.isEmpty()) {
+            throw new AppException(CommonErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND);
+        }
+        return productionPerformanceAllQueryRepository.searchAll(condition);
     }
 }
