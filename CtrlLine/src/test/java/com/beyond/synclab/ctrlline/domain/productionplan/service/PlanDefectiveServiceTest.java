@@ -6,7 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefective;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
@@ -45,19 +45,19 @@ class PlanDefectiveServiceTest {
         ProductionPlans plan = samplePlan(10L);
         when(planDefectiveRepository.existsByProductionPlanId(10L)).thenReturn(false);
         when(planDefectiveRepository.findTopByDefectiveDocumentNoStartingWithOrderByIdDesc("2025/10/30-"))
-                .thenReturn(Optional.of(PlanDefective.builder()
+                .thenReturn(Optional.of(PlanDefectives.builder()
                         .id(5L)
                         .productionPlanId(9L)
                         .defectiveDocumentNo("2025/10/30-3")
                         .build()));
-        when(planDefectiveRepository.save(any(PlanDefective.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0, PlanDefective.class));
+        when(planDefectiveRepository.save(any(PlanDefectives.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, PlanDefectives.class));
 
         planDefectiveService.createPlanDefective(plan);
 
-        ArgumentCaptor<PlanDefective> captor = ArgumentCaptor.forClass(PlanDefective.class);
+        ArgumentCaptor<PlanDefectives> captor = ArgumentCaptor.forClass(PlanDefectives.class);
         verify(planDefectiveRepository).save(captor.capture());
-        PlanDefective saved = captor.getValue();
+        PlanDefectives saved = captor.getValue();
         assertThat(saved.getProductionPlanId()).isEqualTo(10L);
         assertThat(saved.getDefectiveDocumentNo()).isEqualTo("2025/10/30-4");
     }
