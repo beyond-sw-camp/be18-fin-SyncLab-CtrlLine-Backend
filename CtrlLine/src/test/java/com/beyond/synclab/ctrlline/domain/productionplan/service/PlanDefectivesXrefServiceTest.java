@@ -56,7 +56,7 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(5L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(20L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-1")
@@ -96,7 +96,7 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(6L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(21L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-2")
@@ -135,7 +135,7 @@ class PlanDefectiveXrefServiceTest {
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getId()).thenReturn(7L);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.RUNNING);
-        PlanDefective planDefective = PlanDefective.builder()
+        PlanDefectives planDefective = PlanDefectives.builder()
                 .id(22L)
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-3")
