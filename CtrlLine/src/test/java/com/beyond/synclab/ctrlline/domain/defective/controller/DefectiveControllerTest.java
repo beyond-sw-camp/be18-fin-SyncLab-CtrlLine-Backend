@@ -8,13 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto.DefectiveItem;
 import com.beyond.synclab.ctrlline.domain.defective.service.DefectiveService;
 import com.beyond.synclab.ctrlline.domain.defective.service.DefectiveServiceImpl;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,20 +61,23 @@ class DefectiveControllerTest {
         GetDefectiveDetailResponseDto getDefectiveDetailResponseDto = GetDefectiveDetailResponseDto.builder()
             .defectiveDocNo("2099/01/01-1")
             .factoryName("공장1")
-            .lineName("라인1")
-            .equipmentName("설비1")
-            .equipmentCode("E001")
-            .defectiveCode("D001")
-            .defectiveType("d1")
-            .defectiveName("불량1")
             .itemCode("I001")
             .itemName("품목1")
             .itemUnit("EA.")
             .itemSpecification("규격1")
+            .lineName("라인1")
             .totalQty(BigDecimal.valueOf(10000))
-            .defectiveQty(BigDecimal.valueOf(100))
-            .defectiveRate(0.01)
-            .createdAt(LocalDateTime.now(clock))
+            .defectiveItems(List.of(
+                DefectiveItem.builder()
+                    .equipmentName("설비1")
+                    .equipmentCode("E001")
+                    .defectiveCode("D001")
+                    .defectiveType("d1")
+                    .defectiveName("불량1")
+                    .defectiveQty(BigDecimal.valueOf(100))
+                    .defectiveRate(0.01)
+                    .build()
+            ))
             .build();
 
         when(defectiveService.getDefective(anyString())).thenReturn(getDefectiveDetailResponseDto);
@@ -84,9 +88,8 @@ class DefectiveControllerTest {
         resultActions
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.defectiveDocNo").value("2099/01/01-1"))
-            .andExpect(jsonPath("$.data.defectiveCode").value("D001"))
-            .andExpect(jsonPath("$.data.defectiveType").value("d1"));
-
+            .andExpect(jsonPath("$.data.defectives[0].defectiveCode").value("D001"))
+            .andExpect(jsonPath("$.data.defectives[0].defectiveType").value("d1"));
     }
 
 }
