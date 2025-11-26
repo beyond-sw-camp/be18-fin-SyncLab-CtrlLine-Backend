@@ -30,6 +30,10 @@ public class Lots {
     @Column(name = "lot_id")
     private Long id;
 
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
     @Column(name = "item_id", nullable = false)
     private Long itemId;
 
