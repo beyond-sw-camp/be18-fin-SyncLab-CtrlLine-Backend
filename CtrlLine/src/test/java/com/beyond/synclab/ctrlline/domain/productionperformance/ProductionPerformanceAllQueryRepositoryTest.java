@@ -238,7 +238,7 @@ class ProductionPerformanceAllQueryRepositoryTest {
         List<GetAllProductionPerformanceResponseDto> result =
                 queryRepository.searchAll(condition);
 
-        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).hasSize(2);
     }
 
     @Test
@@ -254,7 +254,7 @@ class ProductionPerformanceAllQueryRepositoryTest {
         List<GetAllProductionPerformanceResponseDto> result =
                 queryRepository.searchAll(condition);
 
-        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).hasSize(1);
         assertThat(result.get(0).getTotalQty()).isEqualTo("120.00");
     }
 
