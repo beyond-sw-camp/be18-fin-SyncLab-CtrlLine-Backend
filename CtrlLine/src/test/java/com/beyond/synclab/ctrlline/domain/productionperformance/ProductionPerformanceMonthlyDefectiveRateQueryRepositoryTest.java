@@ -6,8 +6,8 @@ import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.monthlydef.ProductionPerformanceMonthlyDefectiveRateQueryRepository;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.monthlydef.ProductionPerformanceMonthlyDefectiveRateQueryRepositoryImpl;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyDefRateQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyDefRateQueryRepositoryImpl;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import config.QuerydslTestConfig;
@@ -29,14 +29,14 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import({QuerydslTestConfig.class, ProductionPerformanceMonthlyDefectiveRateQueryRepositoryImpl.class})
+@Import({QuerydslTestConfig.class, ProductionPerformanceMonthlyDefRateQueryRepositoryImpl.class})
 class ProductionPerformanceMonthlyDefectiveRateQueryRepositoryTest {
 
     @Autowired
     private EntityManager em;
 
     @Autowired
-    private ProductionPerformanceMonthlyDefectiveRateQueryRepositoryImpl defectiveRepo;
+    private ProductionPerformanceMonthlyDefRateQueryRepositoryImpl defectiveRepo;
 
     private Factories factory;
     private Lines line;
@@ -204,13 +204,13 @@ class ProductionPerformanceMonthlyDefectiveRateQueryRepositoryTest {
     @DisplayName("단일 월 totalQtySum / performanceQtySum 조회 정상 동작")
     void testSingleMonthQtySum() {
 
-        Map<YearMonth, ProductionPerformanceMonthlyDefectiveRateQueryRepository.MonthlyQtySum> result =
+        Map<YearMonth, ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum> result =
                 defectiveRepo.getMonthlyQtySum(
                         "F001",
                         List.of(YearMonth.of(2025, 11))
                 );
 
-        ProductionPerformanceMonthlyDefectiveRateQueryRepository.MonthlyQtySum sum = result.get(YearMonth.of(2025, 11));
+        ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum sum = result.get(YearMonth.of(2025, 11));
 
         assertThat(sum.getTotalQtySum()).isEqualByComparingTo(BigDecimal.valueOf(100));
         assertThat(sum.getPerformanceQtySum()).isEqualByComparingTo(BigDecimal.valueOf(90));
@@ -232,7 +232,7 @@ class ProductionPerformanceMonthlyDefectiveRateQueryRepositoryTest {
                 YearMonth.of(2025, 12)
         );
 
-        Map<YearMonth, ProductionPerformanceMonthlyDefectiveRateQueryRepository.MonthlyQtySum> result =
+        Map<YearMonth, ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum> result =
                 defectiveRepo.getMonthlyQtySum("F001", months);
 
         assertThat(result)
@@ -269,7 +269,7 @@ class ProductionPerformanceMonthlyDefectiveRateQueryRepositoryTest {
     @DisplayName("데이터 없는 월은 결과에 포함되지 않는다")
     void testEmptyMonth() {
 
-        Map<YearMonth, ProductionPerformanceMonthlyDefectiveRateQueryRepository.MonthlyQtySum> result =
+        Map<YearMonth, ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum> result =
                 defectiveRepo.getMonthlyQtySum(
                         "F001",
                         List.of(YearMonth.of(2025, 10))

@@ -77,12 +77,12 @@ public class ProductionPerformanceController {
 
     // 공장별 월별 불량률 조회
     @GetMapping("/monthly-defective-rate")
-    public ResponseEntity<BaseResponse<GetProductionPerformanceMonthlyDefectiveRateResponseDto.FactoryMonthlyDefectiveRate>>
+    public ResponseEntity<BaseResponse<GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate>>
     getMonthlyDefectiveRate(
             @RequestParam String factoryCode,
             @RequestParam(required = false) String baseMonth
     ) {
-        GetProductionPerformanceMonthlyDefectiveRateResponseDto.FactoryMonthlyDefectiveRate result =
+        GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate result =
                 productionPerformanceService.getMonthlyDefectiveRateProductionPerformances(factoryCode, baseMonth);
 
         return ResponseEntity.ok(ok(result));

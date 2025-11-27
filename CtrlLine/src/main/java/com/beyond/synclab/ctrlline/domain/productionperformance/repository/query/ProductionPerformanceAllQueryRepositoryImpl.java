@@ -1,4 +1,4 @@
-package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.all;
+package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query;
 
 import com.beyond.synclab.ctrlline.domain.factory.entity.QFactories;
 import com.beyond.synclab.ctrlline.domain.item.entity.QItems;

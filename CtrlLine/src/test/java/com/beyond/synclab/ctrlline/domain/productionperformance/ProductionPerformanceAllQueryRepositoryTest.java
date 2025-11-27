@@ -17,8 +17,8 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.Sear
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.all.ProductionPerformanceAllQueryRepository;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.all.ProductionPerformanceAllQueryRepositoryImpl;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepositoryImpl;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;

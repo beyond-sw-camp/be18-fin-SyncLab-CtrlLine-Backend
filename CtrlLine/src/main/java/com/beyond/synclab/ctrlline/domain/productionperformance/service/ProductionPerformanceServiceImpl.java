@@ -16,9 +16,9 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.entity.Productio
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.all.ProductionPerformanceAllQueryRepository;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.monthlydef.ProductionPerformanceMonthlyDefectiveRateQueryRepository;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.monthlysum.ProductionPerformanceMonthlyQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyDefRateQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +44,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
     private final FactoryRepository factoryRepository;
     private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository;
-    private final ProductionPerformanceMonthlyDefectiveRateQueryRepository productionPerformanceMonthlyDefectiveRateQueryRepository;
+    private final ProductionPerformanceMonthlyDefRateQueryRepository productionPerformanceMonthlyDefectiveRateQueryRepository;
 
 
     // 생산실적 목록 조회
@@ -175,7 +175,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     // 공장별 최근 6개월 월별 불량률 조회
     @Override
     @Transactional(readOnly = true)
-    public GetProductionPerformanceMonthlyDefectiveRateResponseDto.FactoryMonthlyDefectiveRate
+    public GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate
     getMonthlyDefectiveRateProductionPerformances(String factoryCode, String baseMonth) {
 
         // 공장 검증
@@ -199,14 +199,14 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 .toList();
 
         // 월별 totalQtySum, performanceQtySum 조회
-        Map<YearMonth, ProductionPerformanceMonthlyDefectiveRateQueryRepository.MonthlyQtySum> qtySumMap =
+        Map<YearMonth, ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum> qtySumMap =
                 productionPerformanceMonthlyDefectiveRateQueryRepository.getMonthlyQtySum(factoryCode, months);
 
         // 월별 불량률 계산 후 DTO 변환
-        List<GetProductionPerformanceMonthlyDefectiveRateResponseDto> performances = months.stream()
+        List<GetProductionPerformanceMonthlyDefRateResponseDto> performances = months.stream()
                 .map(ym -> {
 
-                    ProductionPerformanceMonthlyDefectiveRateQueryRepository.MonthlyQtySum qtySum =
+                    ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum qtySum =
                             qtySumMap.get(ym);
 
                     BigDecimal totalQty = (qtySum != null) ? qtySum.getTotalQtySum() : BigDecimal.ZERO;
@@ -222,7 +222,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                                     .multiply(BigDecimal.valueOf(100))
                                     .setScale(2, RoundingMode.HALF_UP); // ← 소수점 둘째 자리 정확
 
-                    return GetProductionPerformanceMonthlyDefectiveRateResponseDto.of(
+                    return GetProductionPerformanceMonthlyDefRateResponseDto.of(
                             ym.toString(),
                             defectiveRate
                     );
@@ -230,7 +230,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 .toList();
 
         // Wrapper DTO 생성 후 반환
-        return GetProductionPerformanceMonthlyDefectiveRateResponseDto.FactoryMonthlyDefectiveRate.of(
+        return GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate.of(
                 factory.getFactoryCode(),
                 factory.getFactoryName(),
                 performances

@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class GetProductionPerformanceMonthlyDefectiveRateResponseDto {
+public class GetProductionPerformanceMonthlyDefRateResponseDto {
 
     // 기준 월
     private String month;
@@ -22,11 +22,11 @@ public class GetProductionPerformanceMonthlyDefectiveRateResponseDto {
     // 해당 월의 총 불량률 (%)
     private BigDecimal monthlyDefectiveRate;
 
-    public static GetProductionPerformanceMonthlyDefectiveRateResponseDto of(
+    public static GetProductionPerformanceMonthlyDefRateResponseDto of(
             String month,
             BigDecimal monthlyDefectiveRate
     ) {
-        return GetProductionPerformanceMonthlyDefectiveRateResponseDto.builder()
+        return GetProductionPerformanceMonthlyDefRateResponseDto.builder()
                 .month(month)
                 .monthlyDefectiveRate(monthlyDefectiveRate)
                 .build();
@@ -42,12 +42,12 @@ public class GetProductionPerformanceMonthlyDefectiveRateResponseDto {
         private String factoryName;
 
         @JsonProperty("performances")
-        private List<GetProductionPerformanceMonthlyDefectiveRateResponseDto> performances;
+        private List<GetProductionPerformanceMonthlyDefRateResponseDto> performances;
 
         public static FactoryMonthlyDefectiveRate of(
                 String factoryCode,
                 String factoryName,
-                List<GetProductionPerformanceMonthlyDefectiveRateResponseDto> performances
+                List<GetProductionPerformanceMonthlyDefRateResponseDto> performances
         ) {
             return FactoryMonthlyDefectiveRate.builder()
                     .factoryCode(factoryCode)

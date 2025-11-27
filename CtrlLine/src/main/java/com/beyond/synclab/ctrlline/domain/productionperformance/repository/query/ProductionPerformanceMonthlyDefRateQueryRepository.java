@@ -1,11 +1,11 @@
-package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.monthlydef;
+package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 
-public interface ProductionPerformanceMonthlyDefectiveRateQueryRepository {
+public interface ProductionPerformanceMonthlyDefRateQueryRepository {
 
     Map<YearMonth, MonthlyQtySum> getMonthlyQtySum(String factoryCode, List<YearMonth> months);
 

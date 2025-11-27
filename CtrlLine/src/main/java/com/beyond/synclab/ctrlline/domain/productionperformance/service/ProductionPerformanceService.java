@@ -31,6 +31,6 @@ public interface ProductionPerformanceService {
     getMonthlySumProductionPerformances(String factoryCode, String baseMonth);
 
     // 공장별 월별 불량률 조회 (대시보드)
-    GetProductionPerformanceMonthlyDefectiveRateResponseDto.FactoryMonthlyDefectiveRate
+    GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate
     getMonthlyDefectiveRateProductionPerformances(String factoryCode, String baseMonth);
 }
