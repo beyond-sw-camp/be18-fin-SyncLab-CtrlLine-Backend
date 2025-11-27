@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
@@ -40,8 +41,10 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
@@ -1303,4 +1306,68 @@ class ProductionPlanServiceImplTest {
         }
     }
 
+    @Nested
+    @DisplayName("생산계획 상태 변경 테스트")
+    class UpdateProductionPlanStatusTest {
+
+        @Test
+        @DisplayName("생산계획 상태 변경 성공")
+        void updateProductionPlanStatus_success() {
+            // given
+            List<Long> planIds = List.of(1L, 2L, 3L);
+            PlanStatus newStatus = PlanStatus.COMPLETED;
+
+            UpdateProductionPlanStatusRequestDto request =
+                UpdateProductionPlanStatusRequestDto.builder()
+                    .planIds(planIds)
+                    .planStatus(newStatus)
+                    .build();
+
+            // update 성공: 영향 row 수 = 요청 ID 개수
+            when(productionPlanRepository.updateAllStatusById(planIds, newStatus))
+                .thenReturn(planIds.size());
+
+            // 업데이트된 엔티티 조회
+            List<ProductionPlans> plans = planIds.stream()
+                .map(id -> ProductionPlans.builder()
+                    .id(id)
+                    .status(newStatus)
+                    .build()
+                ).toList();
+
+            when(productionPlanRepository.findAllByIdIn(planIds)).thenReturn(plans);
+
+            // when
+            UpdateProductionPlanStatusResponseDto response =
+                productionPlanService.updateProductionPlanStatus(request);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getPlanIds()).containsExactlyInAnyOrder(1L, 2L, 3L);
+            assertThat(response.getPlanStatus()).isEqualTo(newStatus);
+        }
+
+        @Test
+        @DisplayName("생산계획 상태 변경 실패 - 영향된 row 수 미달")
+        void updateProductionPlanStatus_failed() {
+            // given
+            List<Long> planIds = List.of(1L, 2L, 3L);
+            PlanStatus newStatus = PlanStatus.COMPLETED;
+
+            UpdateProductionPlanStatusRequestDto request =
+                UpdateProductionPlanStatusRequestDto.builder()
+                    .planIds(planIds)
+                    .planStatus(newStatus)
+                    .build();
+
+            // update 실패 (예: 2개만 업데이트됨)
+            when(productionPlanRepository.updateAllStatusById(planIds, newStatus))
+                .thenReturn(2);
+
+            // when & then
+            assertThatThrownBy(() -> productionPlanService.updateProductionPlanStatus(request))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(CommonErrorCode.UNEXPECTED_ERROR.getMessage());
+        }
+    }
 }
