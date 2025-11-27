@@ -1,6 +1,5 @@
 package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query;
 
-import com.beyond.synclab.ctrlline.common.util.QuerydslUtils;
 import com.beyond.synclab.ctrlline.domain.factory.entity.QFactories;
 import com.beyond.synclab.ctrlline.domain.item.entity.QItems;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
@@ -11,22 +10,17 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.Get
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
-import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Path;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.*;
-import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Repository

@@ -2,10 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.service;
 
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceMonthlySumResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -32,4 +29,8 @@ public interface ProductionPerformanceService {
     // 공장별 월별 생산량 조회 (대시보드)
     GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance
     getMonthlySumProductionPerformances(String factoryCode, String baseMonth);
+
+    // 공장별 월별 불량률 조회 (대시보드)
+    GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate
+    getMonthlyDefectiveRateProductionPerformances(String factoryCode, String baseMonth);
 }
