@@ -8,10 +8,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
-import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,15 +98,23 @@ class MesTelemetryListenerTest {
 
     @Test
     void onTelemetry_aggregatesEnergyUsagePerTimestamp() {
+        Optional<Factories> factory = Optional.of(Factories.builder()
+                .id(1L)
+                .factoryCode("F0001")
+                .factoryName("Factory01")
+                .isActive(true)
+                .build());
+        given(factoryRepository.findByFactoryCode("F0001")).willReturn(factory);
+
         String firstPayload = """
                 {"records":[
-                    {"value":{"machine":"M-01","tag":"energy_usage","value":0.5,"timestamp":1762756823000}},
-                    {"value":{"machine":"M-02","tag":"energy_usage","value":1.0,"timestamp":1762756823000}}
+                    {"value":{"machine":"F0001.M-01","tag":"energy_usage","value":0.5,"timestamp":1762756823000}},
+                    {"value":{"machine":"F0001.M-02","tag":"energy_usage","value":1.0,"timestamp":1762756823000}}
                 ]}
                 """;
         String triggerFlushPayload = """
                 {"records":[
-                    {"value":{"machine":"M-03","tag":"energy_usage","value":2.0,"timestamp":1762756825000}}
+                    {"value":{"machine":"F0001.M-03","tag":"energy_usage","value":2.0,"timestamp":1762756825000}}
                 ]}
                 """;
 
@@ -112,7 +122,7 @@ class MesTelemetryListenerTest {
         listener.onTelemetry(consumerRecord(triggerFlushPayload));
 
         verify(mesPowerConsumptionService, times(1))
-                .savePowerConsumption(BigDecimal.valueOf(1.50).setScale(2), null);
+                .savePowerConsumption(BigDecimal.valueOf(1.50).setScale(2), 1L);
     }
 
     @Test
