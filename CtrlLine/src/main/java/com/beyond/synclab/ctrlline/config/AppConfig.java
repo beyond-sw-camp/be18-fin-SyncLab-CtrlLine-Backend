@@ -5,6 +5,7 @@ import com.beyond.synclab.ctrlline.common.property.JwtProperties;
 import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
 import com.beyond.synclab.ctrlline.common.property.MiloClientProperties;
 import com.beyond.synclab.ctrlline.common.property.SendGridProperties;
+import com.beyond.synclab.ctrlline.common.property.SerialStorageProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

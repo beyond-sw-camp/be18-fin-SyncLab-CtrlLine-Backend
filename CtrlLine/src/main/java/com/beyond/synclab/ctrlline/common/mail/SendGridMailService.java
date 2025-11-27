@@ -30,8 +30,9 @@ public class SendGridMailService implements MailService {
         try {
             sgRequest.setBody(mail.build());
             Response response = sendGrid.api(sgRequest);
-            log.debug("SendGrid response status={}, body={}, headers={}",
-                    response.getStatusCode(), response.getBody(), response.getHeaders());
+            log.info("SendGrid mail sent to={} status={}", request.to(), response.getStatusCode());
+            log.debug("SendGrid response details body={}, headers={}",
+                    response.getBody(), response.getHeaders());
         } catch (Exception e) {
             throw new IllegalStateException("SendGrid mail sending failed", e);
         }
