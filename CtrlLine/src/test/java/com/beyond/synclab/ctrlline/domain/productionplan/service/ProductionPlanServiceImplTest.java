@@ -100,6 +100,9 @@ class ProductionPlanServiceImplTest {
     @Mock
     private EquipmentRepository equipmentRepository;
 
+    @Mock
+    private ProductionPlanStatusNotificationService planStatusNotificationService;
+
     private ProductionPlanServiceImpl productionPlanService;
 
     private Clock testClock;
@@ -136,6 +139,7 @@ class ProductionPlanServiceImplTest {
             itemLineRepository,
             itemRepository,
             equipmentRepository,
+            planStatusNotificationService,
             testClock
         );
 
