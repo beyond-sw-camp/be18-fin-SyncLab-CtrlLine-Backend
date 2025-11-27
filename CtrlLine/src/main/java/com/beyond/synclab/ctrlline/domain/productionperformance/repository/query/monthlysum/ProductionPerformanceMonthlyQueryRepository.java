@@ -1,4 +1,4 @@
-package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query;
+package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.monthlysum;
 
 import java.time.YearMonth;
 import java.util.List;

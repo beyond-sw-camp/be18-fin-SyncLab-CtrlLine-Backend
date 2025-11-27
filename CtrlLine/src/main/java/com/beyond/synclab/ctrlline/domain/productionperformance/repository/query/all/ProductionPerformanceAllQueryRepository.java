@@ -1,4 +1,4 @@
-package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query;
+package com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.all;
 
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;

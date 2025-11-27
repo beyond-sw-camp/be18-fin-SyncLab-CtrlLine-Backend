@@ -1,7 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.productionperformance.repository;
 
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
-import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.listdetail.ProductionPerformanceQueryRepository;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
