@@ -71,6 +71,9 @@ dependencies {
     // AWS SDK
     implementation 'software.amazon.awssdk:s3:2.26.26'
 
+    // Mail
+    implementation 'com.sendgrid:sendgrid-java:4.10.1'
+
     // QueryDsl
     // Open Feign QueryDSL (latest security patched version)
     implementation 'io.github.openfeign.querydsl:querydsl-core:7.1'

@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
 import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class ProductionOrderService {
     private final PlanDefectiveService planDefectiveService;
     private final LotService lotService;
     private final Clock clock;
+    private final ProductionPlanStatusNotificationService planStatusNotificationService;
 
     @Transactional(readOnly = true)
     public ProductionOrderCommandResponse dispatchOrder(String factoryCode, String lineCode, ProductionOrderCommandRequest request) {
@@ -86,7 +88,9 @@ public class ProductionOrderService {
                         request
                 );
 
+                ProductionPlans.PlanStatus previousStatus = plan.getStatus();
                 plan.markDispatched();
+                planStatusNotificationService.notifyStatusChange(plan, previousStatus);
                 log.info("Production plan documentNo={} marked as RUNNING", plan.getDocumentNo());
                 planDefectiveService.createPlanDefective(plan);
                 lotService.createLot(plan);
@@ -121,8 +125,10 @@ public class ProductionOrderService {
                     context.lineCode(),
                     request
             );
+            ProductionPlans.PlanStatus previousStatus = plan.getStatus();
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
             productionPlanRepository.save(plan);
+            planStatusNotificationService.notifyStatusChange(plan, previousStatus);
         } catch (Exception ex) {
             log.error("Failed to send ACK for production plan documentNo={}", plan.getDocumentNo(), ex);
         }
@@ -184,8 +190,10 @@ public class ProductionOrderService {
     private Optional<DispatchContext> markPlanReturned(ProductionPlans plan, String reason) {
         log.debug("Production plan documentNo={} will be marked RETURNED. reason={}",
                 plan.getDocumentNo(), reason);
+        ProductionPlans.PlanStatus previousStatus = plan.getStatus();
         plan.markDispatchFailed();
         productionPlanRepository.save(plan);
+        planStatusNotificationService.notifyStatusChange(plan, previousStatus);
         return Optional.empty();
     }
 }

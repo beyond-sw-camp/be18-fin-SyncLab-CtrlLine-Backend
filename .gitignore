@@ -269,5 +269,6 @@ gradle-app.setting
 
 **/registry.bin
 **/registry.bin.lock
+**/launch.json
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,visualstudiocode,java,gradle,maven,git,macos,windows,linux
