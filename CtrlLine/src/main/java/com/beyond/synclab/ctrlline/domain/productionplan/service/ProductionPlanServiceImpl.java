@@ -29,8 +29,10 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -484,6 +486,26 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         return GetProductionPlanEndTimeResponseDto.builder()
             .endTime(endTime)
+            .build();
+    }
+
+    @Override
+    @Transactional
+    public UpdateProductionPlanStatusResponseDto updateProductionPlanStatus(
+        UpdateProductionPlanStatusRequestDto requestDto
+    ) {
+        int success = productionPlanRepository.updateAllStatusById(requestDto.getPlanIds(), requestDto.getPlanStatus());
+
+        if (success != requestDto.getPlanIds().size()) {
+            throw new AppException(CommonErrorCode.UNEXPECTED_ERROR);
+        }
+
+        // 영속성 컨텍스트 초기화 후, 업데이트된 엔티티를 다시 조회
+        List<ProductionPlans> updatedPlans = productionPlanRepository.findAllByIdIn(requestDto.getPlanIds());
+
+        return UpdateProductionPlanStatusResponseDto.builder()
+            .planIds(updatedPlans.stream().map(ProductionPlans::getId).toList())
+            .planStatus(requestDto.getPlanStatus())
             .build();
     }
 }

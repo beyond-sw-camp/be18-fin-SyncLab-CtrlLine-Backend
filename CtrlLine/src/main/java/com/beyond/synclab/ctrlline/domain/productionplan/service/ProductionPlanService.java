@@ -12,6 +12,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -33,4 +35,7 @@ public interface ProductionPlanService {
     List<GetProductionPlanScheduleResponseDto> getProductionPlanSchedule(GetProductionPlanScheduleRequestDto requestDto);
 
     GetProductionPlanEndTimeResponseDto getProductionPlanEndTime(GetProductionPlanEndTimeRequestDto requestDto);
+
+    UpdateProductionPlanStatusResponseDto updateProductionPlanStatus(
+        UpdateProductionPlanStatusRequestDto requestDto);
 }
