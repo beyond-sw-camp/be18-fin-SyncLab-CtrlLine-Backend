@@ -17,6 +17,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
@@ -399,5 +401,35 @@ class ProductionPlanControllerTest {
                 .param("startTime", now.toString())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("생산 계획 종료 시간 반환 성공 - 200 OK")
+    @WithMockUser
+    void getProductionPlanEndTime_success_200() throws Exception {
+        // given
+        LocalDateTime endTime = LocalDateTime.now(testClock).plusDays(1);
+        LocalDateTime startTime = LocalDateTime.now(testClock);
+        GetProductionPlanEndTimeRequestDto requestDto = GetProductionPlanEndTimeRequestDto.builder()
+            .startTime(startTime)
+            .plannedQty(new BigDecimal("1500"))
+            .lineCode("LINE-001")
+            .build();
+
+        GetProductionPlanEndTimeResponseDto testDto = GetProductionPlanEndTimeResponseDto.builder()
+            .endTime(endTime)
+            .build();
+
+        when(productionPlanService.getProductionPlanEndTime(any(GetProductionPlanEndTimeRequestDto.class)))
+            .thenReturn(testDto);
+
+        mockMvc.perform(post("/api/v1/production-plans/endtime")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestDto))
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.endTime").value(startsWith(endTime.toString())))
+        ;
+
     }
 }

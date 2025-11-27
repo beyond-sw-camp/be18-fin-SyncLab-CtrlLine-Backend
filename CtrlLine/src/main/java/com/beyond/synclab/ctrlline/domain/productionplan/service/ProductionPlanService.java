@@ -4,6 +4,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
@@ -29,4 +31,6 @@ public interface ProductionPlanService {
     List<GetAllProductionPlanResponseDto> getAllProductionPlan(GetAllProductionPlanRequestDto requestDto);
 
     List<GetProductionPlanScheduleResponseDto> getProductionPlanSchedule(GetProductionPlanScheduleRequestDto requestDto);
+
+    GetProductionPlanEndTimeResponseDto getProductionPlanEndTime(GetProductionPlanEndTimeRequestDto requestDto);
 }
