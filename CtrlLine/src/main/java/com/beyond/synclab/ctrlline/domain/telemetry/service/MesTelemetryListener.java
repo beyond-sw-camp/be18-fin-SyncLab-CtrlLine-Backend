@@ -58,6 +58,8 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -95,12 +97,13 @@ public class MesTelemetryListener {
     private final ObjectMapper objectMapper;
     private static final String ALARM_EVENT_KEY_SUFFIX = "alarm_event_payload";
 
+    private final FactoryRepository factoryRepository;
     private final MesPowerConsumptionService mesPowerConsumptionService;
     private final MesDefectiveService mesDefectiveService;
     private final MesAlarmService mesAlarmService;
     private final MesProductionPerformanceService mesProductionPerformanceService;
 
-    private final NavigableMap<Long, Double> energyUsageByBucket = new TreeMap<>();
+    private final NavigableMap<AggregationKey, Double> energyUsageByBucket = new TreeMap<>();
     private final ReentrantLock aggregationLock = new ReentrantLock();
 
     @KafkaListener(
@@ -163,7 +166,12 @@ public class MesTelemetryListener {
         if (isEnergyUsageRecord(valueNode)) {
             double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
             long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
-            accumulateEnergyUsage(timestamp, energyUsage);
+            Long factoryId = resolveFactoryIdFromEnergyUsage(valueNode);
+            if (factoryId == null) {
+                log.warn("Factory ID를 확인할 수 없어 전력 소모량을 저장하지 않습니다. payload={}", valueNode);
+                return;
+            }
+            accumulateEnergyUsage(timestamp, energyUsage, factoryId);
             return;
         }
         if (isNgDefectiveRecord(valueNode)) {
@@ -183,11 +191,12 @@ public class MesTelemetryListener {
         }
     }
 
-    private void accumulateEnergyUsage(long timestamp, double energyUsage) {
+    private void accumulateEnergyUsage(long timestamp, double energyUsage, Long factoryId) {
         long bucketTimestamp = bucketTimestamp(timestamp);
         aggregationLock.lock();
         try {
-            energyUsageByBucket.merge(bucketTimestamp, energyUsage, Double::sum);
+            AggregationKey key = new AggregationKey(bucketTimestamp, factoryId);
+            energyUsageByBucket.merge(key, energyUsage, Double::sum);
             flushCompletedAggregations(bucketTimestamp);
         } finally {
             aggregationLock.unlock();
@@ -196,27 +205,26 @@ public class MesTelemetryListener {
 
     private void flushCompletedAggregations(long newestBucketTimestamp) {
         while (!energyUsageByBucket.isEmpty()) {
-            Map.Entry<Long, Double> oldestEntry = energyUsageByBucket.firstEntry();
-            if (oldestEntry.getKey() >= newestBucketTimestamp) {
+            Map.Entry<AggregationKey, Double> oldestEntry = energyUsageByBucket.firstEntry();
+            if (oldestEntry.getKey().bucketTimestamp() >= newestBucketTimestamp) {
                 break;
             }
-            persistPowerConsumption(oldestEntry.getValue());
+            persistPowerConsumption(oldestEntry.getKey().factoryId(), oldestEntry.getValue());
             energyUsageByBucket.pollFirstEntry();
         }
     }
 
-    private void persistPowerConsumption(double totalEnergyUsage) {
+    private void persistPowerConsumption(Long factoryId, double totalEnergyUsage) {
         BigDecimal powerConsumption = BigDecimal.valueOf(totalEnergyUsage)
                 .setScale(2, RoundingMode.HALF_UP);
-        mesPowerConsumptionService.savePowerConsumption(powerConsumption);
+        mesPowerConsumptionService.savePowerConsumption(powerConsumption, factoryId);
     }
 
     @PreDestroy
     public void flushRemainingAggregations() {
         aggregationLock.lock();
         try {
-            energyUsageByBucket.values()
-                    .forEach(this::persistPowerConsumption);
+            energyUsageByBucket.forEach((key, value) -> persistPowerConsumption(key.factoryId(), value));
             energyUsageByBucket.clear();
         } finally {
             aggregationLock.unlock();
@@ -231,7 +239,8 @@ public class MesTelemetryListener {
         if (!valueNode.isObject()) {
             return false;
         }
-        if (!ENERGY_USAGE_TAG.equals(valueNode.path("tag").asText())) {
+        String tag = valueNode.path("tag").asText();
+        if (!StringUtils.hasText(tag) || !tag.endsWith(ENERGY_USAGE_TAG)) {
             return false;
         }
         if (!valueNode.hasNonNull(VALUE_FIELD) || !valueNode.hasNonNull(TIMESTAMP_FIELD)) {
@@ -650,6 +659,69 @@ public class MesTelemetryListener {
             }
         }
         return null;
+    }
+
+    private Long resolveFactoryIdFromEnergyUsage(JsonNode valueNode) {
+        String rawFactoryCode = firstNonEmptyValue(valueNode, "factoryCode", "factory_code");
+        String machine = firstNonEmptyValue(valueNode, "machine", "machineId");
+        String factoryCode = rawFactoryCode;
+        if (!StringUtils.hasText(rawFactoryCode)) {
+            factoryCode = extractFactoryCode(machine);
+            if (!StringUtils.hasText(factoryCode)) {
+                log.warn("Factory code missing in energy telemetry payload. machine={}, payload={}", machine, valueNode);
+                return null;
+            }
+        }
+        log.debug("Telemetry factory resolution attempt. rawFactoryCode={}, extractedFactoryCode={}, machine={}",
+                rawFactoryCode,
+                factoryCode,
+                machine);
+        final String resolvedFactoryCode = factoryCode;
+        return factoryRepository.findByFactoryCode(resolvedFactoryCode)
+                .map(factory -> {
+                    Long factoryId = factory.getId();
+                    log.info("Resolved factory for telemetry. factoryCode={}, factoryId={}", resolvedFactoryCode, factoryId);
+                    return factoryId;
+                })
+                .orElseGet(() -> {
+                    log.warn("Factory not found for telemetry payload. factoryCode={}, machine={}, payload={}",
+                            resolvedFactoryCode,
+                            machine,
+                            valueNode);
+                    return null;
+                });
+    }
+
+    private String extractFactoryCode(String machine) {
+        if (!StringUtils.hasText(machine)) {
+            return null;
+        }
+        int separatorIndex = machine.indexOf('.');
+        if (separatorIndex <= 0) {
+            return null;
+        }
+        return machine.substring(0, separatorIndex);
+    }
+
+    private record AggregationKey(long bucketTimestamp, Long factoryId) implements Comparable<AggregationKey> {
+
+        @Override
+        public int compareTo(AggregationKey other) {
+            int timestampCompare = Long.compare(this.bucketTimestamp, other.bucketTimestamp);
+            if (timestampCompare != 0) {
+                return timestampCompare;
+            }
+            if (this.factoryId == null && other.factoryId == null) {
+                return 0;
+            }
+            if (this.factoryId == null) {
+                return -1;
+            }
+            if (other.factoryId == null) {
+                return 1;
+            }
+            return Long.compare(this.factoryId, other.factoryId);
+        }
     }
 
     private BigDecimal firstDecimal(JsonNode node, String... fieldNames) {

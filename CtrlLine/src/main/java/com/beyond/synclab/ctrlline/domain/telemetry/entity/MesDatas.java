@@ -32,6 +32,9 @@ public class MesDatas {
     @Column(name = "power_consumption", nullable = false, precision = 10, scale = 2)
     private BigDecimal powerConsumption;
 
+    @Column(name = "factory_id")
+    private Long factoryId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

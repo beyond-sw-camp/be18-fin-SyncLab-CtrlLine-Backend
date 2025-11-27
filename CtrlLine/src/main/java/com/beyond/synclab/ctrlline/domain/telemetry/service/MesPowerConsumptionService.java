@@ -14,9 +14,13 @@ public class MesPowerConsumptionService {
     private final MesDataRepository mesDataRepository;
 
     @Transactional
-    public void savePowerConsumption(BigDecimal powerConsumption) {
+    public void savePowerConsumption(BigDecimal powerConsumption, Long factoryId) {
+        if (factoryId == null) {
+            return;
+        }
         MesDatas mesData = MesDatas.builder()
                 .powerConsumption(powerConsumption)
+                .factoryId(factoryId)
                 .build();
         mesDataRepository.save(mesData);
     }
