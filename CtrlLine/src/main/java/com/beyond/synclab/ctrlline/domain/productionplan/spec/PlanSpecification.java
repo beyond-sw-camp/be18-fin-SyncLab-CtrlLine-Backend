@@ -9,6 +9,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.experimental.UtilityClass;
@@ -25,17 +26,33 @@ public class PlanSpecification {
                 : cb.equal(root.get("status"), planStatus);
     }
 
+    private Join<Lines, Factories> getFactory(Root<ProductionPlans> root) {
+        // plan -> itemLine -> line -> factory
+        Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
+        Join<ItemsLines, Lines> line = itemLine.join("line", JoinType.LEFT);
+        return line.join("factory", JoinType.LEFT);
+    }
+
     public Specification<ProductionPlans> planFactoryNameContains(String factoryName) {
         return (root, query, cb) -> {
             if (factoryName == null)
                 return null;
 
             // plan -> itemLine -> line -> factory
-            Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
-            Join<ItemsLines, Lines> line = itemLine.join("line", JoinType.LEFT);
-            Join<Lines, Factories> factory = line.join("factory", JoinType.LEFT);
+            Join<Lines, Factories> factory = getFactory(root);
 
-            return cb.equal(factory.get("factoryName"), factoryName);
+            return cb.like(factory.get("factoryName"), "%" + factoryName + "%");
+        };
+    }
+
+    public Specification<ProductionPlans> planFactoryCodeEquals(String factoryCode) {
+        return (root, query, cb) -> {
+            if (factoryCode == null)
+                return null;
+
+            Join<Lines, Factories> factory = getFactory(root);
+
+            return cb.equal(factory.get("factoryCode"), factoryCode);
         };
     }
 
@@ -123,5 +140,18 @@ public class PlanSpecification {
             status == null
                 ? null
                 : cb.notEqual(root.get("status"), status);
+    }
+
+    public static Specification<ProductionPlans> planLineCodeEquals(String lineCode) {
+        return (root, query, cb) -> {
+            if (lineCode == null)
+                return null;
+
+            // plan -> itemLine -> line
+            Join<ProductionPlans, ItemsLines> itemLine = root.join(itemLineColumn, JoinType.LEFT);
+            Join<ItemsLines, Lines> line = itemLine.join("line", JoinType.LEFT);
+
+            return cb.equal(line.get("lineCode"), lineCode);
+        };
     }
 }
