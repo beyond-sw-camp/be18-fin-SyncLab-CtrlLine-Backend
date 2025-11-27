@@ -125,7 +125,7 @@ public class ProductionPlanController {
     @PatchMapping("/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<BaseResponse<UpdateProductionPlanStatusResponseDto>> updateStatues(
-        @RequestBody UpdateProductionPlanStatusRequestDto requestDto
+        @Valid @RequestBody UpdateProductionPlanStatusRequestDto requestDto
     ) {
         UpdateProductionPlanStatusResponseDto responseDto = productionPlanService.updateProductionPlanStatus(requestDto);
 
