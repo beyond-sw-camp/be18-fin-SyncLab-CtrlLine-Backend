@@ -9,6 +9,8 @@ public record GetProductionPlanScheduleRequestDto(
     @NotNull LocalDateTime startTime,
     @NotNull LocalDateTime endTime,
     String factoryName,
-    String lineName
+    String factoryCode,
+    String lineName,
+    String lineCode
 ) {
 }

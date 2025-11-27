@@ -34,6 +34,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
@@ -1165,4 +1167,66 @@ class ProductionPlanServiceImplTest {
             );
         }
     }
+
+    @Nested
+    @DisplayName("생산계획 일정 조회")
+    class GetProductionPlanScheduleTest {
+        @Test
+        @DisplayName("생산 계획 일정 조회 성공 - 기본 조회")
+        void getProductionPlanSchedule_success() {
+            // given
+            GetProductionPlanScheduleRequestDto requestDto = GetProductionPlanScheduleRequestDto.builder()
+                .factoryName("A공장")
+                .lineName("1호라인")
+                .startTime(LocalDateTime.now(testClock))
+                .endTime(LocalDateTime.now(testClock).plusHours(2))
+                .build();
+
+            List<ProductionPlans> mockResult = List.of(productionPlan);
+
+            when(productionPlanRepository.findAll(
+                ArgumentMatchers.<Specification<ProductionPlans>>any(),
+                ArgumentMatchers.any(Sort.class)))
+                .thenReturn(mockResult);
+
+            // when
+            List<GetProductionPlanScheduleResponseDto> result =
+                productionPlanService.getProductionPlanSchedule(requestDto);
+
+            assertThat(result).hasSize(1);
+            GetProductionPlanScheduleResponseDto dto = result.getFirst();
+            assertThat(dto.getDocumentNo()).isEqualTo(productionPlan.getDocumentNo());
+            assertThat(dto.getFactoryName()).isEqualTo(productionPlan.getItemLine().getLine().getFactory().getFactoryName());
+            assertThat(dto.getStartTime()).isEqualTo(productionPlan.getStartTime());
+            assertThat(dto.getEndTime()).isEqualTo(productionPlan.getEndTime());
+
+            // repository 호출 검증 (ASC 정렬)
+            verify(productionPlanRepository, times(1))
+                .findAll(
+                    ArgumentMatchers.<Specification<ProductionPlans>>any(),
+                    ArgumentMatchers.<Sort>argThat(sort -> {
+                        Sort.Order order = sort.getOrderFor("startTime");
+                        return order != null && order.getDirection() == Sort.Direction.ASC;
+                    })
+                );
+        }
+
+        @Test
+        @DisplayName("생산 계획 일정 조회 실패 - 조회 기간 30일 초과")
+        void getProductionPlanSchedule_fail_maxRangeExceeded() {
+            // given
+            GetProductionPlanScheduleRequestDto requestDto = GetProductionPlanScheduleRequestDto.builder()
+                .factoryName("A공장")
+                .lineName("1호라인")
+                .startTime(testDateTime)
+                .endTime(testDateTime.plusDays(31))
+                .build();
+
+            // when & then
+            assertThatThrownBy(() -> productionPlanService.getProductionPlanSchedule(requestDto))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST.getMessage());
+        }
+    }
+
 }

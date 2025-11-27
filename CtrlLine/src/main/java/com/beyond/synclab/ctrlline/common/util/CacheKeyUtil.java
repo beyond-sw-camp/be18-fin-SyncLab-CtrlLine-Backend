@@ -10,6 +10,6 @@ public class CacheKeyUtil {
     public String getProductionPlanScheduleKey(GetProductionPlanScheduleRequestDto dto) {
         String start = dto.startTime().truncatedTo(ChronoUnit.MINUTES).toString();
         String end = dto.endTime().truncatedTo(ChronoUnit.MINUTES).toString();
-        return String.join(":", dto.factoryName(), dto.lineName(), start, end);
+        return String.join(":", dto.factoryName(), dto.factoryCode(), dto.lineName(), dto.lineCode(), start, end);
     }
 }

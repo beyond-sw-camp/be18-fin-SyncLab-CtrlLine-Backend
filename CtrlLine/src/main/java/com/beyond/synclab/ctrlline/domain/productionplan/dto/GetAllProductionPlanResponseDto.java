@@ -29,9 +29,9 @@ public class GetAllProductionPlanResponseDto {
     private LocalDateTime endTime;
     private LocalDate dueDate;
     private String salesManagerName;
-    private String salesManagerEmpNo;
+    private String salesManagerNo;
     private String productionManagerName;
-    private String productionManagerEmpNo;
+    private String productionManagerNo;
     private String remark;
 
     public static GetAllProductionPlanResponseDto fromEntity(ProductionPlans productionPlans) {
@@ -48,10 +48,10 @@ public class GetAllProductionPlanResponseDto {
             .startTime(productionPlans.getStartTime())
             .endTime(productionPlans.getEndTime())
             .dueDate(productionPlans.getDueDate())
-            .salesManagerEmpNo(productionPlans.getSalesManager().getEmpNo())
+            .salesManagerNo(productionPlans.getSalesManager().getEmpNo())
             .salesManagerName(productionPlans.getSalesManager().getName())
             .productionManagerName(productionPlans.getProductionManager().getName())
-            .productionManagerEmpNo(productionPlans.getProductionManager().getEmpNo())
+            .productionManagerNo(productionPlans.getProductionManager().getEmpNo())
             .remark(productionPlans.getRemark())
             .build();
     }
