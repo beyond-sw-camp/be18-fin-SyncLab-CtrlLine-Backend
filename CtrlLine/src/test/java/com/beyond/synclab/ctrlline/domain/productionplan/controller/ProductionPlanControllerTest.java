@@ -367,7 +367,7 @@ class ProductionPlanControllerTest {
         when(productionPlanService.getProductionPlanSchedule(any(GetProductionPlanScheduleRequestDto.class))).thenReturn(List.of(testDto));
 
         // when & then
-        mockMvc.perform(get("/api/v1/production-plans/schedule")
+        mockMvc.perform(get("/api/v1/production-plans/schedules")
                 .param("startTime", LocalDateTime.now(testClock).toString())
                 .param("endTime", LocalDateTime.now(testClock).toString())
                 .contentType(MediaType.APPLICATION_JSON))
@@ -383,7 +383,7 @@ class ProductionPlanControllerTest {
     void getProductionPlanSchedule_fail_missingStartTime() throws Exception {
         LocalDateTime now = LocalDateTime.now(testClock);
 
-        mockMvc.perform(get("/api/v1/production-plans/schedule")
+        mockMvc.perform(get("/api/v1/production-plans/schedules")
                 .param("endTime", now.toString())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest());
@@ -395,7 +395,7 @@ class ProductionPlanControllerTest {
     void getProductionPlanSchedule_fail_missingEndTime() throws Exception {
         LocalDateTime now = LocalDateTime.now(testClock);
 
-        mockMvc.perform(get("/api/v1/production-plans/schedule")
+        mockMvc.perform(get("/api/v1/production-plans/schedules")
                 .param("startTime", now.toString())
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest());

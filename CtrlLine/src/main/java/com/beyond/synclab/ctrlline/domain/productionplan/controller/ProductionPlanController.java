@@ -100,7 +100,7 @@ public class ProductionPlanController {
         return  ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 
-    @GetMapping("/schedule")
+    @GetMapping("/schedules")
     public ResponseEntity<BaseResponse<List<GetProductionPlanScheduleResponseDto>>> getProductionPlanSchedule(
         @ModelAttribute @Valid GetProductionPlanScheduleRequestDto requestDto
     ) {
