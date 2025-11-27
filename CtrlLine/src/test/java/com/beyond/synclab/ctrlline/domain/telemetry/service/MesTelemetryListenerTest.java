@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
@@ -45,10 +46,14 @@ class MesTelemetryListenerTest {
 
     private MesTelemetryListener listener;
 
+    @Mock
+    private FactoryRepository factoryRepository;
+
     @BeforeEach
     void setUp() {
         listener = new MesTelemetryListener(
                 new ObjectMapper(),
+                factoryRepository,
                 mesPowerConsumptionService,
                 mesDefectiveService,
                 mesAlarmService,
@@ -107,7 +112,7 @@ class MesTelemetryListenerTest {
         listener.onTelemetry(consumerRecord(triggerFlushPayload));
 
         verify(mesPowerConsumptionService, times(1))
-                .savePowerConsumption(BigDecimal.valueOf(1.50).setScale(2));
+                .savePowerConsumption(BigDecimal.valueOf(1.50).setScale(2), null);
     }
 
     @Test
