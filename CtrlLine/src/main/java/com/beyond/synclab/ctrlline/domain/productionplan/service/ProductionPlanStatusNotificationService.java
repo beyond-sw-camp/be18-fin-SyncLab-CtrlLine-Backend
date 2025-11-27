@@ -22,6 +22,9 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class ProductionPlanStatusNotificationService {
 
+    private static final String PLAN_DETAIL_URL_TEMPLATE =
+            "https://stage-synclab-ctrlline.vercel.app/production-management/production-plans/%d";
+
     private final UserRepository userRepository;
     private final MailService mailService;
 
@@ -56,7 +59,7 @@ public class ProductionPlanStatusNotificationService {
 
         log.info("생산계획 상태 변경 알림 준비 documentNo={}, from={} to={}, receivers={}",
                 documentNo, previousStatus, currentStatus, receivers.size());
-        sendMail(receivers, subject, body);
+        sendMail(receivers, subject, body, plan);
     }
 
     public void notifyScheduleChange(ProductionPlans plan, LocalDateTime previousStart, LocalDateTime previousEnd) {
@@ -96,15 +99,19 @@ public class ProductionPlanStatusNotificationService {
         );
 
         log.info("생산계획 일정 변경 알림 준비 documentNo={}, receivers={}", documentNo, receivers.size());
-        sendMail(receivers, subject, body);
+        sendMail(receivers, subject, body, plan);
     }
 
-    private void sendMail(List<Users> receivers, String subject, String body) {
+    private void sendMail(List<Users> receivers, String subject, String body, ProductionPlans plan) {
         receivers.stream()
                 .map(Users::getEmail)
                 .filter(StringUtils::hasText)
                 .distinct()
-                .forEach(email -> mailService.send(MailSendRequest.text(email, subject, body)));
+                .forEach(email -> mailService.send(MailSendRequest.text(
+                        email,
+                        subject,
+                        bodyWithLink(body, plan)
+                )));
     }
 
     private List<Users> resolveReceivers(ProductionPlans plan) {
@@ -128,6 +135,15 @@ public class ProductionPlanStatusNotificationService {
         }
 
         return receivers;
+    }
+
+    private String bodyWithLink(String baseBody, ProductionPlans plan) {
+        Long id = plan != null ? plan.getId() : null;
+        if (id == null) {
+            return baseBody;
+        }
+        String detail = PLAN_DETAIL_URL_TEMPLATE.formatted(id);
+        return baseBody + System.lineSeparator() + System.lineSeparator() + "상세보기: " + detail;
     }
 
     private boolean hasScheduleChanged(LocalDateTime previous, LocalDateTime current) {
