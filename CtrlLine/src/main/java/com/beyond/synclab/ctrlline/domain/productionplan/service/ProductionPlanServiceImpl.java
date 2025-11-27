@@ -71,6 +71,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final ItemLineRepository itemLineRepository;
     private final ItemRepository itemRepository;
     private final EquipmentRepository equipmentRepository;
+    private final ProductionPlanStatusNotificationService planStatusNotificationService;
     private final Clock clock;
 
     @Override
@@ -102,8 +103,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         );
 
         PlanStatus requestedStatus = user.isAdminRole() ? PlanStatus.CONFIRMED : PlanStatus.PENDING;
-
+        PlanStatus previousStatus = productionPlan.getStatus();
         productionPlan.updateStatus(requestedStatus);
+        planStatusNotificationService.notifyStatusChange(productionPlan, previousStatus);
 
         // 4. 시작 시간 계산
         LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
@@ -400,8 +402,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         validateFactoryLine(factory, line);
 
         // 계획수량이 변경되면 종료시간 계산
-        LocalDateTime newStartTime = dto.getStartTime() == null ? productionPlan.getStartTime() : dto.getStartTime();
-        LocalDateTime newEndTime = newStartTime.plus(Duration.between(productionPlan.getStartTime(), productionPlan.getEndTime()));
+        LocalDateTime previousStartTime = productionPlan.getStartTime();
+        LocalDateTime previousEndTime = productionPlan.getEndTime();
+
+        LocalDateTime newStartTime = dto.getStartTime() == null ? previousStartTime : dto.getStartTime();
+        LocalDateTime newEndTime = newStartTime.plus(Duration.between(previousStartTime, previousEndTime));
 
         if (dto.getPlannedQty() != null && productionPlan.getPlannedQty().compareTo(dto.getPlannedQty()) != 0) {
             List<Equipments> equipments = equipmentRepository.findAllByLineId(line.getId());
@@ -414,7 +419,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         shiftAfterPlansIfNeeded(newStartTime, newEndTime, productionPlan, requester);
 
         // 6. 최종 업데이트
+        PlanStatus previousStatus = productionPlan.getStatus();
         productionPlan.update(dto, newStartTime, newEndTime, salesManager, productionManager, itemsLine);
+        planStatusNotificationService.notifyStatusChange(productionPlan, previousStatus);
+        planStatusNotificationService.notifyScheduleChange(productionPlan, previousStartTime, previousEndTime);
 
         return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
     }

@@ -28,6 +28,7 @@ import java.util.Optional;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
 import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,6 +58,9 @@ class ProductionOrderServiceTest {
     @Mock
     private LotService lotService;
 
+    @Mock
+    private ProductionPlanStatusNotificationService planStatusNotificationService;
+
     private Clock fixedClock;
 
     @InjectMocks
@@ -71,7 +75,8 @@ class ProductionOrderServiceTest {
                 miloProductionOrderClient,
                 planDefectiveService,
                 lotService,
-                fixedClock
+                fixedClock,
+                planStatusNotificationService
         );
     }
 
