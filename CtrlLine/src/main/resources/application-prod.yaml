@@ -31,7 +31,7 @@ app:
       blacklist: "ctrlline:blacklist:"
       plan-defective-last-reported: "ctrlline:plan-defective:last:"
   frontend:
-    base-url: ${APP_FRONTEND_BASE_URL:https://synclab-ctrlline.com}
+    base-url: ${APP_FRONTEND_BASE_URL:https://synclab-ctrlline.vercel.app}
   serial-storage:
     type: s3
     s3:
