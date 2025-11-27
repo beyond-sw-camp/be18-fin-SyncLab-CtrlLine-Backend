@@ -51,4 +51,23 @@ class FactoryEnergyUsageControllerTest {
 
         Mockito.verify(factoryEnergyUsageService).getLatestEnergyUsage("F0001");
     }
+
+    @Test
+    @DisplayName("GET /api/v1/factories/{code}/energy/today-max 가 금일 최고 전력 사용량을 반환한다")
+    void getTodayPeakEnergyUsage() throws Exception {
+        FactoryEnergyUsageResponse response = FactoryEnergyUsageResponse.builder()
+                .factoryCode("F0002")
+                .powerConsumption(new BigDecimal("20.50"))
+                .recordedAt(LocalDateTime.of(2025, 11, 27, 15, 30))
+                .build();
+        given(factoryEnergyUsageService.getTodayPeakEnergyUsage(eq("F0002"))).willReturn(response);
+
+        mockMvc.perform(get("/api/v1/factories/{factoryCode}/energy/today-max", "F0002"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.factoryCode").value("F0002"))
+                .andExpect(jsonPath("$.data.powerConsumption").value(20.50))
+                .andExpect(jsonPath("$.data.recordedAt").value("2025-11-27T15:30:00"));
+
+        Mockito.verify(factoryEnergyUsageService).getTodayPeakEnergyUsage("F0002");
+    }
 }
