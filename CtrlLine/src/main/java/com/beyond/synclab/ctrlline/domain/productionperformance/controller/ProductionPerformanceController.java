@@ -4,10 +4,7 @@ import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceMonthlySumResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,6 +71,19 @@ public class ProductionPerformanceController {
     ) {
         GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance result =
                 productionPerformanceService.getMonthlySumProductionPerformances(factoryCode, baseMonth);
+
+        return ResponseEntity.ok(ok(result));
+    }
+
+    // 공장별 월별 불량률 조회
+    @GetMapping("/monthly-defective-rate")
+    public ResponseEntity<BaseResponse<GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate>>
+    getMonthlyDefectiveRate(
+            @RequestParam String factoryCode,
+            @RequestParam(required = false) String baseMonth
+    ) {
+        GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate result =
+                productionPerformanceService.getMonthlyDefectiveRateProductionPerformances(factoryCode, baseMonth);
 
         return ResponseEntity.ok(ok(result));
     }
