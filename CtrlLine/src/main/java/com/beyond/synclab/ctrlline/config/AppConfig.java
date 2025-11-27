@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.common.property.AppProperties;
 import com.beyond.synclab.ctrlline.common.property.JwtProperties;
 import com.beyond.synclab.ctrlline.common.property.MesKafkaProperties;
 import com.beyond.synclab.ctrlline.common.property.MiloClientProperties;
+import com.beyond.synclab.ctrlline.common.property.SerialStorageProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,8 @@ import org.springframework.context.annotation.Configuration;
         JwtProperties.class,
         AppProperties.class,
         MiloClientProperties.class,
-        MesKafkaProperties.class
+        MesKafkaProperties.class,
+        SerialStorageProperties.class
 })
 public class AppConfig {
 
@@ -27,6 +29,7 @@ public class AppConfig {
     private final AppProperties appProperties;
     private final MiloClientProperties miloClientProperties;
     private final MesKafkaProperties mesKafkaProperties;
+    private final SerialStorageProperties serialStorageProperties;
 
     @PostConstruct
     void init() {
@@ -34,5 +37,6 @@ public class AppConfig {
         log.debug("appProperties = {}", appProperties);
         log.debug("miloClientProperties = {}", miloClientProperties);
         log.debug("mesKafkaProperties = {}", mesKafkaProperties);
+        log.debug("serialStorageProperties = {}", serialStorageProperties);
     }
 }

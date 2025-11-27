@@ -44,6 +44,7 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_EQUIPMENT_CODE_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_PAYLOAD_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_SUMMARY_PRODUCED_QTY_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_TYPES_PAYLOAD_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_EXECUTE_AT_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_NG_COUNT_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.PRODUCTION_PERFORMANCE_ORDER_NO_FIELD;
@@ -61,17 +62,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PreDestroy;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.GZIPInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -130,6 +138,11 @@ public class MesTelemetryListener {
             persistOrderSummary(summaryPayload);
             return;
         }
+        JsonNode ngTypePayload = extractNgTypeCountersPayload(valueNode);
+        if (ngTypePayload != null) {
+            persistNgTypeCounters(ngTypePayload);
+            return;
+        }
         JsonNode productionPerformancePayload = extractProductionPerformancePayload(valueNode);
         if (productionPerformancePayload != null) {
             persistProductionPerformance(productionPerformancePayload);
@@ -154,7 +167,7 @@ public class MesTelemetryListener {
             return;
         }
         if (isNgDefectiveRecord(valueNode)) {
-            persistDefectiveRecord(valueNode);
+            persistDefectiveRecord(valueNode, recordKey);
         }
     }
 
@@ -251,7 +264,7 @@ public class MesTelemetryListener {
                 DEFECTIVE_CODE_FIELD_SNAKE);
     }
 
-    private void persistDefectiveRecord(JsonNode valueNode) {
+    private void persistDefectiveRecord(JsonNode valueNode, String recordKey) {
         DefectiveTelemetryPayload payload = buildDefectivePayload(valueNode);
         if (payload != null) {
             log.info(
@@ -261,7 +274,8 @@ public class MesTelemetryListener {
                     payload.defectiveCode(),
                     payload.defectiveName(),
                     payload.defectiveQuantity());
-            mesDefectiveService.saveNgTelemetry(payload);
+            boolean linkPlanXref = !isNgEventRecord(recordKey);
+            mesDefectiveService.saveNgTelemetry(payload, linkPlanXref);
         } else {
             log.warn("NG telemetry skipped due to missing required fields payload={}", valueNode);
         }
@@ -365,7 +379,7 @@ public class MesTelemetryListener {
                 DEFECTIVE_QTY_FIELD_SNAKE,
                 ORDER_NG_QTY_FIELD,
                 NG_QTY_FIELD);
-        BigDecimal producedQuantity = firstDecimal(valueNode, ORDER_PRODUCED_QTY_FIELD);
+        String orderNo = firstNonEmptyValue(valueNode, PRODUCTION_PERFORMANCE_ORDER_NO_FIELD);
         String defectiveCode = firstNonEmptyValue(valueNode,
                 DEFECTIVE_CODE_FIELD,
                 DEFECTIVE_CODE_FIELD_ALT,
@@ -400,7 +414,7 @@ public class MesTelemetryListener {
                 .defectiveCode(defectiveCode)
                 .defectiveName(defectiveName)
                 .defectiveQuantity(quantity)
-                .producedQuantity(producedQuantity)
+                .orderNo(orderNo)
                 .status(resolveStatus(valueNode))
                 .defectiveType(defectiveType)
                 .build();
@@ -418,6 +432,10 @@ public class MesTelemetryListener {
                 ORDER_SUMMARY_DEFECTIVE_QTY_FIELD,
                 ORDER_NG_QTY_FIELD,
                 NG_QTY_FIELD);
+        String orderNo = firstNonEmptyValue(summaryNode, PRODUCTION_PERFORMANCE_ORDER_NO_FIELD, "order_no");
+        String status = firstNonEmptyValue(summaryNode, STATUS_FIELD, ORDER_NG_STATUS_FIELD);
+        String compressedSerials = extractCompressedSerials(summaryNode);
+        List<String> goodSerials = extractGoodSerials(summaryNode, compressedSerials);
         if (!StringUtils.hasText(equipmentCode) || producedQuantity == null) {
             return null;
         }
@@ -425,7 +443,66 @@ public class MesTelemetryListener {
                 .equipmentCode(equipmentCode)
                 .producedQuantity(producedQuantity)
                 .defectiveQuantity(defectiveQuantity)
+                .orderNo(orderNo)
+                .status(status)
+                .goodSerials(goodSerials)
+                .goodSerialsGzip(compressedSerials)
                 .build();
+    }
+
+    private String extractCompressedSerials(JsonNode summaryNode) {
+        JsonNode compressedNode = summaryNode.get("good_serials_gzip");
+        if (compressedNode != null && compressedNode.isTextual()) {
+            return compressedNode.asText();
+        }
+        return null;
+    }
+
+    private List<String> extractGoodSerials(JsonNode summaryNode, String compressedValue) {
+        if (StringUtils.hasText(compressedValue)) {
+            List<String> serials = decompressSerials(compressedValue);
+            if (!serials.isEmpty()) {
+                return serials;
+            }
+        }
+        JsonNode serialsNode = summaryNode.get("good_serials");
+        if (serialsNode == null || !serialsNode.isArray()) {
+            return Collections.emptyList();
+        }
+        List<String> serials = new ArrayList<>();
+        for (JsonNode serialNode : serialsNode) {
+            if (serialNode.isTextual()) {
+                serials.add(serialNode.asText());
+            }
+        }
+        return serials;
+    }
+
+    private List<String> decompressSerials(String compressed) {
+        if (!StringUtils.hasText(compressed)) {
+            return Collections.emptyList();
+        }
+        try {
+            byte[] gzipped = Base64.getDecoder().decode(compressed);
+            try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(gzipped))) {
+                byte[] buffer = gzip.readAllBytes();
+                String json = new String(buffer, StandardCharsets.UTF_8);
+                JsonNode node = objectMapper.readTree(json);
+                if (node == null || !node.isArray()) {
+                    return Collections.emptyList();
+                }
+                List<String> serials = new ArrayList<>();
+                for (JsonNode entry : node) {
+                    if (entry.isTextual()) {
+                        serials.add(entry.asText());
+                    }
+                }
+                return serials;
+            }
+        } catch (IOException | IllegalArgumentException ex) {
+            log.warn("Failed to decompress good_serials payload", ex);
+            return Collections.emptyList();
+        }
     }
 
     private ProductionPerformanceTelemetryPayload buildProductionPerformancePayload(JsonNode performanceNode) {
@@ -450,6 +527,50 @@ public class MesTelemetryListener {
                 .executeAt(executeAt)
                 .waitingAckAt(waitingAckAt)
                 .build();
+    }
+
+    private void persistNgTypeCounters(JsonNode payload) {
+        String equipmentCode = firstNonEmptyValue(payload,
+                ORDER_SUMMARY_EQUIPMENT_CODE_FIELD,
+                EQUIPMENT_CODE_FIELD,
+                EQUIPMENT_CODE_FIELD_SNAKE);
+        String orderNo = firstNonEmptyValue(payload, PRODUCTION_PERFORMANCE_ORDER_NO_FIELD);
+        if (!StringUtils.hasText(equipmentCode) || !StringUtils.hasText(orderNo)) {
+            log.warn("타입별 NG 페이로드에 equipmentCode/order_no가 없어 저장하지 않습니다. payload={}", payload);
+            return;
+        }
+        JsonNode typesNode = payload.path("types");
+        if (!typesNode.isArray()) {
+            log.warn("타입별 NG 페이로드에 types 배열이 없어 저장하지 않습니다. payload={}", payload);
+            return;
+        }
+        for (JsonNode typeEntry : typesNode) {
+            int type = typeEntry.path("type").asInt(-1);
+            BigDecimal quantity = firstDecimal(typeEntry, ORDER_NG_QTY_FIELD, VALUE_FIELD, "qty");
+            boolean validType = type >= 1 && type <= 4;
+            boolean validQuantity = quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0;
+            if (!(validType && validQuantity)) {
+                continue;
+            }
+            String name = firstNonEmptyValue(typeEntry, ORDER_NG_NAME_FIELD, "name");
+            if (!StringUtils.hasText(name)) {
+                name = "NG_TYPE_" + type;
+            }
+            DefectiveTelemetryPayload defectivePayload = DefectiveTelemetryPayload.builder()
+                    .equipmentCode(equipmentCode)
+                    .defectiveCode(String.valueOf(type))
+                    .defectiveName(name)
+                    .defectiveQuantity(quantity)
+                    .orderNo(orderNo)
+                    .status(DEFECTIVE_STATUS_VALUE)
+                    .defectiveType(String.valueOf(type))
+                    .build();
+            mesDefectiveService.saveNgTelemetry(defectivePayload, true);
+        }
+    }
+
+    private boolean isNgEventRecord(String recordKey) {
+        return recordKey != null && recordKey.contains(ORDER_NG_EVENT_FIELD);
     }
 
     private String resolveStatus(JsonNode valueNode) {
@@ -597,6 +718,20 @@ public class MesTelemetryListener {
         }
         if (ORDER_SUMMARY_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
             return parseOrderSummaryNode(valueNode.get(VALUE_FIELD));
+        }
+        return null;
+    }
+
+    private JsonNode extractNgTypeCountersPayload(JsonNode valueNode) {
+        if (valueNode == null) {
+            return null;
+        }
+        JsonNode directNode = parseTelemetryPayloadNode(valueNode.get(ORDER_NG_TYPES_PAYLOAD_FIELD));
+        if (directNode != null) {
+            return directNode;
+        }
+        if (ORDER_NG_TYPES_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
+            return parseTelemetryPayloadNode(valueNode.get(VALUE_FIELD));
         }
         return null;
     }

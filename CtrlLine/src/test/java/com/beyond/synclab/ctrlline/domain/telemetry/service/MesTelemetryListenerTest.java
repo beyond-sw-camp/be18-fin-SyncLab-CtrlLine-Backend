@@ -2,6 +2,9 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -10,7 +13,12 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayloa
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.zip.GZIPOutputStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,31 +111,28 @@ class MesTelemetryListenerTest {
     }
 
     @Test
-    void onTelemetry_savesNgDefectiveRecord() {
+    void onTelemetry_persistsNgDefectiveRecord() {
         String payload = """
                 {"records":[
                     {"value":{"status":"OK","equipmentId":7,"defectiveCode":"DF-00","defectiveName":"Scratch","quantity":1}},
-                    {"value":{"status":"NG","equipmentId":10,"equipmentCode":"EQP-10","defectiveCode":"DF-01","defectiveName":"Dent","quantity":3.5}}
+                    {"value":{"status":"NG","equipmentId":10,"equipmentCode":"EQP-10","defectiveCode":"DF-01","defectiveName":"Dent","quantity":3.5,"order_no":"PLAN-100"}}
                 ]}
                 """;
 
         listener.onTelemetry(consumerRecord(payload));
 
         ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture(), anyBoolean());
         DefectiveTelemetryPayload savedPayload = captor.getValue();
         assertThat(savedPayload.equipmentId()).isEqualTo(10L);
-        assertThat(savedPayload.equipmentCode()).isEqualTo("EQP-10");
-        assertThat(savedPayload.defectiveCode()).isEqualTo("DF-01");
-        assertThat(savedPayload.defectiveName()).isEqualTo("Dent");
+        assertThat(savedPayload.orderNo()).isEqualTo("PLAN-100");
         assertThat(savedPayload.defectiveQuantity()).isEqualByComparingTo("3.5");
-        assertThat(savedPayload.status()).isEqualTo("NG");
     }
 
     @Test
-    void onTelemetry_savesOrderNgPayloadWithoutStatus() {
+    void onTelemetry_identifiesOrderNgPayloadWithoutStatus() {
         String payload = """
-                {"order_ng_type":4,"order_ng_qty":6,"order_ng_name":"코팅 두께 불량"}
+                {"order_ng_type":4,"order_ng_qty":6,"order_ng_name":"코팅 두께 불량","order_no":"PLAN-200"}
                 """;
 
         JsonNode node = ReflectionTestUtils.invokeMethod(listener, "parsePayload", payload);
@@ -135,34 +140,22 @@ class MesTelemetryListenerTest {
         assertThat(identified).isTrue();
         DefectiveTelemetryPayload builtPayload = ReflectionTestUtils.invokeMethod(listener, "buildDefectivePayload", node);
         assertThat(builtPayload).isNotNull();
+        assertThat(builtPayload.orderNo()).isEqualTo("PLAN-200");
 
         listener.onTelemetry(consumerRecord(payload));
 
-        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
-        DefectiveTelemetryPayload savedPayload = captor.getValue();
-        assertThat(savedPayload.defectiveCode()).isEqualTo("4");
-        assertThat(savedPayload.defectiveName()).isEqualTo("코팅 두께 불량");
-        assertThat(savedPayload.defectiveQuantity()).isEqualByComparingTo("6");
-        assertThat(savedPayload.status()).isEqualTo("NG");
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(any(), anyBoolean());
     }
 
     @Test
-    void onTelemetry_savesNgPayloadWithSnakeCaseFields() {
+    void onTelemetry_identifiesNgPayloadWithSnakeCaseFields() {
         String payload = """
-                {"equipmentId":15,"ng_type":2,"ng_qty":3,"ng_name":"셀 정렬 불량"}
+                {"equipmentId":15,"ng_type":2,"ng_qty":3,"ng_name":"셀 정렬 불량","order_no":"PLAN-300"}
                 """;
 
         listener.onTelemetry(consumerRecord(payload));
 
-        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
-        DefectiveTelemetryPayload saved = captor.getValue();
-        assertThat(saved.equipmentId()).isEqualTo(15L);
-        assertThat(saved.defectiveCode()).isEqualTo("2");
-        assertThat(saved.defectiveName()).isEqualTo("셀 정렬 불량");
-        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("3");
-        assertThat(saved.status()).isEqualTo("NG");
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(any(), anyBoolean());
     }
 
     @Test
@@ -173,19 +166,14 @@ class MesTelemetryListenerTest {
 
         listener.onTelemetry(consumerRecord(payload));
 
-        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
-        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture());
-        DefectiveTelemetryPayload saved = captor.getValue();
-        assertThat(saved.defectiveCode()).isEqualTo("4");
-        assertThat(saved.defectiveName()).isEqualTo("체결 토크 불량");
-        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("7");
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(any(), anyBoolean());
     }
 
     @Test
     void onTelemetry_handlesOrderSummaryPayload() {
-        String payload = """
-                {"order_summary_payload":{"equipment_code":"EQP-20","produced_qty":120,"ng_qty":5}}
-                """;
+        String compressed = gzipBase64("[\"SR-001\",\"SR-002\"]");
+        String payload = String.format("{\"order_summary_payload\":{\"equipment_code\":\"EQP-20\",\"order_no\":\"PLAN-900\",\"status\":\"WAITING_ACK\",\"produced_qty\":120,\"ng_qty\":5,\"good_serials_gzip\":\"%s\"}}",
+                compressed);
 
         listener.onTelemetry(consumerRecord(payload));
 
@@ -195,13 +183,17 @@ class MesTelemetryListenerTest {
         assertThat(saved.equipmentCode()).isEqualTo("EQP-20");
         assertThat(saved.producedQuantity()).isEqualByComparingTo("120");
         assertThat(saved.defectiveQuantity()).isEqualByComparingTo("5");
+        assertThat(saved.orderNo()).isEqualTo("PLAN-900");
+        assertThat(saved.status()).isEqualTo("WAITING_ACK");
+        assertThat(saved.goodSerials()).containsExactly("SR-001", "SR-002");
+        assertThat(saved.goodSerialsGzip()).isEqualTo(compressed);
     }
 
     @Test
     void onTelemetry_handlesOrderSummaryTagPayload() {
-        String payload = """
-                {"records":[{"value":{"machine":"F0001.CL0001.TrayCleaner01","tag":"order_summary_payload","value":{"equipmentCode":"EQP-30","order_produced_qty":50,"order_ng_qty":4}}}]}
-                """;
+        String compressed = gzipBase64("[\"SR-010\"]");
+        String payload = String.format("{\"records\":[{\"value\":{\"machine\":\"F0001.CL0001.TrayCleaner01\",\"tag\":\"order_summary_payload\",\"value\":{\"equipmentCode\":\"EQP-30\",\"order_no\":\"PLAN-901\",\"status\":\"WAITING_ACK\",\"order_produced_qty\":50,\"order_ng_qty\":4,\"good_serials_gzip\":\"%s\"}}}]}",
+                compressed);
 
         listener.onTelemetry(consumerRecord(payload));
 
@@ -211,6 +203,26 @@ class MesTelemetryListenerTest {
         assertThat(saved.equipmentCode()).isEqualTo("EQP-30");
         assertThat(saved.producedQuantity()).isEqualByComparingTo("50");
         assertThat(saved.defectiveQuantity()).isEqualByComparingTo("4");
+        assertThat(saved.orderNo()).isEqualTo("PLAN-901");
+        assertThat(saved.status()).isEqualTo("WAITING_ACK");
+        assertThat(saved.goodSerials()).containsExactly("SR-010");
+        assertThat(saved.goodSerialsGzip()).isEqualTo(compressed);
+    }
+
+    @Test
+    void onTelemetry_handlesNgTypePayload() {
+        String payload = """
+                {"order_ng_types_payload":{"equipment_code":"EQP-40","order_no":"PLAN-777","types":[{"type":1,"name":"Type1","qty":5},{"type":3,"name":"Type3","qty":0}]}}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<DefectiveTelemetryPayload> captor = ArgumentCaptor.forClass(DefectiveTelemetryPayload.class);
+        verify(mesDefectiveService, times(1)).saveNgTelemetry(captor.capture(), eq(true));
+        DefectiveTelemetryPayload saved = captor.getValue();
+        assertThat(saved.orderNo()).isEqualTo("PLAN-777");
+        assertThat(saved.defectiveCode()).isEqualTo("1");
+        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("5");
     }
 
     @Test
@@ -258,5 +270,16 @@ class MesTelemetryListenerTest {
 
     private ConsumerRecord<String, String> consumerRecord(String payload) {
         return new ConsumerRecord<>("mes-machine-telemetry", 0, 0L, "key", payload);
+    }
+
+    private String gzipBase64(String json) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             GZIPOutputStream gzip = new GZIPOutputStream(baos)) {
+            gzip.write(json.getBytes(StandardCharsets.UTF_8));
+            gzip.finish();
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

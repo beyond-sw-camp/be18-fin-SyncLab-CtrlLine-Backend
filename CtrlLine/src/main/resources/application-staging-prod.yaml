@@ -28,6 +28,11 @@ app:
     prefix:
       refresh: "ctrlline:refresh:"
       blacklist: "ctrlline:blacklist:"
+      plan-defective-last-reported: "ctrlline:plan-defective:last:"
+  serial-storage:
+    type: local
+    local:
+      base-dir: ${SERIAL_STORAGE_LOCAL_DIR:/var/ctrlline/serials}
 
 spring:
   datasource:

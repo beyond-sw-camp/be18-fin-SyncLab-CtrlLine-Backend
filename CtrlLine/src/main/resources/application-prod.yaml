@@ -29,6 +29,13 @@ app:
     prefix:
       refresh: "ctrlline:refresh:"
       blacklist: "ctrlline:blacklist:"
+      plan-defective-last-reported: "ctrlline:plan-defective:last:"
+  serial-storage:
+    type: s3
+    s3:
+      bucket: ${SERIAL_STORAGE_BUCKET}
+      base-path: ${SERIAL_STORAGE_BASE_PATH:serials}
+      region: ${SERIAL_STORAGE_REGION:ap-northeast-2}
 
 spring:
   datasource:

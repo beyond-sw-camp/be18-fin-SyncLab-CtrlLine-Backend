@@ -17,6 +17,10 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(
                         name = "uq_performance_document_no",
                         columnNames = "performance_document_no"
+                ),
+                @UniqueConstraint(
+                        name = "uq_production_performance_plan",
+                        columnNames = "production_plan_id"
                 )
         }
 )
@@ -37,7 +41,7 @@ public class ProductionPerformances {
     @JoinColumn(name = "production_plan_id", nullable = false, insertable = false, updatable = false)
     private ProductionPlans productionPlan;
 
-    @Column(name = "production_plan_id")
+    @Column(name = "production_plan_id", nullable = false)
     private Long productionPlanId;
 
     @Column(name = "performance_document_no", length = 32, nullable = false)
@@ -48,6 +52,11 @@ public class ProductionPerformances {
 
     @Column(name = "performance_qty", precision = 10, scale = 2, nullable = false)
     private BigDecimal performanceQty;
+
+    public BigDecimal getPerformanceDefectiveQty() {
+        if (totalQty == null || performanceQty == null) return BigDecimal.ZERO;
+        return totalQty.subtract(performanceQty);
+    }
 
     @Column(name = "performance_defective_rate", precision = 10, scale = 2, nullable = false)
     private BigDecimal performanceDefectiveRate;
@@ -72,6 +81,17 @@ public class ProductionPerformances {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
+    public void updatePerformance(BigDecimal totalQty, BigDecimal producedQty, BigDecimal defectiveRate,
+                                  LocalDateTime startTime, LocalDateTime endTime) {
+        this.totalQty = totalQty;
+        this.performanceQty = producedQty;
+        this.performanceDefectiveRate = defectiveRate;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.isDeleted = Boolean.FALSE;
+    }
 
 
 }

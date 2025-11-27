@@ -27,6 +27,8 @@ import java.util.Optional;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,12 @@ class ProductionOrderServiceTest {
     @Mock
     private MiloProductionOrderClient miloProductionOrderClient;
 
+    @Mock
+    private PlanDefectiveService planDefectiveService;
+
+    @Mock
+    private LotService lotService;
+
     private Clock fixedClock;
 
     @InjectMocks
@@ -61,6 +69,8 @@ class ProductionOrderServiceTest {
                 productionPlanRepository,
                 lineRepository,
                 miloProductionOrderClient,
+                planDefectiveService,
+                lotService,
                 fixedClock
         );
     }
@@ -160,6 +170,8 @@ class ProductionOrderServiceTest {
         assertThat(request.ppm()).isNull();
 
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RUNNING);
+        verify(planDefectiveService).createPlanDefective(plan);
+        verify(lotService).createLot(plan);
         verify(productionPlanRepository).save(plan);
     }
 
@@ -199,5 +211,6 @@ class ProductionOrderServiceTest {
         // then
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RETURNED);
         verify(productionPlanRepository).save(plan);
+        Mockito.verifyNoInteractions(planDefectiveService, lotService);
     }
 }

@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,8 @@ public class ProductionOrderService {
     private final ProductionPlanRepository productionPlanRepository;
     private final LineRepository lineRepository;
     private final MiloProductionOrderClient miloProductionOrderClient;
+    private final PlanDefectiveService planDefectiveService;
+    private final LotService lotService;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -49,8 +53,11 @@ public class ProductionOrderService {
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
                 ProductionPlans.PlanStatus.CONFIRMED, now
         );
+        log.debug("Found {} production plans to dispatch at {}", plans.size(), now);
 
         for (ProductionPlans plan : plans) {
+            log.debug("Evaluating production plan documentNo={} status={} startTime={}",
+                    plan.getDocumentNo(), plan.getStatus(), plan.getStartTime());
             try {
                 Optional<DispatchContext> contextOptional = prepareDispatchContext(plan);
                 if (contextOptional.isEmpty()) {
@@ -80,11 +87,13 @@ public class ProductionOrderService {
                 );
 
                 plan.markDispatched();
+                log.info("Production plan documentNo={} marked as RUNNING", plan.getDocumentNo());
+                planDefectiveService.createPlanDefective(plan);
+                lotService.createLot(plan);
                 productionPlanRepository.save(plan);
             } catch (Exception ex) {
                 log.error("Failed to dispatch production plan documentNo={}", plan.getDocumentNo(), ex);
-                plan.markDispatchFailed();
-                productionPlanRepository.save(plan);
+                markPlanReturned(plan, "Exception while dispatching plan. message=" + ex.getMessage());
             }
         }
     }
@@ -122,50 +131,32 @@ public class ProductionOrderService {
     private Optional<DispatchContext> prepareDispatchContext(ProductionPlans plan) {
         ItemsLines itemLine = plan.getItemLine();
         if (itemLine == null) {
-            log.warn("ItemLine not set for production plan documentNo={}", plan.getDocumentNo());
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
+            return markPlanReturned(plan, "ItemLine entity missing");
         }
 
         if (itemLine.getItem() == null || !org.springframework.util.StringUtils.hasText(itemLine.getItem().getItemCode())) {
-            log.warn("Item code missing for production plan documentNo={} itemLineId={}", plan.getDocumentNo(), itemLine.getId());
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
+            return markPlanReturned(plan, "Item code missing itemLineId=" + itemLine.getId());
         }
 
         if (itemLine.getLine() == null) {
-            log.warn("Line entity missing for production plan documentNo={} itemLineId={}", plan.getDocumentNo(), itemLine.getId());
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
+            return markPlanReturned(plan, "Line entity missing itemLineId=" + itemLine.getId());
         }
 
         Long lineId = itemLine.getLineId();
 
         Optional<Lines> lineOptional = lineRepository.findById(lineId);
         if (lineOptional.isEmpty()) {
-            log.warn("Line not found for production plan documentNo={}, lineId={}", plan.getDocumentNo(), lineId);
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
+            return markPlanReturned(plan, "Line not found lineId=" + lineId);
         }
 
         Optional<String> factoryCodeOptional = lineRepository.findFactoryCodeByLineId(lineId);
         if (factoryCodeOptional.isEmpty()) {
-            log.warn("Factory code not found for lineId={} documentNo={}", lineId, plan.getDocumentNo());
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
+            return markPlanReturned(plan, "Factory code not found lineId=" + lineId);
         }
 
         int quantity = plan.commandQuantity();
         if (quantity <= 0) {
-            log.warn("Invalid command quantity for documentNo={}, quantity={}", plan.getDocumentNo(), quantity);
-            plan.markDispatchFailed();
-            productionPlanRepository.save(plan);
-            return Optional.empty();
+            return markPlanReturned(plan, "Invalid command quantity quantity=" + quantity);
         }
 
         return Optional.of(new DispatchContext(
@@ -188,5 +179,13 @@ public class ProductionOrderService {
             String orderNo,
             Integer ppm
     ) {
+    }
+
+    private Optional<DispatchContext> markPlanReturned(ProductionPlans plan, String reason) {
+        log.debug("Production plan documentNo={} will be marked RETURNED. reason={}",
+                plan.getDocumentNo(), reason);
+        plan.markDispatchFailed();
+        productionPlanRepository.save(plan);
+        return Optional.empty();
     }
 }
