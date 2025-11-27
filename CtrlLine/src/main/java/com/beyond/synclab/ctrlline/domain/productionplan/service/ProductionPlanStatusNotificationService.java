@@ -145,7 +145,7 @@ public class ProductionPlanStatusNotificationService {
         if (!StringUtils.hasText(detailUrl)) {
             return baseBody;
         }
-        return baseBody + System.lineSeparator() + System.lineSeparator() + "상세보기: " + detail;
+        return baseBody + System.lineSeparator() + System.lineSeparator() + "상세보기: " + detailUrl;
     }
 
     private boolean hasScheduleChanged(LocalDateTime previous, LocalDateTime current) {
