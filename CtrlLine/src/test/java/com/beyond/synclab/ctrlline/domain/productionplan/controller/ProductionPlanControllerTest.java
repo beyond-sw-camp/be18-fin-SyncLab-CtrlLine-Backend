@@ -24,8 +24,10 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanRe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -430,6 +432,33 @@ class ProductionPlanControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.endTime").value(startsWith(endTime.toString())))
         ;
+    }
 
+    @Test
+    @DisplayName("생산 계획 상태 수정 성공 - 200 OK")
+    @WithMockUser(roles = {"ADMIN"})
+    void updateProductionPlanStatus_success_200() throws Exception {
+        // given
+        UpdateProductionPlanStatusRequestDto requestDto = UpdateProductionPlanStatusRequestDto.builder()
+            .planIds(List.of(1L, 2L))
+            .planStatus(ProductionPlans.PlanStatus.PENDING)
+            .build();
+
+        UpdateProductionPlanStatusResponseDto responseDto = UpdateProductionPlanStatusResponseDto.builder()
+            .planIds(List.of(1L, 2L))
+            .planStatus(ProductionPlans.PlanStatus.PENDING)
+            .build();
+
+        when(productionPlanService.updateProductionPlanStatus(any(UpdateProductionPlanStatusRequestDto.class)))
+            .thenReturn(responseDto);
+
+        mockMvc.perform(patch("/api/v1/production-plans/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.planIds[0]").value(1L))
+            .andExpect(jsonPath("$.data.planStatus").value("PENDING"))
+        ;
     }
 }

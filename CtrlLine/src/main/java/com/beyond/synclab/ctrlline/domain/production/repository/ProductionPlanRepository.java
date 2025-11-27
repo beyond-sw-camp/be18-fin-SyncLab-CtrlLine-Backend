@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,7 +21,7 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startTime);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT pp.documentNo FROM ProductionPlans pp WHERE pp.documentNo LIKE :prefix% ORDER BY pp.documentNo DESC")
+    @Query("SELECT pp.documentNo FROM ProductionPlans pp WHERE pp.documentNo LIKE :prefix% ORDER BY pp.createdAt DESC")
     List<String> findByDocumentNoByPrefix(@Param("prefix") String prefix);
 
     Optional<ProductionPlans> findByDocumentNo(String documentNo);
@@ -46,4 +47,10 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
         ORDER BY p.startTime ASC
     """)
     List<ProductionPlans> findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(@Param("startTime") LocalDateTime startTime, List<PlanStatus> statuses);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE ProductionPlans p SET p.status = :status WHERE p.id IN :ids")
+    int updateAllStatusById(@Param("ids") List<Long> planIds, @Param("status") PlanStatus planStatus);
+
+    List<ProductionPlans> findAllByIdIn(List<Long> ids);
 }
