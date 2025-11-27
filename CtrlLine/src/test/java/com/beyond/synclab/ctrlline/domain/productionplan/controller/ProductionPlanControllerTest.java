@@ -17,8 +17,12 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
@@ -320,9 +324,9 @@ class ProductionPlanControllerTest {
             .endTime(LocalDateTime.now(testClock))
             .dueDate(LocalDate.now(testClock))
             .salesManagerName("김영업")
-            .salesManagerEmpNo("202511001")
+            .salesManagerNo("202511001")
             .productionManagerName("박생산")
-            .productionManagerEmpNo("202511001")
+            .productionManagerNo("202511001")
             .remark("테스트 생산계획")
             .build();
 
@@ -336,5 +340,96 @@ class ProductionPlanControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data[0].factoryName").value("A공장"))
             .andExpect(jsonPath("$.data[0].itemName").value("샘플제품"));
+    }
+
+
+    @Test
+    @DisplayName("생산 계획 일정 조회 성공 - 검색 필터 적용")
+    @WithMockUser
+    void getProductionPlanSchedule_success_withSearch() throws Exception {
+        // given
+        GetProductionPlanScheduleResponseDto testDto = GetProductionPlanScheduleResponseDto.builder()
+            .id(1L)
+            .lineName("1호라인")
+            .lineCode("LINE-001")
+            .factoryName("A공장")
+            .factoryCode("FAC-001")
+            .salesManagerNo("202511001")
+            .productionManagerNo("202511001")
+            .documentNo("2025/11/22-1")
+            .itemCode("ITEM-1001")
+            .status(ProductionPlans.PlanStatus.PENDING)
+            .dueDate(LocalDate.now(testClock))
+            .plannedQty(new BigDecimal("1500"))
+            .startTime(LocalDateTime.now(testClock))
+            .endTime(LocalDateTime.now(testClock))
+            .remark("테스트 생산계획")
+            .build();
+
+        when(productionPlanService.getProductionPlanSchedule(any(GetProductionPlanScheduleRequestDto.class))).thenReturn(List.of(testDto));
+
+        // when & then
+        mockMvc.perform(get("/api/v1/production-plans/schedules")
+                .param("startTime", LocalDateTime.now(testClock).toString())
+                .param("endTime", LocalDateTime.now(testClock).toString())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].factoryName").value("A공장"))
+            .andExpect(jsonPath("$.data[0].startTime").value(startsWith(LocalDateTime.now(testClock).toString())))
+            .andExpect(jsonPath("$.data[0].endTime").value(startsWith(LocalDateTime.now(testClock).toString())));
+    }
+
+    @Test
+    @DisplayName("생산 계획 일정 조회 실패 - startTime 누락")
+    @WithMockUser
+    void getProductionPlanSchedule_fail_missingStartTime() throws Exception {
+        LocalDateTime now = LocalDateTime.now(testClock);
+
+        mockMvc.perform(get("/api/v1/production-plans/schedules")
+                .param("endTime", now.toString())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("생산 계획 일정 조회 실패 - endTime 누락")
+    @WithMockUser
+    void getProductionPlanSchedule_fail_missingEndTime() throws Exception {
+        LocalDateTime now = LocalDateTime.now(testClock);
+
+        mockMvc.perform(get("/api/v1/production-plans/schedules")
+                .param("startTime", now.toString())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("생산 계획 종료 시간 반환 성공 - 200 OK")
+    @WithMockUser
+    void getProductionPlanEndTime_success_200() throws Exception {
+        // given
+        LocalDateTime endTime = LocalDateTime.now(testClock).plusDays(1);
+        LocalDateTime startTime = LocalDateTime.now(testClock);
+        GetProductionPlanEndTimeRequestDto requestDto = GetProductionPlanEndTimeRequestDto.builder()
+            .startTime(startTime)
+            .plannedQty(new BigDecimal("1500"))
+            .lineCode("LINE-001")
+            .build();
+
+        GetProductionPlanEndTimeResponseDto testDto = GetProductionPlanEndTimeResponseDto.builder()
+            .endTime(endTime)
+            .build();
+
+        when(productionPlanService.getProductionPlanEndTime(any(GetProductionPlanEndTimeRequestDto.class)))
+            .thenReturn(testDto);
+
+        mockMvc.perform(post("/api/v1/production-plans/endtime")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(requestDto))
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.endTime").value(startsWith(endTime.toString())))
+        ;
+
     }
 }

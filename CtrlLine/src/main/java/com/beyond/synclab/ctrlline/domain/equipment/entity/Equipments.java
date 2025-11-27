@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
+@Builder(toBuilder = true)
 // @EntityListeners(EntityActionLogger.class) 작성해야, 로그 테이블에 자동 등록됨.
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
