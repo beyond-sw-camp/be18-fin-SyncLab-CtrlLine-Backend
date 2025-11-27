@@ -32,6 +32,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
@@ -165,9 +167,11 @@ class ProductionPlanServiceImplTest {
             .build();
 
         equipment = Equipments.builder()
+            .lineId(line.getId())
+            .line(line)
             .equipmentPpm(BigDecimal.valueOf(1000))
             .totalCount(BigDecimal.valueOf(1000))
-            .defectiveCount(BigDecimal.valueOf(10))
+            .defectiveCount(BigDecimal.ZERO)
             .build();
 
         salesManager = Users.builder()
@@ -1226,6 +1230,76 @@ class ProductionPlanServiceImplTest {
             assertThatThrownBy(() -> productionPlanService.getProductionPlanSchedule(requestDto))
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("생산계획 종료시간 반환 테스트")
+    class getProductionPlanEndTimeTest {
+
+        @Test
+        @DisplayName("종료시간 반환 성공")
+        void testGetProductionPlanEndTime_success() {
+            // given
+            GetProductionPlanEndTimeRequestDto request = GetProductionPlanEndTimeRequestDto.builder()
+                .lineCode("LINE001")
+                .plannedQty(BigDecimal.valueOf(300))
+                .startTime(testDateTime)
+                .build();
+
+            Equipments eq1 = equipment.toBuilder()
+                .id(1L)
+                .equipmentPpm(BigDecimal.valueOf(50))
+                .build();
+
+            Equipments eq2 = equipment.toBuilder()
+                .id(2L)
+                .equipmentPpm(BigDecimal.valueOf(100))
+                .build();
+
+            when(lineRepository.findBylineCode("LINE001")).thenReturn(Optional.of(line));
+            when(equipmentRepository.findAllByLineId(1L)).thenReturn(List.of(eq1, eq2));
+
+            // when
+            GetProductionPlanEndTimeResponseDto response = productionPlanService.getProductionPlanEndTime(request);
+
+            // then
+            // 장비 총 PPM = 50 + 100 = 150
+            // 소요 시간 = 300 / 150 = 2분
+            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(2));
+        }
+
+        @Test
+        @DisplayName("라인 조회 실패")
+        void testGetProductionPlanEndTime_noLine() {
+            GetProductionPlanEndTimeRequestDto request = GetProductionPlanEndTimeRequestDto.builder()
+                .lineCode("LINE-X")
+                .plannedQty(BigDecimal.valueOf(100))
+                .startTime(LocalDateTime.now())
+                .build();
+
+            when(lineRepository.findBylineCode("LINE-X")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> productionPlanService.getProductionPlanEndTime(request))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(LineErrorCode.LINE_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("설비 조회 실패")
+        void testGetProductionPlanEndTime_noEquipment() {
+            GetProductionPlanEndTimeRequestDto request = GetProductionPlanEndTimeRequestDto.builder()
+                .lineCode("LINE-1")
+                .plannedQty(BigDecimal.valueOf(100))
+                .startTime(LocalDateTime.now())
+                .build();
+
+            when(lineRepository.findBylineCode("LINE-1")).thenReturn(Optional.of(line));
+            when(equipmentRepository.findAllByLineId(1L)).thenReturn(List.of());
+
+            assertThatThrownBy(() -> productionPlanService.getProductionPlanEndTime(request))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(LineErrorCode.NO_EQUIPMENT_FOUND.getMessage());
         }
     }
 

@@ -6,6 +6,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
@@ -105,6 +107,15 @@ public class ProductionPlanController {
         @ModelAttribute @Valid GetProductionPlanScheduleRequestDto requestDto
     ) {
         List<GetProductionPlanScheduleResponseDto> responseDto = productionPlanService.getProductionPlanSchedule(requestDto);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @PostMapping("/endtime")
+    public ResponseEntity<BaseResponse<GetProductionPlanEndTimeResponseDto>> getEndTime(
+        @RequestBody GetProductionPlanEndTimeRequestDto requestDto
+    ) {
+        GetProductionPlanEndTimeResponseDto responseDto = productionPlanService.getProductionPlanEndTime(requestDto);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }

@@ -21,6 +21,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
@@ -465,5 +467,23 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.ASC, "startTime"));
 
         return result.stream().map(GetProductionPlanScheduleResponseDto::fromEntity).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetProductionPlanEndTimeResponseDto getProductionPlanEndTime(
+        GetProductionPlanEndTimeRequestDto requestDto)
+    {
+        Lines line = lineRepository.findBylineCode(requestDto.getLineCode())
+            .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+
+        List<Equipments> equipments =  equipmentRepository.findAllByLineId(line.getId());
+
+        LocalDateTime endTime =
+            calculateEndTime(equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
+
+        return GetProductionPlanEndTimeResponseDto.builder()
+            .endTime(endTime)
+            .build();
     }
 }
