@@ -453,6 +453,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         Specification<ProductionPlans> spec = Specification.allOf(
+            PlanSpecification.planFactoryCodeEquals(requestDto.factoryCode()),
+            PlanSpecification.planLineCodeEquals(requestDto.lineCode()),
             PlanSpecification.planStatusNotEquals(PlanStatus.RETURNED), // 반려 조건 제외해서 조회
             PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
             PlanSpecification.planLineNameContains(requestDto.lineName()),
