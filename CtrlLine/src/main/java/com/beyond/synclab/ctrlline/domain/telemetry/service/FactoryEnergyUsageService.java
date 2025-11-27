@@ -8,6 +8,8 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.FactoryEnergyUsageRespon
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.MesDatas;
 import com.beyond.synclab.ctrlline.domain.telemetry.errorcode.TelemetryErrorCode;
 import com.beyond.synclab.ctrlline.domain.telemetry.repository.MesDataRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,30 @@ public class FactoryEnergyUsageService {
                 .factoryCode(factory.getFactoryCode())
                 .powerConsumption(latest.getPowerConsumption())
                 .recordedAt(latest.getCreatedAt())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public FactoryEnergyUsageResponse getTodayPeakEnergyUsage(String factoryCode) {
+        if (!StringUtils.hasText(factoryCode)) {
+            throw new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
+        }
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+                .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime startOfTomorrow = startOfDay.plusDays(1);
+
+        MesDatas peak = mesDataRepository
+                .findTopByFactoryIdAndCreatedAtBetweenOrderByPowerConsumptionDesc(
+                        factory.getId(), startOfDay, startOfTomorrow)
+                .orElseThrow(() -> new AppException(TelemetryErrorCode.ENERGY_DATA_NOT_FOUND));
+
+        return FactoryEnergyUsageResponse.builder()
+                .factoryCode(factory.getFactoryCode())
+                .powerConsumption(peak.getPowerConsumption())
+                .recordedAt(peak.getCreatedAt())
                 .build();
     }
 }

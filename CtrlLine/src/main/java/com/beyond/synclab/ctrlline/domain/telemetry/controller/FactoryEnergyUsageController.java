@@ -28,4 +28,12 @@ public class FactoryEnergyUsageController {
         FactoryEnergyUsageResponse response = factoryEnergyUsageService.getLatestEnergyUsage(factoryCode);
         return ResponseEntity.ok(BaseResponse.of(HttpStatus.OK.value(), response));
     }
+
+    @Operation(summary = "공장 금일 최고 전력 사용량 조회")
+    @GetMapping("/{factoryCode}/energy/today-max")
+    public ResponseEntity<BaseResponse<FactoryEnergyUsageResponse>> getTodayPeakEnergyUsage(
+            @PathVariable("factoryCode") String factoryCode) {
+        FactoryEnergyUsageResponse response = factoryEnergyUsageService.getTodayPeakEnergyUsage(factoryCode);
+        return ResponseEntity.ok(BaseResponse.of(HttpStatus.OK.value(), response));
+    }
 }
