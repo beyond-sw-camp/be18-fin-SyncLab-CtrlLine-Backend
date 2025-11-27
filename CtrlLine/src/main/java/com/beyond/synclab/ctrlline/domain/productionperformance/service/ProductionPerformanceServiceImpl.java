@@ -11,15 +11,13 @@ import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceMonthlySumResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyDefRateQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +27,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,8 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     private final LotRepository lotRepository;
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
     private final FactoryRepository factoryRepository;
-    private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository; // ← 추가
+    private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository;
+    private final ProductionPerformanceMonthlyDefRateQueryRepository productionPerformanceMonthlyDefectiveRateQueryRepository;
 
 
     // 생산실적 목록 조회
@@ -166,6 +167,70 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
 
         // 최종 Wrapper 반환
         return GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance.of(
+                factory.getFactoryCode(),
+                factory.getFactoryName(),
+                performances
+        );
+    }
+    // 공장별 최근 6개월 월별 불량률 조회
+    @Override
+    @Transactional(readOnly = true)
+    public GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate
+    getMonthlyDefectiveRateProductionPerformances(String factoryCode, String baseMonth) {
+
+        // 공장 검증
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+                .orElseThrow(() -> new AppException(CommonErrorCode.INVALID_INPUT_VALUE));
+
+        // 기준월 파싱 (예외 처리 포함)
+        YearMonth base;
+        try {
+            base = (baseMonth == null || baseMonth.isBlank())
+                    ? YearMonth.now()
+                    : YearMonth.parse(baseMonth);
+        } catch (Exception ex) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        // 기준월 + 이전 5개월 리스트 생성 (오름차순 정렬)
+        List<YearMonth> months = IntStream.rangeClosed(0, 5)
+                .mapToObj(base::minusMonths)
+                .sorted()
+                .toList();
+
+        // 월별 totalQtySum, performanceQtySum 조회
+        Map<YearMonth, ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum> qtySumMap =
+                productionPerformanceMonthlyDefectiveRateQueryRepository.getMonthlyQtySum(factoryCode, months);
+
+        // 월별 불량률 계산 후 DTO 변환
+        List<GetProductionPerformanceMonthlyDefRateResponseDto> performances = months.stream()
+                .map(ym -> {
+
+                    ProductionPerformanceMonthlyDefRateQueryRepository.MonthlyQtySum qtySum =
+                            qtySumMap.get(ym);
+
+                    BigDecimal totalQty = (qtySum != null) ? qtySum.getTotalQtySum() : BigDecimal.ZERO;
+                    BigDecimal performanceQty = (qtySum != null) ? qtySum.getPerformanceQtySum() : BigDecimal.ZERO;
+                    log.info("YM={} totalQty={} performanceQty={}", ym, totalQty, performanceQty);
+
+                    // (total - performance) / performance * 100
+                    BigDecimal defectiveRate =
+                            (performanceQty.compareTo(BigDecimal.ZERO) == 0)
+                                    ? BigDecimal.ZERO
+                                    : totalQty.subtract(performanceQty)
+                                    .divide(performanceQty, 10, RoundingMode.HALF_UP)
+                                    .multiply(BigDecimal.valueOf(100))
+                                    .setScale(2, RoundingMode.HALF_UP); // ← 소수점 둘째 자리 정확
+
+                    return GetProductionPerformanceMonthlyDefRateResponseDto.of(
+                            ym.toString(),
+                            defectiveRate
+                    );
+                })
+                .toList();
+
+        // Wrapper DTO 생성 후 반환
+        return GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate.of(
                 factory.getFactoryCode(),
                 factory.getFactoryName(),
                 performances
