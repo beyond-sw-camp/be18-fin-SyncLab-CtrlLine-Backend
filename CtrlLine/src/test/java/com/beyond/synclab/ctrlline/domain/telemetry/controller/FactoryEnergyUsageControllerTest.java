@@ -11,24 +11,32 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.FactoryEnergyUsageRespon
 import com.beyond.synclab.ctrlline.domain.telemetry.service.FactoryEnergyUsageService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@WebMvcTest(controllers = FactoryEnergyUsageController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class FactoryEnergyUsageControllerTest {
 
-    @Autowired
+    @Mock
+    private FactoryEnergyUsageService factoryEnergyUsageService;
+
+    @InjectMocks
+    private FactoryEnergyUsageController factoryEnergyUsageController;
+
     private MockMvc mockMvc;
 
-    @MockBean
-    private FactoryEnergyUsageService factoryEnergyUsageService;
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(factoryEnergyUsageController).build();
+    }
 
     @Test
     @DisplayName("GET /api/v1/factories/{code}/energy/latest 가 최신 전력 사용량을 반환한다")
