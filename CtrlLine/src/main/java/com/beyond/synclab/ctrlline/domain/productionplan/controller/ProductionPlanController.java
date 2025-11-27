@@ -8,6 +8,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
@@ -96,5 +98,14 @@ public class ProductionPlanController {
         List<GetAllProductionPlanResponseDto> responseDto = productionPlanService.getAllProductionPlan(requestDto);
 
         return  ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @GetMapping("/schedules")
+    public ResponseEntity<BaseResponse<List<GetProductionPlanScheduleResponseDto>>> getProductionPlanSchedule(
+        @ModelAttribute @Valid GetProductionPlanScheduleRequestDto requestDto
+    ) {
+        List<GetProductionPlanScheduleResponseDto> responseDto = productionPlanService.getProductionPlanSchedule(requestDto);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }

@@ -23,6 +23,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
@@ -43,6 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -434,5 +437,33 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return result.stream().map(GetAllProductionPlanResponseDto::fromEntity).toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(
+        value = "productionPlanSchedule",
+        key = "T(com.beyond.synclab.ctrlline.common.util.CacheKeyUtil).getProductionPlanScheduleKey(#requestDto)"
+    )
+    public List<GetProductionPlanScheduleResponseDto> getProductionPlanSchedule(
+        GetProductionPlanScheduleRequestDto requestDto
+    ) {
+        Duration maxRange = Duration.ofDays(30); // 최대 30일 조회 허용
+        if (Duration.between(requestDto.startTime(), requestDto.endTime()).compareTo(maxRange) > 0) {
+            log.debug("조회 기간은 최대 30일을 초과할 수 없습니다.");
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
+        }
 
+        Specification<ProductionPlans> spec = Specification.allOf(
+            PlanSpecification.planFactoryCodeEquals(requestDto.factoryCode()),
+            PlanSpecification.planLineCodeEquals(requestDto.lineCode()),
+            PlanSpecification.planStatusNotEquals(PlanStatus.RETURNED), // 반려 조건 제외해서 조회
+            PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
+            PlanSpecification.planLineNameContains(requestDto.lineName()),
+            PlanSpecification.planStartTimeAfter(requestDto.startTime()),
+            PlanSpecification.planEndTimeBefore(requestDto.endTime())
+        );
+
+        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.ASC, "startTime"));
+
+        return result.stream().map(GetProductionPlanScheduleResponseDto::fromEntity).toList();
+    }
 }
