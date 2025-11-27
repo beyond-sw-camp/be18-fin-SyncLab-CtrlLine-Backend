@@ -3,6 +3,7 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.service;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
+import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
@@ -13,11 +14,13 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.Sear
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceMonthlySumResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +29,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 @Slf4j
 @Service
@@ -36,6 +42,9 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     private final ProductionPerformanceRepository performanceRepository;
     private final LotRepository lotRepository;
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
+    private final FactoryRepository factoryRepository;
+    private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository; // ← 추가
+
 
     // 생산실적 목록 조회
     @Override
@@ -104,8 +113,6 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     public List<GetAllProductionPerformanceResponseDto> getAllProductionPerformances(
             SearchAllProductionPerformanceRequestDto condition
     ) {
-        log.debug(condition.toString());
-
         List<GetAllProductionPerformanceResponseDto> results =
                 productionPerformanceAllQueryRepository.searchAll(condition);
 
@@ -113,5 +120,55 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
             throw new AppException(ProductionPerformanceErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND);
         }
         return productionPerformanceAllQueryRepository.searchAll(condition);
+    }
+
+    // 공장별 최근 6개월 누적 생산량
+    @Override
+    @Transactional(readOnly = true)
+    public GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance
+    getMonthlySumProductionPerformances(String factoryCode, String baseMonth) {
+
+        // 공장 검증
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+                .orElseThrow(() -> new AppException(CommonErrorCode.INVALID_INPUT_VALUE));
+
+        // 기준월 검증
+        YearMonth base;
+        try {
+            base = (baseMonth == null || baseMonth.isBlank())
+                    ? YearMonth.now()
+                    : YearMonth.parse(baseMonth);
+        } catch (Exception ex) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        List<YearMonth> months = IntStream.rangeClosed(0, 5)
+                .mapToObj(base::minusMonths)
+                .sorted()
+                .toList();
+
+        // 월별 누적 생산량 조회
+        Map<YearMonth, Long> sumByMonth =
+                productionPerformanceMonthlyQueryRepository.getMonthlySum(factoryCode, months);
+
+        // 예외 처리: 조회 결과가 null 또는 empty면 404 발생
+        if (sumByMonth == null || sumByMonth.isEmpty()) {
+            throw new AppException(ProductionPerformanceErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND);
+        }
+
+        // 월별 DTO 변환
+        List<GetProductionPerformanceMonthlySumResponseDto> performances = months.stream()
+                .map(ym -> GetProductionPerformanceMonthlySumResponseDto.of(
+                        ym.toString(),
+                        sumByMonth.getOrDefault(ym, 0L)
+                ))
+                .toList();
+
+        // 최종 Wrapper 반환
+        return GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance.of(
+                factory.getFactoryCode(),
+                factory.getFactoryName(),
+                performances
+        );
     }
 }

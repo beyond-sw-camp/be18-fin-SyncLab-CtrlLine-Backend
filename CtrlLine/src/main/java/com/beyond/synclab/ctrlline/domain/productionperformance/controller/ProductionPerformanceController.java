@@ -7,6 +7,7 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.Sear
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceMonthlySumResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,5 +63,18 @@ public class ProductionPerformanceController {
         List<GetAllProductionPerformanceResponseDto> result =
                 productionPerformanceService.getAllProductionPerformances(condition);
         return ResponseEntity.ok(result);
+    }
+
+    // 공장별 월 생산량 조회
+    @GetMapping("/monthly")
+    public ResponseEntity<BaseResponse<GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance>>
+    getMonthlyProductionPerformance(
+            @RequestParam String factoryCode,
+            @RequestParam(required = false) String baseMonth
+    ) {
+        GetProductionPerformanceMonthlySumResponseDto.FactoryMonthlyPerformance result =
+                productionPerformanceService.getMonthlySumProductionPerformances(factoryCode, baseMonth);
+
+        return ResponseEntity.ok(ok(result));
     }
 }
