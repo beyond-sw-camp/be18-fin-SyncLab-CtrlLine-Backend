@@ -29,6 +29,8 @@ app:
       refresh: "ctrlline:refresh:"
       blacklist: "ctrlline:blacklist:"
       plan-defective-last-reported: "ctrlline:plan-defective:last:"
+  frontend:
+    base-url: ${APP_FRONTEND_BASE_URL:https://stage-synclab-ctrlline.vercel.app}
   serial-storage:
     type: local
     local:

@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.common.mail.MailSendRequest;
 import com.beyond.synclab.ctrlline.common.mail.MailService;
+import com.beyond.synclab.ctrlline.common.property.AppProperties;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -22,11 +23,9 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class ProductionPlanStatusNotificationService {
 
-    private static final String PLAN_DETAIL_URL_TEMPLATE =
-            "https://stage-synclab-ctrlline.vercel.app/production-management/production-plans/%d";
-
     private final UserRepository userRepository;
     private final MailService mailService;
+    private final AppProperties appProperties;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -142,7 +141,10 @@ public class ProductionPlanStatusNotificationService {
         if (id == null) {
             return baseBody;
         }
-        String detail = PLAN_DETAIL_URL_TEMPLATE.formatted(id);
+        String detailUrl = appProperties.getFrontend().productionPlanDetail(id);
+        if (!StringUtils.hasText(detailUrl)) {
+            return baseBody;
+        }
         return baseBody + System.lineSeparator() + System.lineSeparator() + "상세보기: " + detail;
     }
 
