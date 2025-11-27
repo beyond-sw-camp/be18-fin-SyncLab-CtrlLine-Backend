@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
@@ -105,7 +105,7 @@ class MesTelemetryListenerTest {
                 .factoryName("Factory01")
                 .isActive(true)
                 .build());
-        given(factoryRepository.findByFactoryCode("F0001")).willReturn(factory);
+        when(factoryRepository.findByFactoryCode("F0001")).thenReturn(factory);
 
         String firstPayload = """
                 {"records":[

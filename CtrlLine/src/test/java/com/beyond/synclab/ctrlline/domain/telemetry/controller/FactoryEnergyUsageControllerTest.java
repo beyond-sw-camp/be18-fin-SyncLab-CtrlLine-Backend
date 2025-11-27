@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.telemetry.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +12,8 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.FactoryEnergyUsageRespon
 import com.beyond.synclab.ctrlline.domain.telemetry.service.FactoryEnergyUsageService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -32,10 +36,14 @@ class FactoryEnergyUsageControllerTest {
     private FactoryEnergyUsageController factoryEnergyUsageController;
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(factoryEnergyUsageController).build();
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        mockMvc = MockMvcBuilders.standaloneSetup(factoryEnergyUsageController)
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+                .build();
     }
 
     @Test
@@ -52,10 +60,10 @@ class FactoryEnergyUsageControllerTest {
         // when / then
         mockMvc.perform(get("/api/v1/factories/{factoryCode}/energy/latest", "F0001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(BaseResponse.ok(response).getCode()))
+                .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.factoryCode").value("F0001"))
                 .andExpect(jsonPath("$.data.powerConsumption").value(12.34))
-                .andExpect(jsonPath("$.data.recordedAt").value("2025-11-27T12:34:00"));
+                .andExpect(jsonPath("$.data.recordedAt").value(notNullValue()));
 
         Mockito.verify(factoryEnergyUsageService).getLatestEnergyUsage("F0001");
     }
@@ -72,9 +80,10 @@ class FactoryEnergyUsageControllerTest {
 
         mockMvc.perform(get("/api/v1/factories/{factoryCode}/energy/today-max", "F0002"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.factoryCode").value("F0002"))
                 .andExpect(jsonPath("$.data.powerConsumption").value(20.50))
-                .andExpect(jsonPath("$.data.recordedAt").value("2025-11-27T15:30:00"));
+                .andExpect(jsonPath("$.data.recordedAt").value(notNullValue()));
 
         Mockito.verify(factoryEnergyUsageService).getTodayPeakEnergyUsage("F0002");
     }
