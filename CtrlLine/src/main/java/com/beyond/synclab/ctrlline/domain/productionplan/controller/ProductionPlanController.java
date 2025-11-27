@@ -14,6 +14,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
@@ -116,6 +118,16 @@ public class ProductionPlanController {
         @RequestBody GetProductionPlanEndTimeRequestDto requestDto
     ) {
         GetProductionPlanEndTimeResponseDto responseDto = productionPlanService.getProductionPlanEndTime(requestDto);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @PatchMapping("/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<UpdateProductionPlanStatusResponseDto>> updateStatues(
+        @RequestBody UpdateProductionPlanStatusRequestDto requestDto
+    ) {
+        UpdateProductionPlanStatusResponseDto responseDto = productionPlanService.updateProductionPlanStatus(requestDto);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
