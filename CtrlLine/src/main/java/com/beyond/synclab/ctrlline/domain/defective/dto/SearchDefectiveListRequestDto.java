@@ -9,5 +9,4 @@ public record SearchDefectiveListRequestDto(
     LocalDate toDate,
     String productionPerformanceDocNo
 ) {
-
 }
