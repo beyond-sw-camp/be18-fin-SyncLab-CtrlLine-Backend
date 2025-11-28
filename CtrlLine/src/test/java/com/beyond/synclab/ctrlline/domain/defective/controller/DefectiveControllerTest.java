@@ -122,7 +122,7 @@ class DefectiveControllerTest {
             .lineCode("L001")
             .lineName("라인1")
             .defectiveTotalQty(BigDecimal.valueOf(1000))
-            .defectiveTotalRate(0.12)
+            .defectiveTotalRate(BigDecimal.valueOf(0.12))
             .productionPerformanceDocNo("2099/01/01-1")
             .createdAt(LocalDateTime.now(clock))
             .build();
