@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
+import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
@@ -33,10 +34,10 @@ public class OrderSerialArchiveService {
 
     private final SerialStorageService serialStorageService;
     private final ProductionPlanRepository productionPlanRepository;
-    private final LotService lotService;
     private final ItemSerialRepository itemSerialRepository;
     private final ObjectMapper objectMapper;
     private final LotGeneratorService lotGeneratorService;
+    private final LotRepository lotRepository;
 
     @Transactional
     public void archive(OrderSummaryTelemetryPayload payload) {
@@ -71,11 +72,11 @@ public class OrderSerialArchiveService {
     }
 
     private Lots resolveLot(ProductionPlans plan) {
-        return lotService.findByProductionPlanId(plan.getId())
+        return lotRepository.findByProductionPlanId(plan.getId())
                 .orElseGet(() -> {
                     try {
                         lotGeneratorService.createLot(plan);
-                        return lotService.findByProductionPlanId(plan.getId()).orElse(null);
+                        return lotRepository.findByProductionPlanId(plan.getId()).orElse(null);
                     } catch (Exception ex) {
                         log.warn("LOT 생성 중 예외가 발생했습니다. planId={}", plan.getId(), ex);
                         return null;

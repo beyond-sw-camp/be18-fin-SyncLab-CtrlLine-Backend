@@ -8,11 +8,11 @@ import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.UpdateProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
@@ -48,6 +48,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     private final FactoryRepository factoryRepository;
     private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository;
     private final ProductionPerformanceMonthlyDefRateQueryRepository productionPerformanceMonthlyDefectiveRateQueryRepository;
+    private final LotGeneratorService lotGeneratorService;
 
     // 생산실적 목록 조회
     @Override
@@ -76,7 +77,8 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         // 공장
         Factories factory = line.getFactory();
         // LOT
-        Lots lot = lotService.getByProductionPlanId(plan.getId());
+        Lots lot = lotRepository.findByProductionPlanId(plan.getId())
+                .orElseThrow(LotNotFoundException::new);
 
         return GetProductionPerformanceDetailResponseDto.builder()
                 .documentNo(perf.getPerformanceDocumentNo())
@@ -138,8 +140,8 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         YearMonth base;
         try {
             base = (baseMonth == null || baseMonth.isBlank())
-                ? YearMonth.now()
-                : YearMonth.parse(baseMonth);
+                    ? YearMonth.now()
+                    : YearMonth.parse(baseMonth);
         } catch (Exception ex) {
             throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
         }
@@ -173,6 +175,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 performances
         );
     }
+
     // 공장별 최근 6개월 월별 불량률 조회
     @Override
     @Transactional(readOnly = true)
