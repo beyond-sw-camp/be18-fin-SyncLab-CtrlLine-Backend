@@ -11,6 +11,7 @@ import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.UpdateProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
@@ -45,7 +46,6 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     private final FactoryRepository factoryRepository;
     private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository;
     private final ProductionPerformanceMonthlyDefRateQueryRepository productionPerformanceMonthlyDefectiveRateQueryRepository;
-
 
     // 생산실적 목록 조회
     @Override
@@ -235,5 +235,26 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 factory.getFactoryName(),
                 performances
         );
+    }
+
+    // 생산실적 remark 수정
+    @Override
+    @Transactional
+    public GetProductionPerformanceDetailResponseDto updatePerformanceRemark(Long id, String remark) {
+
+        ProductionPerformances perf = performanceRepository.findById(id)
+                .orElseThrow(ProductionPerformanceNotFoundException::new);
+
+        // remark 필드가 요청에 존재하는 경우에만 수정
+        perf.updateRemark(remark);
+
+        // 여기! 다시 DB에서 조회해서 DTO 변환
+        ProductionPerformances updated = performanceRepository.findById(id)
+                .orElseThrow(ProductionPerformanceNotFoundException::new);
+
+        Lots lot = lotRepository.findByProductionPlanId(updated.getProductionPlan().getId())
+                .orElseThrow(LotNotFoundException::new);
+
+        return GetProductionPerformanceDetailResponseDto.fromEntity(updated, lot);
     }
 }
