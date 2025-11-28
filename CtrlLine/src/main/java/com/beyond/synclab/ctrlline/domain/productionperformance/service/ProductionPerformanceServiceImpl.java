@@ -7,8 +7,7 @@ import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
-import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
-import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.UpdateProductionPerformanceRequestDto;
@@ -41,7 +40,7 @@ import java.util.stream.IntStream;
 public class ProductionPerformanceServiceImpl implements ProductionPerformanceService {
 
     private final ProductionPerformanceRepository performanceRepository;
-    private final LotRepository lotRepository;
+    private final LotService lotService;
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
     private final FactoryRepository factoryRepository;
     private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository;
@@ -74,8 +73,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         // 공장
         Factories factory = line.getFactory();
         // LOT
-        Lots lot = lotRepository.findByProductionPlanId(plan.getId())
-                .orElseThrow(LotNotFoundException::new);
+        Lots lot = lotService.getByProductionPlanId(plan.getId());
 
         return GetProductionPerformanceDetailResponseDto.builder()
                 .documentNo(perf.getPerformanceDocumentNo())
