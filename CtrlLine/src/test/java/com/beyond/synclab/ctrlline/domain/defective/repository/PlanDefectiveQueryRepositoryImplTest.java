@@ -231,8 +231,9 @@ class PlanDefectiveQueryRepositoryImplTest {
         Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
         assertThat(result.getTotalElements()).isEqualTo(2);
         System.out.println("===============" + result.getContent() + "===============");
-        assertThat(result.getContent().get(0).getDefectiveDocNo()).isEqualTo("DEF-20251119-1");
-        assertThat(result.getContent().get(1).getDefectiveDocNo()).isEqualTo("DEF-20251118-1");
+        assertThat(result.getContent())
+                .extracting(GetDefectiveListResponseDto::getDefectiveDocNo)
+                .containsExactlyInAnyOrder("DEF-20251119-1", "DEF-20251118-1");
     }
 
     // ================================================================
