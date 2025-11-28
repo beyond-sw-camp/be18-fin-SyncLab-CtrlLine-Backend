@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -12,6 +13,8 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -33,4 +36,11 @@ public interface ProductionPlanService {
     List<GetProductionPlanScheduleResponseDto> getProductionPlanSchedule(GetProductionPlanScheduleRequestDto requestDto);
 
     GetProductionPlanEndTimeResponseDto getProductionPlanEndTime(GetProductionPlanEndTimeRequestDto requestDto);
+
+    UpdateProductionPlanStatusResponseDto updateProductionPlanStatus(
+        UpdateProductionPlanStatusRequestDto requestDto);
+
+    void deleteProductionPlan(Long planId, Users user);
+
+    void deleteProductionPlans(DeleteProductionPlanRequestDto requestDto, Users user);
 }

@@ -3,8 +3,13 @@ package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -24,8 +30,10 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanRe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanServiceImpl;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -405,7 +413,7 @@ class ProductionPlanControllerTest {
 
     @Test
     @DisplayName("생산 계획 종료 시간 반환 성공 - 200 OK")
-    @WithMockUser
+    @WithMockUser(roles = {"MANAGER"})
     void getProductionPlanEndTime_success_200() throws Exception {
         // given
         LocalDateTime endTime = LocalDateTime.now(testClock).plusDays(1);
@@ -430,6 +438,114 @@ class ProductionPlanControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.endTime").value(startsWith(endTime.toString())))
         ;
-
     }
+
+    @Test
+    @DisplayName("생산 계획 상태 수정 성공 - 200 OK")
+    @WithMockUser(roles = {"ADMIN"})
+    void updateProductionPlanStatus_success_200() throws Exception {
+        // given
+        UpdateProductionPlanStatusRequestDto requestDto = UpdateProductionPlanStatusRequestDto.builder()
+            .planIds(List.of(1L, 2L))
+            .planStatus(ProductionPlans.PlanStatus.PENDING)
+            .build();
+
+        UpdateProductionPlanStatusResponseDto responseDto = UpdateProductionPlanStatusResponseDto.builder()
+            .planIds(List.of(1L, 2L))
+            .planStatus(ProductionPlans.PlanStatus.PENDING)
+            .build();
+
+        when(productionPlanService.updateProductionPlanStatus(any(UpdateProductionPlanStatusRequestDto.class)))
+            .thenReturn(responseDto);
+
+        mockMvc.perform(patch("/api/v1/production-plans/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.planIds[0]").value(1L))
+            .andExpect(jsonPath("$.data.planStatus").value("PENDING"))
+        ;
+    }
+
+    @Test
+    @DisplayName("생산 계획 단일 삭제 성공 - 204 No Content")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void deleteProductionPlan_success_204() throws Exception {
+        // given
+        Long planId = 1L;
+
+        // productionPlanService.deleteProductionPlan은 void 메서드이므로 doNothing() 사용
+        doNothing().when(productionPlanService).deleteProductionPlan(eq(planId), any(Users.class));
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/production-plans/{planId}", planId)
+                .contentType(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNoContent());
+
+        // verify 호출 확인
+        verify(productionPlanService, times(1)).deleteProductionPlan(eq(planId), any(Users.class));
+    }
+
+    @Test
+    @DisplayName("일괄 삭제 성공 - 204 No Content")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void deleteProductionPlans_success() throws Exception {
+        // given
+        DeleteProductionPlanRequestDto requestDto = DeleteProductionPlanRequestDto
+            .builder()
+            .planIds(List.of(1L, 2L, 3L))
+            .build();
+
+        // doNothing()은 void 메서드 mocking
+        doNothing().when(productionPlanService).deleteProductionPlans(any(
+            DeleteProductionPlanRequestDto.class), any());
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isNoContent());
+
+        // 서비스 호출 검증
+        verify(productionPlanService, times(1)).deleteProductionPlans(any(), any());
+    }
+
+    @Test
+    @DisplayName("권한 없음 - 403 Forbidden")
+    @WithCustomUser
+    void deleteProductionPlans_forbidden() throws Exception {
+        DeleteProductionPlanRequestDto requestDto = DeleteProductionPlanRequestDto
+            .builder()
+            .planIds(List.of(1L, 2L, 3L))
+            .build();
+
+        mockMvc.perform(delete("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isForbidden());
+
+        verify(productionPlanService, never()).deleteProductionPlans(any(), any());
+    }
+
+    @Test
+    @DisplayName("잘못된 요청 - 빈 리스트")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void deleteProductionPlans_emptyList() throws Exception {
+        DeleteProductionPlanRequestDto requestDto = DeleteProductionPlanRequestDto
+            .builder()
+            .build();
+
+        mockMvc.perform(delete("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isBadRequest());
+
+        verify(productionPlanService, never()).deleteProductionPlans(any(), any());
+    }
+
 }

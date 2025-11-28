@@ -27,11 +27,14 @@ public class GetProductionPlanDetailResponseDto {
     private String productionManagerName;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private Long factoryId;
     private String factoryCode;
     private String factoryName;
+    private Long itemId;
     private String itemCode;
     private String itemName;
     private BigDecimal plannedQty;
+    private Long lineId;
     private String lineCode;
     private String lineName;
     private String remark;
@@ -48,8 +51,11 @@ public class GetProductionPlanDetailResponseDto {
             .productionManagerName(productionPlans.getProductionManager().getName())
             .startTime(productionPlans.getStartTime())
             .endTime(productionPlans.getEndTime())
+            .lineId(productionPlans.getItemLine().getLineId())
+            .factoryId(factories.getId())
             .factoryCode(factories.getFactoryCode())
             .factoryName(factories.getFactoryName())
+            .itemId(items.getId())
             .itemCode(items.getItemCode())
             .itemName(items.getItemName())
             .plannedQty(productionPlans.getPlannedQty())

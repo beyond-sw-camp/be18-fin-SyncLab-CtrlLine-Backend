@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.production.service.ProductionOrderService;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
