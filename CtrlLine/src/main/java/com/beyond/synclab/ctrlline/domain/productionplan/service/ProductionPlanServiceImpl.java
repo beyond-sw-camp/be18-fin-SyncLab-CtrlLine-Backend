@@ -434,7 +434,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             PlanSpecification.planEndTimeBefore(requestDto.endTime())
         );
 
-        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.DESC, "documentNo"));
+        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.DESC, "createdAt"));
 
         return result.stream().map(GetAllProductionPlanResponseDto::fromEntity).toList();
     }
