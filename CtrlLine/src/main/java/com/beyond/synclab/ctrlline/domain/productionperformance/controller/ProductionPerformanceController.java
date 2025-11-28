@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.UpdateProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceService;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +85,22 @@ public class ProductionPerformanceController {
     ) {
         GetProductionPerformanceMonthlyDefRateResponseDto.FactoryMonthlyDefectiveRate result =
                 productionPerformanceService.getMonthlyDefectiveRateProductionPerformances(factoryCode, baseMonth);
+
+        return ResponseEntity.ok(ok(result));
+    }
+
+    // 생산실적 비고 수정
+    @PatchMapping("/{productionPerformanceId}")
+    public ResponseEntity<BaseResponse<GetProductionPerformanceDetailResponseDto>> updateRemark(
+            @PathVariable Long productionPerformanceId,
+            @RequestBody UpdateProductionPerformanceRequestDto request
+    ) {
+
+        GetProductionPerformanceDetailResponseDto result =
+                productionPerformanceService.updatePerformanceRemark(
+                        productionPerformanceId,
+                        request.getRemark()
+                );
 
         return ResponseEntity.ok(ok(result));
     }

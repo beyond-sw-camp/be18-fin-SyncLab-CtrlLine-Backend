@@ -93,5 +93,9 @@ public class ProductionPerformances {
         this.isDeleted = Boolean.FALSE;
     }
 
-
+    public void updateRemark(String remark) {
+        if (remark != null) {
+            this.remark = remark;
+        }
+    }
 }
