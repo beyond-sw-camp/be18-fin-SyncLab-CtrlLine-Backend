@@ -226,6 +226,39 @@ class MesTelemetryListenerTest {
     }
 
     @Test
+    void onTelemetry_usesMachineFieldWhenEquipmentCodeMissing() {
+        String payload = """
+                {
+                  "records": [
+                    {
+                      "value": {
+                        "machine": "F0001.CL0001.FinalInspection01",
+                        "tag": "order_summary_payload",
+                        "value": {
+                          "equipmentCode": "",
+                          "order_no": "PLAN-905",
+                          "status": "EXECUTE",
+                          "order_produced_qty": 31,
+                          "order_ng_qty": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<OrderSummaryTelemetryPayload> captor = ArgumentCaptor.forClass(OrderSummaryTelemetryPayload.class);
+        verify(mesDefectiveService).saveOrderSummaryTelemetry(captor.capture());
+        OrderSummaryTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("F0001.CL0001.FinalInspection01");
+        assertThat(saved.producedQuantity()).isEqualByComparingTo("31");
+        assertThat(saved.defectiveQuantity()).isEqualByComparingTo("2");
+        assertThat(saved.orderNo()).isEqualTo("PLAN-905");
+    }
+
+    @Test
     void onTelemetry_handlesNgTypePayload() {
         String payload = """
                 {"order_ng_types_payload":{"equipment_code":"EQP-40","order_no":"PLAN-777","types":[{"type":1,"name":"Type1","qty":5},{"type":3,"name":"Type3","qty":0}]}}

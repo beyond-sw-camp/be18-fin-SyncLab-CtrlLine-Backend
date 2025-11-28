@@ -12,6 +12,7 @@ import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import com.beyond.synclab.ctrlline.domain.telemetry.repository.DefectiveRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -126,7 +127,7 @@ class MesDefectiveServiceTest {
                 .build();
 
         Equipments equipment = sampleEquipment(5L);
-        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(equipment));
+        when(equipmentRepository.findByEquipmentCodeForUpdate("EQP-5")).thenReturn(Optional.of(equipment));
 
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
 
@@ -149,7 +150,7 @@ class MesDefectiveServiceTest {
                 .build();
 
         Equipments equipment = sampleEquipment(5L);
-        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(equipment));
+        when(equipmentRepository.findByEquipmentCodeForUpdate("EQP-5")).thenReturn(Optional.of(equipment));
 
         mesDefectiveService.saveOrderSummaryTelemetry(firstPayload);
         mesDefectiveService.saveOrderSummaryTelemetry(secondPayload);
@@ -173,7 +174,7 @@ class MesDefectiveServiceTest {
                 .build();
 
         Equipments equipment = sampleEquipment(5L);
-        when(equipmentRepository.findByEquipmentCode("EQP-5")).thenReturn(Optional.of(equipment));
+        when(equipmentRepository.findByEquipmentCodeForUpdate("EQP-5")).thenReturn(Optional.of(equipment));
 
         mesDefectiveService.saveOrderSummaryTelemetry(firstPayload);
         mesDefectiveService.saveOrderSummaryTelemetry(resetPayload);
@@ -192,7 +193,23 @@ class MesDefectiveServiceTest {
                 .goodSerialsGzip("QkFTRTY0")
                 .build();
         Equipments equipment = sampleEquipment(9L);
-        when(equipmentRepository.findByEquipmentCode("EQP-9")).thenReturn(Optional.of(equipment));
+        when(equipmentRepository.findByEquipmentCodeForUpdate("EQP-9")).thenReturn(Optional.of(equipment));
+
+        mesDefectiveService.saveOrderSummaryTelemetry(payload);
+
+        verify(orderSerialArchiveService).archive(payload);
+    }
+
+    @Test
+    void saveOrderSummaryTelemetry_archivesSerialsWhenPlainListProvided() {
+        OrderSummaryTelemetryPayload payload = OrderSummaryTelemetryPayload.builder()
+                .equipmentCode("EQP-10")
+                .producedQuantity(BigDecimal.valueOf(12))
+                .defectiveQuantity(BigDecimal.ZERO)
+                .goodSerials(List.of("SER-1", "SER-2"))
+                .build();
+        Equipments equipment = sampleEquipment(10L);
+        when(equipmentRepository.findByEquipmentCodeForUpdate("EQP-10")).thenReturn(Optional.of(equipment));
 
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
 

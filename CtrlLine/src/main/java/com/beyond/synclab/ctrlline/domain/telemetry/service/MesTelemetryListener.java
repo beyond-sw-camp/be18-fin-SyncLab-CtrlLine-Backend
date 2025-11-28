@@ -35,6 +35,7 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.NG_TYPE_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_CODE_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_EVENT_FIELD;
+import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.NG_EVENT_PAYLOAD_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_NAME_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_QTY_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.ORDER_NG_STATUS_FIELD;
@@ -138,7 +139,7 @@ public class MesTelemetryListener {
         valueNode = unwrapOrderNgEvent(valueNode);
         JsonNode summaryPayload = extractOrderSummaryPayload(valueNode);
         if (summaryPayload != null) {
-            persistOrderSummary(summaryPayload);
+            persistOrderSummary(summaryPayload, valueNode, recordKey);
             return;
         }
         JsonNode ngTypePayload = extractNgTypeCountersPayload(valueNode);
@@ -157,6 +158,7 @@ public class MesTelemetryListener {
             return;
         }
         valueNode = convertTextNodeToObject(valueNode);
+        valueNode = maybeUnwrapTaggedValue(valueNode);
         if (!valueNode.isObject()) {
             if (isPotentialAlarm) {
                 log.info("알람 키를 수신했으나 JSON 객체로 파싱되지 않았습니다. key={}, rawValue={}", recordKey, valueNode);
@@ -290,8 +292,9 @@ public class MesTelemetryListener {
         }
     }
 
-    private void persistOrderSummary(JsonNode summaryNode) {
-        OrderSummaryTelemetryPayload payload = buildOrderSummaryPayload(summaryNode);
+    private void persistOrderSummary(JsonNode summaryNode, JsonNode containerNode, String recordKey) {
+        String fallbackEquipmentCode = deriveEquipmentCode(containerNode, recordKey);
+        OrderSummaryTelemetryPayload payload = buildOrderSummaryPayload(summaryNode, fallbackEquipmentCode);
         if (payload == null) {
             log.warn("Order summary payload가 유효하지 않아 저장하지 않습니다. payload={}", summaryNode);
             return;
@@ -429,11 +432,14 @@ public class MesTelemetryListener {
                 .build();
     }
 
-    private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode) {
+    private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode, String fallbackEquipmentCode) {
         String equipmentCode = firstNonEmptyValue(summaryNode,
                 ORDER_SUMMARY_EQUIPMENT_CODE_FIELD,
                 EQUIPMENT_CODE_FIELD,
                 EQUIPMENT_CODE_FIELD_SNAKE);
+        if (!StringUtils.hasText(equipmentCode)) {
+            equipmentCode = fallbackEquipmentCode;
+        }
         BigDecimal producedQuantity = firstDecimal(summaryNode,
                 ORDER_SUMMARY_PRODUCED_QTY_FIELD,
                 ORDER_PRODUCED_QTY_FIELD);
@@ -457,6 +463,23 @@ public class MesTelemetryListener {
                 .goodSerials(goodSerials)
                 .goodSerialsGzip(compressedSerials)
                 .build();
+    }
+
+    private String deriveEquipmentCode(JsonNode containerNode, String recordKey) {
+        if (containerNode != null) {
+            JsonNode machineNode = containerNode.get("machine");
+            if (machineNode != null && machineNode.isTextual() && StringUtils.hasText(machineNode.asText())) {
+                return machineNode.asText();
+            }
+        }
+        if (!StringUtils.hasText(recordKey)) {
+            return null;
+        }
+        int suffixIndex = recordKey.lastIndexOf('.');
+        if (suffixIndex > 0) {
+            return recordKey.substring(0, suffixIndex);
+        }
+        return recordKey;
     }
 
     private String extractCompressedSerials(JsonNode summaryNode) {
@@ -579,7 +602,8 @@ public class MesTelemetryListener {
     }
 
     private boolean isNgEventRecord(String recordKey) {
-        return recordKey != null && recordKey.contains(ORDER_NG_EVENT_FIELD);
+        return recordKey != null
+                && (recordKey.contains(ORDER_NG_EVENT_FIELD) || recordKey.contains(NG_EVENT_PAYLOAD_FIELD));
     }
 
     private String resolveStatus(JsonNode valueNode) {
@@ -766,29 +790,51 @@ public class MesTelemetryListener {
     }
 
     private JsonNode unwrapOrderNgEvent(JsonNode valueNode) {
-        if (!valueNode.has(ORDER_NG_EVENT_FIELD)) {
-            return valueNode;
+        if (valueNode == null) {
+            return null;
         }
-        JsonNode eventNode = valueNode.get(ORDER_NG_EVENT_FIELD);
+        if (valueNode.has(ORDER_NG_EVENT_FIELD)) {
+            return resolveNgEventNode(valueNode.get(ORDER_NG_EVENT_FIELD), valueNode);
+        }
+        if (tagMatches(valueNode.path("tag").asText(), ORDER_NG_EVENT_FIELD, NG_EVENT_PAYLOAD_FIELD)
+                && valueNode.has(VALUE_FIELD)) {
+            return resolveNgEventNode(valueNode.get(VALUE_FIELD), valueNode);
+        }
+        return valueNode;
+    }
+
+    private JsonNode resolveNgEventNode(JsonNode eventNode, JsonNode fallback) {
+        if (eventNode == null || eventNode.isNull()) {
+            return fallback;
+        }
         if (eventNode.isObject()) {
             return eventNode;
         }
-        if (eventNode.isTextual()) {
-            JsonNode parsed = parseMapLikeString(eventNode.asText());
-            return parsed != null ? parsed : valueNode;
+        JsonNode parsed = parseTelemetryPayloadNode(eventNode);
+        if (parsed != null) {
+            return parsed;
         }
-        return valueNode;
+        if (eventNode.isTextual()) {
+            JsonNode mapped = parseMapLikeString(eventNode.asText());
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        return fallback;
     }
 
     private JsonNode extractOrderSummaryPayload(JsonNode valueNode) {
         if (valueNode == null) {
             return null;
         }
+        if (isOrderSummaryPayloadNode(valueNode)) {
+            return valueNode;
+        }
         JsonNode directNode = parseOrderSummaryNode(valueNode.get(ORDER_SUMMARY_PAYLOAD_FIELD));
         if (directNode != null) {
             return directNode;
         }
-        if (ORDER_SUMMARY_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
+        if (tagMatches(valueNode.path("tag").asText(), ORDER_SUMMARY_PAYLOAD_FIELD) && valueNode.has(VALUE_FIELD)) {
             return parseOrderSummaryNode(valueNode.get(VALUE_FIELD));
         }
         return null;
@@ -798,11 +844,14 @@ public class MesTelemetryListener {
         if (valueNode == null) {
             return null;
         }
+        if (isNgTypePayloadNode(valueNode)) {
+            return valueNode;
+        }
         JsonNode directNode = parseTelemetryPayloadNode(valueNode.get(ORDER_NG_TYPES_PAYLOAD_FIELD));
         if (directNode != null) {
             return directNode;
         }
-        if (ORDER_NG_TYPES_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
+        if (tagMatches(valueNode.path("tag").asText(), ORDER_NG_TYPES_PAYLOAD_FIELD) && valueNode.has(VALUE_FIELD)) {
             return parseTelemetryPayloadNode(valueNode.get(VALUE_FIELD));
         }
         return null;
@@ -812,11 +861,14 @@ public class MesTelemetryListener {
         if (valueNode == null) {
             return null;
         }
+        if (looksLikeProductionPerformanceNode(valueNode)) {
+            return valueNode;
+        }
         JsonNode directNode = parseProductionPerformanceNode(valueNode.get(PRODUCTION_PERFORMANCE_PAYLOAD_FIELD));
         if (directNode != null) {
             return directNode;
         }
-        if (PRODUCTION_PERFORMANCE_PAYLOAD_FIELD.equals(valueNode.path("tag").asText()) && valueNode.has(VALUE_FIELD)) {
+        if (tagMatches(valueNode.path("tag").asText(), PRODUCTION_PERFORMANCE_PAYLOAD_FIELD) && valueNode.has(VALUE_FIELD)) {
             return parseProductionPerformanceNode(valueNode.get(VALUE_FIELD));
         }
         return null;
@@ -842,9 +894,13 @@ public class MesTelemetryListener {
             return node;
         }
         if (node.isTextual()) {
-            JsonNode parsed = parsePayload(node.asText());
+            String trimmed = node.asText().trim();
+            if (!looksLikeJson(trimmed)) {
+                return null;
+            }
+            JsonNode parsed = parsePayload(trimmed);
             if (parsed == null) {
-                parsed = parseMapLikeString(node.asText());
+                parsed = parseMapLikeString(trimmed);
             }
             return parsed;
         }
@@ -865,7 +921,7 @@ public class MesTelemetryListener {
             return null;
         }
         if (node.has("tag")
-                && ALARM_EVENT_KEY_SUFFIX.equals(node.get("tag").asText())
+                && tagMatches(node.get("tag").asText(), ALARM_EVENT_KEY_SUFFIX)
                 && node.hasNonNull(VALUE_FIELD)) {
             return convertTextNodeToObject(node.get(VALUE_FIELD));
         }
@@ -897,5 +953,82 @@ public class MesTelemetryListener {
             }
         }
         return objectNode;
+    }
+
+    private boolean looksLikeJson(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        char first = text.charAt(0);
+        return first == '{' || first == '[' || first == '"';
+    }
+
+    private boolean tagMatches(String tagValue, String... expectedSuffixes) {
+        if (!StringUtils.hasText(tagValue) || expectedSuffixes == null) {
+            return false;
+        }
+        for (String suffix : expectedSuffixes) {
+            if (!StringUtils.hasText(suffix)) {
+                continue;
+            }
+            if (tagValue.equals(suffix) || tagValue.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private JsonNode maybeUnwrapTaggedValue(JsonNode valueNode) {
+        if (valueNode == null || !valueNode.isObject()) {
+            return valueNode;
+        }
+        String tag = valueNode.path("tag").asText();
+        if (!StringUtils.hasText(tag) || !requiresValueObject(tag)) {
+            return valueNode;
+        }
+        JsonNode innerValue = valueNode.get(VALUE_FIELD);
+        if (innerValue == null || innerValue.isNull()) {
+            return valueNode;
+        }
+        if (innerValue.isObject()) {
+            return innerValue;
+        }
+        JsonNode parsed = parseTelemetryPayloadNode(innerValue);
+        return parsed != null ? parsed : innerValue;
+    }
+
+    private boolean requiresValueObject(String tag) {
+        return tagMatches(tag,
+                ORDER_SUMMARY_PAYLOAD_FIELD,
+                ORDER_NG_TYPES_PAYLOAD_FIELD,
+                PRODUCTION_PERFORMANCE_PAYLOAD_FIELD,
+                ALARM_EVENT_KEY_SUFFIX,
+                ORDER_NG_EVENT_FIELD,
+                NG_EVENT_PAYLOAD_FIELD);
+    }
+
+    private boolean isOrderSummaryPayloadNode(JsonNode node) {
+        if (node == null || !node.isObject()) {
+            return false;
+        }
+        boolean hasEquipment = node.hasNonNull(ORDER_SUMMARY_EQUIPMENT_CODE_FIELD)
+                || node.hasNonNull(EQUIPMENT_CODE_FIELD)
+                || node.hasNonNull(EQUIPMENT_CODE_FIELD_SNAKE);
+        boolean hasProducedQty = node.hasNonNull(ORDER_SUMMARY_PRODUCED_QTY_FIELD)
+                || node.hasNonNull(ORDER_PRODUCED_QTY_FIELD);
+        return hasEquipment && hasProducedQty;
+    }
+
+    private boolean isNgTypePayloadNode(JsonNode node) {
+        return node != null && node.isObject() && node.hasNonNull("types") && node.get("types").isArray();
+    }
+
+    private boolean looksLikeProductionPerformanceNode(JsonNode node) {
+        if (node == null || !node.isObject()) {
+            return false;
+        }
+        boolean hasOrderNo = node.hasNonNull(PRODUCTION_PERFORMANCE_ORDER_NO_FIELD);
+        boolean hasQuantities = node.hasNonNull("order_produced_qty") && node.hasNonNull("order_ng_qty");
+        return hasOrderNo && hasQuantities;
     }
 }
