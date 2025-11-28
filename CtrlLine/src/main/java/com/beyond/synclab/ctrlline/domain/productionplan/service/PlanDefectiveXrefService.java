@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
-import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;

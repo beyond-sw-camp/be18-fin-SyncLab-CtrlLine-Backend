@@ -1,4 +1,4 @@
-package com.beyond.synclab.ctrlline.domain.production.repository;
+package com.beyond.synclab.ctrlline.domain.productionplan.repository;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;

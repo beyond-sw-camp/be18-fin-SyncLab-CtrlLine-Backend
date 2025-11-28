@@ -8,7 +8,7 @@ import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
-import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
