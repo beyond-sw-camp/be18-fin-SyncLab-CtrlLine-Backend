@@ -1,26 +1,23 @@
 package com.beyond.synclab.ctrlline.common.util;
 
+import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Path;
+import lombok.experimental.UtilityClass;
 import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@UtilityClass
 @SuppressWarnings("all")
 public final class QuerydslUtils {
 
-    // 인스턴스화 방지 (유틸 클래스)
-    private QuerydslUtils() {
-    }
-
-    // Pageable Sort → QueryDSL OrderSpecifier 변환 메서드
-    public static <T extends Comparable<? super T>>
-    List<OrderSpecifier<?>> getSort(
-            Sort sort,
-            Map<String, ? extends Path<? extends Comparable<?>>> mapping
+    public List<OrderSpecifier<?>> getSort(
+        Sort sort,
+        Map<String, ?> mapping // Path 또는 Expression 모두 허용
     ) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
 
@@ -29,14 +26,25 @@ public final class QuerydslUtils {
         }
 
         sort.forEach(order -> {
-            Path<? extends Comparable<?>> path = mapping.get(order.getProperty());
-            if (path != null) {
-                orders.add(new OrderSpecifier<>(
-                        order.isAscending() ? Order.ASC : Order.DESC,
-                        path
-                ));
+            Object value = mapping.get(order.getProperty());
+            if (value == null) return;
+
+            Expression<? extends Comparable<?>> expr;
+
+            if (value instanceof Expression<?>) {
+                expr = (Expression<? extends Comparable<?>>) value;
+            } else if (value instanceof Path<?>) {
+                expr = (Path<? extends Comparable<?>>) value;
+            } else {
+                throw new IllegalArgumentException("Unsupported sort mapping type: " + value.getClass());
             }
+
+            orders.add(new OrderSpecifier<>(
+                order.isAscending() ? Order.ASC : Order.DESC,
+                expr
+            ));
         });
+
         return orders;
     }
 }
