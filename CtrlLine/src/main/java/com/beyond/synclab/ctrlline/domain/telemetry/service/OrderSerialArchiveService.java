@@ -89,12 +89,12 @@ public class OrderSerialArchiveService {
                 return Base64.getDecoder().decode(payload.goodSerialsGzip());
             } catch (IllegalArgumentException ex) {
                 log.warn("시리얼 gzip 데이터를 Base64 디코딩할 수 없습니다. orderNo={}", payload.orderNo(), ex);
-                return null;
+                return new byte[0];
             }
         }
         List<String> serials = payload.goodSerials();
         if (CollectionUtils.isEmpty(serials)) {
-            return null;
+            return new byte[0];
         }
         try {
             String json = objectMapper.writeValueAsString(serials);
@@ -104,7 +104,7 @@ public class OrderSerialArchiveService {
         } catch (IOException ex) {
             log.warn("시리얼 리스트를 gzip으로 압축하지 못했습니다. orderNo={}", payload.orderNo(), ex);
         }
-        return null;
+        return new byte[0];
     }
 
     private byte[] gzip(byte[] input) throws IOException {

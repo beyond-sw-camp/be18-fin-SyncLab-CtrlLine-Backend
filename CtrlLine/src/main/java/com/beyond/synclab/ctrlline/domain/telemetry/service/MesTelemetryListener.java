@@ -97,6 +97,7 @@ public class MesTelemetryListener {
 
     private final ObjectMapper objectMapper;
     private static final String ALARM_EVENT_KEY_SUFFIX = "alarm_event_payload";
+    private static final String NG_TYPES_FIELD = "types";
 
     private final FactoryRepository factoryRepository;
     private final MesPowerConsumptionService mesPowerConsumptionService;
@@ -571,7 +572,7 @@ public class MesTelemetryListener {
             log.warn("타입별 NG 페이로드에 equipmentCode/order_no가 없어 저장하지 않습니다. payload={}", payload);
             return;
         }
-        JsonNode typesNode = payload.path("types");
+        JsonNode typesNode = payload.path(NG_TYPES_FIELD);
         if (!typesNode.isArray()) {
             log.warn("타입별 NG 페이로드에 types 배열이 없어 저장하지 않습니다. payload={}", payload);
             return;
@@ -1020,7 +1021,7 @@ public class MesTelemetryListener {
     }
 
     private boolean isNgTypePayloadNode(JsonNode node) {
-        return node != null && node.isObject() && node.hasNonNull("types") && node.get("types").isArray();
+        return node != null && node.isObject() && node.hasNonNull(NG_TYPES_FIELD) && node.get(NG_TYPES_FIELD).isArray();
     }
 
     private boolean looksLikeProductionPerformanceNode(JsonNode node) {
