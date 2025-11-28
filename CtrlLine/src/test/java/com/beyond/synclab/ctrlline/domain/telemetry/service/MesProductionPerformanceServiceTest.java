@@ -64,7 +64,7 @@ class MesProductionPerformanceServiceTest {
                 .endTime(LocalDateTime.of(2025, 11, 19, 11, 0))
                 .build();
 
-        when(productionPlanRepository.findByDocumentNo("2025/11/19-1"))
+        when(productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc("2025/11/19-1", ProductionPlans.PlanStatus.RUNNING))
                 .thenReturn(Optional.of(plan));
         when(productionPerformanceRepository.findDocumentNosByPrefix("2025/11/19"))
                 .thenReturn(Collections.emptyList());
@@ -106,7 +106,7 @@ class MesProductionPerformanceServiceTest {
 
         mesProductionPerformanceService.saveProductionPerformance(payload);
 
-        verify(productionPlanRepository, never()).findByDocumentNo(any());
+        verify(productionPlanRepository, never()).findFirstByDocumentNoAndStatusOrderByIdDesc(any(), any());
         verify(productionPerformanceRepository, never()).save(any());
         verify(productionOrderService, never()).sendLineAck(any());
     }

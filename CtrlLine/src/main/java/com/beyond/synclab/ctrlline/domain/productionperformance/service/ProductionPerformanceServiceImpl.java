@@ -8,6 +8,7 @@ import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
@@ -41,6 +42,7 @@ import java.util.stream.IntStream;
 public class ProductionPerformanceServiceImpl implements ProductionPerformanceService {
 
     private final ProductionPerformanceRepository performanceRepository;
+    private final LotService lotService;
     private final LotRepository lotRepository;
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
     private final FactoryRepository factoryRepository;
@@ -74,8 +76,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         // 공장
         Factories factory = line.getFactory();
         // LOT
-        Lots lot = lotRepository.findByProductionPlanId(plan.getId())
-                .orElseThrow(LotNotFoundException::new);
+        Lots lot = lotService.getByProductionPlanId(plan.getId());
 
         return GetProductionPerformanceDetailResponseDto.builder()
                 .documentNo(perf.getPerformanceDocumentNo())
@@ -137,8 +138,8 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         YearMonth base;
         try {
             base = (baseMonth == null || baseMonth.isBlank())
-                    ? YearMonth.now()
-                    : YearMonth.parse(baseMonth);
+                ? YearMonth.now()
+                : YearMonth.parse(baseMonth);
         } catch (Exception ex) {
             throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
         }

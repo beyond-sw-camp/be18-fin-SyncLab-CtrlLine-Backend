@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
@@ -47,7 +48,7 @@ public class MesProductionPerformanceService {
             return;
         }
 
-        Optional<ProductionPlans> productionPlanOptional = productionPlanRepository.findByDocumentNo(payload.orderNo());
+        Optional<ProductionPlans> productionPlanOptional = findLatestPlan(payload.orderNo());
         if (productionPlanOptional.isEmpty()) {
             log.warn("전표번호에 해당하는 생산계획을 찾을 수 없어 생산실적을 저장하지 않습니다. orderNo={}", payload.orderNo());
             return;
@@ -129,5 +130,17 @@ public class MesProductionPerformanceService {
 
         int nextSeq = maxSeq + 1;
         return prefix + String.format("-%d", nextSeq);
+    }
+
+    private Optional<ProductionPlans> findLatestPlan(String orderNo) {
+        if (!StringUtils.hasText(orderNo)) {
+            return Optional.empty();
+        }
+        Optional<ProductionPlans> runningPlan =
+                productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, PlanStatus.RUNNING);
+        if (runningPlan.isPresent()) {
+            return runningPlan;
+        }
+        return productionPlanRepository.findFirstByDocumentNoOrderByIdDesc(orderNo);
     }
 }
