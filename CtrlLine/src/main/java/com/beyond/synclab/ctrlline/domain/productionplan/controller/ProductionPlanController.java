@@ -114,6 +114,7 @@ public class ProductionPlanController {
     }
 
     @PostMapping("/endtime")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<BaseResponse<GetProductionPlanEndTimeResponseDto>> getEndTime(
         @RequestBody GetProductionPlanEndTimeRequestDto requestDto
     ) {
@@ -131,4 +132,6 @@ public class ProductionPlanController {
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
+
+
 }

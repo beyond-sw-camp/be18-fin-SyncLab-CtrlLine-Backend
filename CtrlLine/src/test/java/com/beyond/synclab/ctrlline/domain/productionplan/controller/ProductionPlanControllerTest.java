@@ -407,7 +407,7 @@ class ProductionPlanControllerTest {
 
     @Test
     @DisplayName("생산 계획 종료 시간 반환 성공 - 200 OK")
-    @WithMockUser
+    @WithMockUser(roles = {"MANAGER"})
     void getProductionPlanEndTime_success_200() throws Exception {
         // given
         LocalDateTime endTime = LocalDateTime.now(testClock).plusDays(1);
