@@ -13,7 +13,7 @@ public enum ProductionPlanErrorCode implements ErrorCode {
     PRODUCTION_PLAN_BAD_REQUEST(HttpStatus.BAD_REQUEST, "PRODUCTION_PLAN_BAD_REQUEST", "생산계획에 대한 요청이 올바르지 않습니다."),
 
     // 403
-    PRODUCTION_PLAN_FORBIDDEN(HttpStatus.FORBIDDEN, "PRODUCTION_PLAN_FORBIDDEN", "생산계획을 등록할 권한이 없습니다."),
+    PRODUCTION_PLAN_FORBIDDEN(HttpStatus.FORBIDDEN, "PRODUCTION_PLAN_FORBIDDEN", "생산계획에 대한 권한이 없습니다."),
 
     // 404
     PRODUCTION_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCTION_PLAN_NOT_FOUND", "생산계획을 찾을 수 없습니다.");

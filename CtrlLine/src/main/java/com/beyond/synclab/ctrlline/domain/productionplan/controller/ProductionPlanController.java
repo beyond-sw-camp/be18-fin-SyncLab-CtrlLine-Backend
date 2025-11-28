@@ -3,6 +3,7 @@ package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -114,6 +116,7 @@ public class ProductionPlanController {
     }
 
     @PostMapping("/endtime")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<BaseResponse<GetProductionPlanEndTimeResponseDto>> getEndTime(
         @RequestBody GetProductionPlanEndTimeRequestDto requestDto
     ) {
@@ -130,5 +133,27 @@ public class ProductionPlanController {
         UpdateProductionPlanStatusResponseDto responseDto = productionPlanService.updateProductionPlanStatus(requestDto);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @DeleteMapping("/{planId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<Void>> deleteProductionPlan(
+        @PathVariable Long planId,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user =  userDetails.getUser();
+        productionPlanService.deleteProductionPlan(planId, user);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<Void>> deleteProductionPlans(
+        @RequestBody @Valid DeleteProductionPlanRequestDto requestDto,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user =  userDetails.getUser();
+        productionPlanService.deleteProductionPlans(requestDto, user);
+        return ResponseEntity.noContent().build();
     }
 }
