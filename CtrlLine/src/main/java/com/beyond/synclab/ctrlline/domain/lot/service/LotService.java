@@ -9,6 +9,6 @@ public interface LotService {
 
     Page<GetLotListResponseDto> getLotList(
             SearchLotRequestDto condition,
-            Pageable pageable
+            final Pageable pageable
     );
 }

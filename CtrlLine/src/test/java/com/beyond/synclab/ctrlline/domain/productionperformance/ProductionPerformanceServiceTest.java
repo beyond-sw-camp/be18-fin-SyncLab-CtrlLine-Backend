@@ -7,6 +7,7 @@ import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
+import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetProductionPerformanceDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
@@ -37,7 +38,7 @@ class ProductionPerformanceServiceTest {
     private ProductionPerformanceRepository performanceRepository;
 
     @Mock
-    private LotService lotService;
+    private LotRepository lotRepository;
 
     @InjectMocks
     private ProductionPerformanceServiceImpl productionPerformanceService;
@@ -148,8 +149,8 @@ class ProductionPerformanceServiceTest {
         when(performanceRepository.findById(perfId))
                 .thenReturn(Optional.of(perf));
 
-        when(lotService.getByProductionPlanId(plan.getId()))
-                .thenReturn(lot);
+        when(lotRepository.findByProductionPlanId(plan.getId()))
+                .thenReturn(Optional.of(lot));
 
         // when
         GetProductionPerformanceDetailResponseDto response =
@@ -168,7 +169,7 @@ class ProductionPerformanceServiceTest {
         assertThat(response.getPerformanceQty()).isEqualByComparingTo("95");
 
         verify(performanceRepository, times(1)).findById(perfId);
-        verify(lotService, times(1)).getByProductionPlanId(plan.getId());
+        verify(lotRepository, times(1)).findByProductionPlanId(plan.getId());
     }
 
     // -------------------------------------------------------------
