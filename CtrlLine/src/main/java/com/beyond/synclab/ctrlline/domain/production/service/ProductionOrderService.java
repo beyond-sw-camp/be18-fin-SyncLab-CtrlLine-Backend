@@ -17,7 +17,7 @@ import java.util.Optional;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class ProductionOrderService {
     private final LineRepository lineRepository;
     private final MiloProductionOrderClient miloProductionOrderClient;
     private final PlanDefectiveService planDefectiveService;
-    private final LotService lotService;
+    private final LotGeneratorService lotGeneratorService;
     private final Clock clock;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
 
@@ -93,7 +93,7 @@ public class ProductionOrderService {
                 planStatusNotificationService.notifyStatusChange(plan, previousStatus);
                 log.info("Production plan documentNo={} marked as RUNNING", plan.getDocumentNo());
                 planDefectiveService.createPlanDefective(plan);
-                lotService.createLot(plan);
+                lotGeneratorService.createLot(plan);
                 productionPlanRepository.save(plan);
             } catch (Exception ex) {
                 log.error("Failed to dispatch production plan documentNo={}", plan.getDocumentNo(), ex);

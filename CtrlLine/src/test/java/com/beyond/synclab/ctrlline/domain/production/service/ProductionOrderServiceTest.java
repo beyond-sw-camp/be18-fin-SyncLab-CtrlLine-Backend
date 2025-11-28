@@ -29,7 +29,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,7 +56,7 @@ class ProductionOrderServiceTest {
     private PlanDefectiveService planDefectiveService;
 
     @Mock
-    private LotService lotService;
+    private LotGeneratorService lotGeneratorService;
 
     @Mock
     private ProductionPlanStatusNotificationService planStatusNotificationService;
@@ -74,7 +74,7 @@ class ProductionOrderServiceTest {
                 lineRepository,
                 miloProductionOrderClient,
                 planDefectiveService,
-                lotService,
+                lotGeneratorService,
                 fixedClock,
                 planStatusNotificationService
         );
@@ -176,7 +176,7 @@ class ProductionOrderServiceTest {
 
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RUNNING);
         verify(planDefectiveService).createPlanDefective(plan);
-        verify(lotService).createLot(plan);
+        verify(lotGeneratorService).createLot(plan);
         verify(productionPlanRepository).save(plan);
     }
 
@@ -216,6 +216,6 @@ class ProductionOrderServiceTest {
         // then
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RETURNED);
         verify(productionPlanRepository).save(plan);
-        Mockito.verifyNoInteractions(planDefectiveService, lotService);
+        Mockito.verifyNoInteractions(planDefectiveService, lotGeneratorService);
     }
 }
