@@ -516,4 +516,23 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .planStatus(requestDto.getPlanStatus())
             .build();
     }
+
+    @Override
+    @Transactional
+    public void deleteProductionPlan(Long planId, Users user) {
+        ProductionPlans productionPlans = productionPlanRepository.findById(planId)
+            .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
+
+        if (!productionPlans.isUpdatable()) {
+            log.debug("CONFIRMED 나 PENDING이 아니면 삭제가 불가능합니다.");
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+        }
+
+        if (user.isManagerRole() && !productionPlans.getProductionManagerId().equals(user.getId())) {
+            log.debug("MANAGER는 자신이 생산 담당자인 생산계획만 제거할 수 있습니다.");
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+        }
+
+        productionPlanRepository.deleteById(planId);
+    }
 }

@@ -38,4 +38,6 @@ public interface ProductionPlanService {
 
     UpdateProductionPlanStatusResponseDto updateProductionPlanStatus(
         UpdateProductionPlanStatusRequestDto requestDto);
+
+    void deleteProductionPlan(Long planId, Users user);
 }
