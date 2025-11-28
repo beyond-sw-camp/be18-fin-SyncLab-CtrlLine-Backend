@@ -10,11 +10,11 @@ import org.springframework.data.jpa.domain.Specification;
 
 @UtilityClass
 public class UserSpecification {
-    public Specification<Users> userDepartmentEquals(String dept) {
+    public Specification<Users> userDepartmentContains(String dept) {
         return (root, query, cb) ->
             dept == null || dept.isEmpty()
                 ? null
-                : cb.equal(root.get("department"), dept);
+                : cb.like(root.get("department"), "%" + dept + "%");
     }
 
     public Specification<Users> userStatusEquals(UserStatus status) {

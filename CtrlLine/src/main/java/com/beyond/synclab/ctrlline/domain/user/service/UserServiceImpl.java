@@ -31,7 +31,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Page<UserListResponseDto> getUserList(SearchUserParameterDto command, Pageable pageable) {
         Specification<Users> spec = Specification.allOf(
-            UserSpecification.userDepartmentEquals(command.userDepartment()),
+            UserSpecification.userDepartmentContains(command.userDepartment()),
             UserSpecification.userStatusEquals(command.userStatus()),
             UserSpecification.userNameContains(command.userName()),
             UserSpecification.userEmpNoContains(command.userEmpNo()),
