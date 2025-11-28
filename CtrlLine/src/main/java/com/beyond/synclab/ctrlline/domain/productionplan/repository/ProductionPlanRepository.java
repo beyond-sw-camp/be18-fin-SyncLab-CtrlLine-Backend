@@ -26,6 +26,10 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
 
     Optional<ProductionPlans> findByDocumentNo(String documentNo);
 
+    Optional<ProductionPlans> findFirstByDocumentNoOrderByIdDesc(String documentNo);
+
+    Optional<ProductionPlans> findFirstByDocumentNoAndStatusOrderByIdDesc(String documentNo, PlanStatus status);
+
     // lineCode + 상태(PENDING, CONFIRMED) 기준으로 최신 생성된 ProductionPlan 조회
     @Query("""
         SELECT p

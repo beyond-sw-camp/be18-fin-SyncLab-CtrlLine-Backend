@@ -43,7 +43,7 @@ public class PlanDefectiveXrefService {
                     orderNo, defectiveQty);
             return;
         }
-        Optional<ProductionPlans> planOptional = productionPlanRepository.findByDocumentNo(orderNo);
+        Optional<ProductionPlans> planOptional = findLatestPlan(orderNo);
         if (planOptional.isEmpty()) {
             log.warn("order_no에 해당하는 plan_defective 정보를 찾을 수 없어 저장하지 않습니다. orderNo={}", orderNo);
             return;
@@ -80,6 +80,18 @@ public class PlanDefectiveXrefService {
         lastReportedCache.save(planDefectiveId, defectiveId, equipmentKey, reportedQty);
         log.info("plan_defective_xref 저장 완료 planDefectiveId={}, defectiveId={}, qty={}",
                 planDefectiveId, defectiveId, defectiveQty);
+    }
+
+    private Optional<ProductionPlans> findLatestPlan(String orderNo) {
+        if (!StringUtils.hasText(orderNo)) {
+            return Optional.empty();
+        }
+        Optional<ProductionPlans> runningPlan =
+                productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, PlanStatus.RUNNING);
+        if (runningPlan.isPresent()) {
+            return runningPlan;
+        }
+        return productionPlanRepository.findFirstByDocumentNoOrderByIdDesc(orderNo);
     }
 
     private BigDecimal sanitize(BigDecimal qty) {

@@ -69,7 +69,8 @@ class PlanDefectivesXrefServiceTest {
                 .build();
         when(lastReportedCache.get(planDefectives.getId(), defectiveId, "id:100"))
                 .thenReturn(Optional.of(BigDecimal.valueOf(5)));
-        when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
+        when(productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, ProductionPlans.PlanStatus.RUNNING))
+                .thenReturn(Optional.of(plan));
         when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(
             planDefectives));
         when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefectives.getId(), defectiveId))
@@ -110,7 +111,8 @@ class PlanDefectivesXrefServiceTest {
                 .build();
         when(lastReportedCache.get(planDefectives.getId(), defectiveId, "code:EQP-2"))
                 .thenReturn(Optional.of(BigDecimal.valueOf(12)));
-        when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
+        when(productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, ProductionPlans.PlanStatus.RUNNING))
+                .thenReturn(Optional.of(plan));
         when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(
             planDefectives));
         when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefectives.getId(), defectiveId))
@@ -142,7 +144,8 @@ class PlanDefectivesXrefServiceTest {
                 .productionPlanId(plan.getId())
                 .defectiveDocumentNo("DOC-3")
                 .build();
-        when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
+        when(productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, ProductionPlans.PlanStatus.RUNNING))
+                .thenReturn(Optional.of(plan));
         when(planDefectiveRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(
             planDefectives));
         when(planDefectiveXrefRepository.findByPlanDefectiveIdAndDefectiveId(planDefectives.getId(), defectiveId))
@@ -167,7 +170,8 @@ class PlanDefectivesXrefServiceTest {
                 .build();
         ProductionPlans plan = mock(ProductionPlans.class);
         when(plan.getStatus()).thenReturn(ProductionPlans.PlanStatus.PENDING);
-        when(productionPlanRepository.findByDocumentNo(orderNo)).thenReturn(Optional.of(plan));
+        when(productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, ProductionPlans.PlanStatus.RUNNING))
+                .thenReturn(Optional.of(plan));
 
         planDefectiveXrefService.linkPlanDefective(defectiveId, payload);
 

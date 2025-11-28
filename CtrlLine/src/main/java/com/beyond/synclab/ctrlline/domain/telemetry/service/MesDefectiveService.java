@@ -77,7 +77,7 @@ public class MesDefectiveService {
             log.warn("Order summary payload가 올바르지 않아 저장하지 않습니다. payload={}", payload);
             return;
         }
-        Optional<Equipments> equipmentOptional = equipmentRepository.findByEquipmentCode(payload.equipmentCode());
+        Optional<Equipments> equipmentOptional = equipmentRepository.findByEquipmentCodeForUpdate(payload.equipmentCode());
         if (equipmentOptional.isEmpty()) {
             log.warn("설비 정보를 찾을 수 없어 order summary를 저장하지 않습니다. equipmentCode={}", payload.equipmentCode());
             return;
@@ -85,9 +85,14 @@ public class MesDefectiveService {
         Equipments equipment = equipmentOptional.get();
         EquipmentSummaryDelta delta = calculateSummaryDelta(equipment.getId(), payload.producedQuantity(), payload.defectiveQuantity());
         equipment.accumulateProduction(delta.producedDelta(), delta.defectiveDelta());
-        if (StringUtils.hasText(payload.goodSerialsGzip())) {
+        if (hasSerialPayload(payload)) {
             orderSerialArchiveService.archive(payload);
         }
+    }
+
+    private boolean hasSerialPayload(OrderSummaryTelemetryPayload payload) {
+        return StringUtils.hasText(payload.goodSerialsGzip())
+                || (payload.goodSerials() != null && !payload.goodSerials().isEmpty());
     }
 
     private EquipmentSummaryDelta calculateSummaryDelta(Long equipmentId, BigDecimal producedQuantity, BigDecimal defectiveQuantity) {

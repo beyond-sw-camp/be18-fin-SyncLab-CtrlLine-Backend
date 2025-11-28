@@ -1139,7 +1139,7 @@ class ProductionPlanServiceImplTest {
                 .findAll(
                     ArgumentMatchers.<Specification<ProductionPlans>>any(),
                     ArgumentMatchers.<Sort>argThat(sort -> {
-                        Sort.Order order = sort.getOrderFor("documentNo");
+                        Sort.Order order = sort.getOrderFor("createdAt");
                         return order != null && order.getDirection() == Sort.Direction.DESC;
                     })
                 );
@@ -1173,7 +1173,7 @@ class ProductionPlanServiceImplTest {
             verify(productionPlanRepository).findAll(
                 ArgumentMatchers.<Specification<ProductionPlans>>any(),
                 ArgumentMatchers.<Sort>argThat(sort -> {
-                    Sort.Order order = sort.getOrderFor("documentNo");
+                    Sort.Order order = sort.getOrderFor("createdAt");
                     return order != null && order.getDirection() == Sort.Direction.DESC;
                 })
             );
