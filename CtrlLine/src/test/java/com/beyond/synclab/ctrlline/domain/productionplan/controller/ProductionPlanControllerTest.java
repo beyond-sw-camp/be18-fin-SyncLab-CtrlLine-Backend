@@ -3,8 +3,12 @@ package com.beyond.synclab.ctrlline.domain.productionplan.controller;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -461,4 +465,25 @@ class ProductionPlanControllerTest {
             .andExpect(jsonPath("$.data.planStatus").value("PENDING"))
         ;
     }
+
+    @Test
+    @DisplayName("생산 계획 단일 삭제 성공 - 204 No Content")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void deleteProductionPlan_success_204() throws Exception {
+        // given
+        Long planId = 1L;
+
+        // productionPlanService.deleteProductionPlan은 void 메서드이므로 doNothing() 사용
+        doNothing().when(productionPlanService).deleteProductionPlan(eq(planId), any(Users.class));
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/production-plans/{planId}", planId)
+                .contentType(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isNoContent());
+
+        // verify 호출 확인
+        verify(productionPlanService, times(1)).deleteProductionPlan(eq(planId), any(Users.class));
+    }
+
 }
