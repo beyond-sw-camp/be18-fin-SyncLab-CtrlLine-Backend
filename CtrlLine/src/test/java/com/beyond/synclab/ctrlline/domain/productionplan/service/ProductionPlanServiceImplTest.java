@@ -28,8 +28,8 @@ import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
-import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -46,6 +46,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
@@ -761,7 +762,7 @@ class ProductionPlanServiceImplTest {
             assertThatThrownBy(() ->
                 productionPlanService.updateProductionPlan(requestDto, 1L, requestUser))
                 .isInstanceOf(AppException.class)
-                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST.getMessage());
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
         }
 
         @Test
@@ -1372,6 +1373,219 @@ class ProductionPlanServiceImplTest {
             assertThatThrownBy(() -> productionPlanService.updateProductionPlanStatus(request))
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining(CommonErrorCode.UNEXPECTED_ERROR.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("생산계획 삭제 테스트")
+    class DeleteProductionPlanTest {
+
+        private Users adminUser;
+        private Users managerUser;
+        private ProductionPlans planPending;
+
+        @BeforeEach
+        void setUp() {
+            adminUser = productionManager.toBuilder()
+                .id(1L)
+                .role(Users.UserRole.ADMIN)
+                .build();
+            managerUser = productionManager.toBuilder()
+                .id(2L)
+                .role(Users.UserRole.MANAGER)
+                .build();
+
+            planPending = ProductionPlans.builder()
+                .id(100L)
+                .status(ProductionPlans.PlanStatus.PENDING)
+                .productionManagerId(managerUser.getId())
+                .build();
+        }
+
+        @Test
+        @DisplayName("삭제 성공 - ADMIN 권한")
+        void deleteProductionPlan_success_admin() {
+            when(productionPlanRepository.findById(planPending.getId()))
+                .thenReturn(Optional.of(planPending));
+
+            productionPlanService.deleteProductionPlan(planPending.getId(), adminUser);
+
+            verify(productionPlanRepository, times(1)).deleteById(planPending.getId());
+        }
+
+        @Test
+        @DisplayName("삭제 성공 - MANAGER 권한, 담당자 일치")
+        void deleteProductionPlan_success_manager() {
+            when(productionPlanRepository.findById(planPending.getId()))
+                .thenReturn(Optional.of(planPending));
+
+            productionPlanService.deleteProductionPlan(planPending.getId(), managerUser);
+
+            verify(productionPlanRepository, times(1)).deleteById(planPending.getId());
+        }
+
+        @Test
+        @DisplayName("삭제 실패 - PLAN_NOT_FOUND")
+        void deleteProductionPlan_fail_notFound() {
+            when(productionPlanRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlan(999L, adminUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제 실패 - 상태 제한 (삭제 불가 상태)")
+        void deleteProductionPlan_fail_forbiddenStatus() {
+            Long planId = 200L;
+            ProductionPlans plan = ProductionPlans.builder()
+                .id(planId)
+                .status(ProductionPlans.PlanStatus.COMPLETED)
+                .productionManagerId(managerUser.getId())
+                .build();
+
+            when(productionPlanRepository.findById(plan.getId()))
+                .thenReturn(Optional.of(plan));
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlan(planId, adminUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제 실패 - MANAGER 권한, 담당자 불일치")
+        void deleteProductionPlan_fail_managerMismatch() {
+            Long planId = planPending.getId();
+            Users otherManager = Users.builder().id(999L).role(Users.UserRole.MANAGER).build();
+
+            when(productionPlanRepository.findById(planId))
+                .thenReturn(Optional.of(planPending));
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlan(planId, otherManager))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("생산계획 일괄 삭제 테스트")
+    class DeleteProductionPlansTest {
+
+        private Users adminUser;
+        private Users managerUser;
+        private ProductionPlans plan1;
+        private ProductionPlans plan2;
+
+        @BeforeEach
+        void setUp() {
+            adminUser = productionManager.toBuilder()
+                .id(1L)
+                .role(Users.UserRole.ADMIN)
+                .build();
+
+            managerUser = productionManager.toBuilder()
+                .id(2L)
+                .role(Users.UserRole.MANAGER)
+                .build();
+
+            plan1 = ProductionPlans.builder()
+                .id(100L)
+                .status(ProductionPlans.PlanStatus.PENDING)
+                .productionManagerId(managerUser.getId())
+                .build();
+
+            plan2 = ProductionPlans.builder()
+                .id(101L)
+                .status(PlanStatus.PENDING)
+                .productionManagerId(managerUser.getId())
+                .build();
+        }
+
+        @Test
+        @DisplayName("일괄 삭제 성공 - ADMIN 권한")
+        void deleteProductionPlans_success_admin() {
+            DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
+                .planIds(List.of(plan1.getId(), plan2.getId()))
+                .build();
+
+            when(productionPlanRepository.findAllById(request.getPlanIds()))
+                .thenReturn(List.of(plan1, plan2));
+
+            productionPlanService.deleteProductionPlans(request, adminUser);
+
+            verify(productionPlanRepository, times(1)).deleteAll(List.of(plan1, plan2));
+        }
+
+        @Test
+        @DisplayName("일괄 삭제 성공 - MANAGER 권한, 담당 계획만")
+        void deleteProductionPlans_success_manager() {
+            List<Long> planIds = List.of(plan1.getId(), plan2.getId());
+
+            DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
+                .planIds(planIds)
+                .build();
+
+            when(productionPlanRepository.findAllById(planIds))
+                .thenReturn(List.of(plan1, plan2));
+
+            productionPlanService.deleteProductionPlans(request, managerUser);
+
+            verify(productionPlanRepository, times(1)).deleteAll(List.of(plan1, plan2));
+        }
+
+        @Test
+        @DisplayName("일괄 삭제 실패 - 존재하지 않는 계획 포함")
+        void deleteProductionPlans_fail_notFound() {
+            DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
+                .planIds(List.of(999L))
+                .build();
+
+            when(productionPlanRepository.findAllById(List.of(999L)))
+                .thenReturn(Collections.emptyList());
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlans(request, adminUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("일괄 삭제 실패 - MANAGER 권한, 담당자 불일치")
+        void deleteProductionPlans_fail_managerMismatch() {
+            DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
+                .planIds(List.of(plan1.getId()))
+                .build();
+
+            Users otherManager = productionManager.toBuilder()
+                .id(999L)
+                .role(Users.UserRole.MANAGER)
+                .build();
+
+            when(productionPlanRepository.findAllById(List.of(plan1.getId()))).thenReturn(List.of(plan1));
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlans(request, otherManager))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제 실패 - 상태 제한 (삭제 불가 상태)")
+        void deleteProductionPlans_fail_forbiddenStatus() {
+            ProductionPlans planRun = plan1.toBuilder()
+                .status(PlanStatus.RUNNING)
+                .build();
+
+            List<Long> planIds = List.of(planRun.getId());
+            DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
+                .planIds(planIds)
+                .build();
+
+            when(productionPlanRepository.findAllById(planIds))
+                .thenReturn(List.of(planRun));
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlans(request, adminUser))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
         }
     }
 }

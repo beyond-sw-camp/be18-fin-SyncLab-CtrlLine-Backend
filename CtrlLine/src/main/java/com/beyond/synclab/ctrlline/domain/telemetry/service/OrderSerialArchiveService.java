@@ -2,7 +2,7 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
-import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.serial.entity.ItemSerials;
 import com.beyond.synclab.ctrlline.domain.serial.repository.ItemSerialRepository;

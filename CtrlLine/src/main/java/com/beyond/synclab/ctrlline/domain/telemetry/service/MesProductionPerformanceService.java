@@ -1,6 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
-import com.beyond.synclab.ctrlline.domain.production.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
