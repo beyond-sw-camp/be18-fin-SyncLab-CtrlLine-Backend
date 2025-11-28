@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -1498,7 +1497,7 @@ class ProductionPlanServiceImplTest {
 
             plan2 = ProductionPlans.builder()
                 .id(101L)
-                .status(ProductionPlans.PlanStatus.PENDING)
+                .status(PlanStatus.PENDING)
                 .productionManagerId(managerUser.getId())
                 .build();
         }
@@ -1510,31 +1509,29 @@ class ProductionPlanServiceImplTest {
                 .planIds(List.of(plan1.getId(), plan2.getId()))
                 .build();
 
-            when(productionPlanRepository.findById(plan1.getId())).thenReturn(Optional.of(plan1));
-            when(productionPlanRepository.findById(plan2.getId())).thenReturn(Optional.of(plan2));
-
-            doNothing().when(productionPlanRepository).deleteById(anyLong());
+            when(productionPlanRepository.findAllById(request.getPlanIds()))
+                .thenReturn(List.of(plan1, plan2));
 
             productionPlanService.deleteProductionPlans(request, adminUser);
 
-            verify(productionPlanRepository).deleteById(plan1.getId());
-            verify(productionPlanRepository).deleteById(plan2.getId());
+            verify(productionPlanRepository, times(1)).deleteAll(List.of(plan1, plan2));
         }
 
         @Test
         @DisplayName("일괄 삭제 성공 - MANAGER 권한, 담당 계획만")
         void deleteProductionPlans_success_manager() {
+            List<Long> planIds = List.of(plan1.getId(), plan2.getId());
 
             DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
-                .planIds(List.of(plan1.getId(), plan2.getId()))
+                .planIds(planIds)
                 .build();
 
-            when(productionPlanRepository.findById(anyLong())).thenReturn(Optional.of(plan1));
-            doNothing().when(productionPlanRepository).deleteById(anyLong());
+            when(productionPlanRepository.findAllById(planIds))
+                .thenReturn(List.of(plan1, plan2));
 
             productionPlanService.deleteProductionPlans(request, managerUser);
 
-            verify(productionPlanRepository, times(2)).deleteById(anyLong());
+            verify(productionPlanRepository, times(1)).deleteAll(List.of(plan1, plan2));
         }
 
         @Test
@@ -1544,7 +1541,8 @@ class ProductionPlanServiceImplTest {
                 .planIds(List.of(999L))
                 .build();
 
-            when(productionPlanRepository.findById(999L)).thenReturn(Optional.empty());
+            when(productionPlanRepository.findAllById(List.of(999L)))
+                .thenReturn(Collections.emptyList());
 
             assertThatThrownBy(() -> productionPlanService.deleteProductionPlans(request, adminUser))
                 .isInstanceOf(AppException.class)
@@ -1558,11 +1556,34 @@ class ProductionPlanServiceImplTest {
                 .planIds(List.of(plan1.getId()))
                 .build();
 
-            Users otherManager = Users.builder().id(999L).role(Users.UserRole.MANAGER).build();
+            Users otherManager = productionManager.toBuilder()
+                .id(999L)
+                .role(Users.UserRole.MANAGER)
+                .build();
 
-            when(productionPlanRepository.findById(plan1.getId())).thenReturn(Optional.of(plan1));
+            when(productionPlanRepository.findAllById(List.of(plan1.getId()))).thenReturn(List.of(plan1));
 
             assertThatThrownBy(() -> productionPlanService.deleteProductionPlans(request, otherManager))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제 실패 - 상태 제한 (삭제 불가 상태)")
+        void deleteProductionPlans_fail_forbiddenStatus() {
+            ProductionPlans planRun = plan1.toBuilder()
+                .status(PlanStatus.RUNNING)
+                .build();
+
+            List<Long> planIds = List.of(planRun.getId());
+            DeleteProductionPlanRequestDto request = DeleteProductionPlanRequestDto.builder()
+                .planIds(planIds)
+                .build();
+
+            when(productionPlanRepository.findAllById(planIds))
+                .thenReturn(List.of(planRun));
+
+            assertThatThrownBy(() -> productionPlanService.deleteProductionPlans(request, adminUser))
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
         }
