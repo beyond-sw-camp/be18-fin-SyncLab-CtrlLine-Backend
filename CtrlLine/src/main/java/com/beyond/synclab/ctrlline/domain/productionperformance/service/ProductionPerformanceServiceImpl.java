@@ -138,8 +138,8 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         YearMonth base;
         try {
             base = (baseMonth == null || baseMonth.isBlank())
-                    ? YearMonth.now()
-                    : YearMonth.parse(baseMonth);
+                ? YearMonth.now()
+                : YearMonth.parse(baseMonth);
         } catch (Exception ex) {
             throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
         }
