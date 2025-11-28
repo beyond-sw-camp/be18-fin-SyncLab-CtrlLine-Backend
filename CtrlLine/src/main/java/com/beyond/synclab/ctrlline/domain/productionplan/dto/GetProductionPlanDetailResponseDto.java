@@ -31,6 +31,8 @@ public class GetProductionPlanDetailResponseDto {
     private String factoryCode;
     private String factoryName;
     private Long itemId;
+    private String itemSpecification;
+    private String itemUnit;
     private String itemCode;
     private String itemName;
     private BigDecimal plannedQty;
@@ -56,6 +58,8 @@ public class GetProductionPlanDetailResponseDto {
             .factoryCode(factories.getFactoryCode())
             .factoryName(factories.getFactoryName())
             .itemId(items.getId())
+            .itemUnit(items.getItemUnit())
+            .itemSpecification(items.getItemSpecification())
             .itemCode(items.getItemCode())
             .itemName(items.getItemName())
             .plannedQty(productionPlans.getPlannedQty())
