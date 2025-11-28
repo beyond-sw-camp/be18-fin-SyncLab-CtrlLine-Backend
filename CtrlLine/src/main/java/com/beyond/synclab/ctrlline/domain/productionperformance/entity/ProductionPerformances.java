@@ -94,6 +94,8 @@ public class ProductionPerformances {
     }
 
     public void updateRemark(String remark) {
-        this.remark = remark;
+        if (remark != null) {
+            this.remark = remark;
+        }
     }
 }
