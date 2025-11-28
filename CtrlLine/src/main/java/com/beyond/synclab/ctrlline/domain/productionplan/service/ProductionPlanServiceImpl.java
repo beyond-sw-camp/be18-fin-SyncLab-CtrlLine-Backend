@@ -16,6 +16,7 @@ import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
@@ -370,6 +371,14 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         productionPlanRepository.saveAll(afterPlans);
     }
 
+    private void validateUpdatable(ProductionPlans plan) {
+        if (plan == null) return;
+        if (!plan.isUpdatable()) {
+            log.debug("해당 플랜은 업데이트가 불가능합니다.");
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+        }
+    }
+
     @Override
     @Transactional
     public GetProductionPlanResponseDto updateProductionPlan(
@@ -382,10 +391,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
 
         // 1. 상태 수정 가능 여부 도메인에서 검증
-        if (!productionPlan.isUpdatable()) {
-            log.debug("수정하려는 생산계획이 PENDING 또는 CONFIRMED 일때만, 수정이 가능합니다.");
-            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
-        }
+        validateUpdatable(productionPlan);
 
         // 2. 담당자 권한 검증
         validateRequestedStatusByRole(dto.getStatus(), requester);
@@ -409,6 +415,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         LocalDateTime newEndTime = newStartTime.plus(Duration.between(previousStartTime, previousEndTime));
 
         if (dto.getPlannedQty() != null && productionPlan.getPlannedQty().compareTo(dto.getPlannedQty()) != 0) {
+            if (line == null) {
+                log.debug("생산계획 수량을 변경하려면 line ID를 입력해야합니다.");
+                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
+            }
+
             List<Equipments> equipments = equipmentRepository.findAllByLineId(line.getId());
 
             newEndTime = calculateEndTime(equipments, dto.getPlannedQty(), newStartTime);
@@ -523,10 +534,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         ProductionPlans productionPlans = productionPlanRepository.findById(planId)
             .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
 
-        if (!productionPlans.isUpdatable()) {
-            log.debug("CONFIRMED 나 PENDING이 아니면 삭제가 불가능합니다.");
-            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
-        }
+        validateUpdatable(productionPlans);
 
         if (user.isManagerRole() && !productionPlans.getProductionManagerId().equals(user.getId())) {
             log.debug("MANAGER는 자신이 생산 담당자인 생산계획만 제거할 수 있습니다.");
@@ -534,5 +542,41 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         productionPlanRepository.deleteById(planId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProductionPlans(DeleteProductionPlanRequestDto requestDto, Users user) {
+        List<Long> planIds = requestDto.getPlanIds();
+
+        // 삭제 대상 엔티티 조회
+        List<ProductionPlans> plans = productionPlanRepository.findAllById(planIds);
+
+        // 요청 ID와 실제 조회된 엔티티 개수 불일치 검증
+        if (plans.size() != planIds.size()) {
+            List<Long> foundIds = plans.stream()
+                .map(ProductionPlans::getId)
+                .toList();
+            List<Long> notFoundIds = planIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+            log.debug("해당 ID들을 찾을 수 없습니다. {}", notFoundIds);
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND);
+        }
+
+        // 각 계획별 삭제 가능 여부 검증
+        for (ProductionPlans plan : plans) {
+            validateUpdatable(plan);
+
+            // MANAGER 권한 검증
+            if (user.isManagerRole() && !plan.getProductionManagerId().equals(user.getId())) {
+                log.debug("생산계획 [{}]번은 요청자에 의해 제거할 수 없습니다.", plan.getId());
+                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+            }
+        }
+
+        // 일괄 삭제
+        productionPlanRepository.deleteAll(plans);
     }
 }

@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -40,4 +41,6 @@ public interface ProductionPlanService {
         UpdateProductionPlanStatusRequestDto requestDto);
 
     void deleteProductionPlan(Long planId, Users user);
+
+    void deleteProductionPlans(DeleteProductionPlanRequestDto requestDto, Users user);
 }
