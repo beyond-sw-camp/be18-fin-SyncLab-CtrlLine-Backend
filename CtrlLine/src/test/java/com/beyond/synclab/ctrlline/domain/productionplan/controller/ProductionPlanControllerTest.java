@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.beyond.synclab.ctrlline.annotation.WithCustomUser;
 import com.beyond.synclab.ctrlline.config.TestSecurityConfig;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -484,6 +486,66 @@ class ProductionPlanControllerTest {
 
         // verify 호출 확인
         verify(productionPlanService, times(1)).deleteProductionPlan(eq(planId), any(Users.class));
+    }
+
+    @Test
+    @DisplayName("일괄 삭제 성공 - 204 No Content")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void deleteProductionPlans_success() throws Exception {
+        // given
+        DeleteProductionPlanRequestDto requestDto = DeleteProductionPlanRequestDto
+            .builder()
+            .planIds(List.of(1L, 2L, 3L))
+            .build();
+
+        // doNothing()은 void 메서드 mocking
+        doNothing().when(productionPlanService).deleteProductionPlans(any(
+            DeleteProductionPlanRequestDto.class), any());
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isNoContent());
+
+        // 서비스 호출 검증
+        verify(productionPlanService, times(1)).deleteProductionPlans(any(), any());
+    }
+
+    @Test
+    @DisplayName("권한 없음 - 403 Forbidden")
+    @WithCustomUser
+    void deleteProductionPlans_forbidden() throws Exception {
+        DeleteProductionPlanRequestDto requestDto = DeleteProductionPlanRequestDto
+            .builder()
+            .planIds(List.of(1L, 2L, 3L))
+            .build();
+
+        mockMvc.perform(delete("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isForbidden());
+
+        verify(productionPlanService, never()).deleteProductionPlans(any(), any());
+    }
+
+    @Test
+    @DisplayName("잘못된 요청 - 빈 리스트")
+    @WithCustomUser(roles = {"ROLE_ADMIN"})
+    void deleteProductionPlans_emptyList() throws Exception {
+        DeleteProductionPlanRequestDto requestDto = DeleteProductionPlanRequestDto
+            .builder()
+            .build();
+
+        mockMvc.perform(delete("/api/v1/production-plans")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto))
+            )
+            .andExpect(status().isBadRequest());
+
+        verify(productionPlanService, never()).deleteProductionPlans(any(), any());
     }
 
 }
