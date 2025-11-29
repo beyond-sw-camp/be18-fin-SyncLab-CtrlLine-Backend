@@ -12,7 +12,9 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.entity.Productio
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.serial.entity.ItemSerials;
 import com.beyond.synclab.ctrlline.domain.serial.repository.ItemSerialRepository;
+import com.beyond.synclab.ctrlline.domain.serial.util.SerialFileReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -53,35 +55,10 @@ public class LotServiceImpl implements LotService {
                 .findByProductionPlanId(lot.getProductionPlan().getId())
                 .orElseThrow(ProductionPerformanceNotFoundException::new);
 
-        ProductionPlans plan = perf.getProductionPlan();
-        Items item = plan.getItemLine().getItem();
-        Lines line = plan.getItemLine().getLine();
+        String serialFilePath = itemSerialRepository.findByLotId(lot.getId())
+                .map(ItemSerials::getSerialFilePath)
+                .orElse(null);
 
-        List<String> serialList = itemSerialRepository
-                .findByLotId(lot.getId())
-                .stream()
-                .map(Serials::getSerialNo)
-                .toList();
-
-        return GetLotDetailResponseDto.of(
-                lot.getId(),
-                lot.getLotNo(),
-                line.getFactory().getFactoryCode(),
-                line.getLineCode(),
-                plan.getProductionManager().getEmpNo(),
-                perf.getPerformanceDocumentNo(),
-                lot.getRemark(),
-                item.getItemCode(),
-                item.getItemName(),
-                perf.getTotalQty() != null ? perf.getTotalQty().intValue() : 0,
-                perf.getPerformanceQty() != null ? perf.getPerformanceQty().intValue() : 0,
-                perf.getPerformanceDefectiveQty() != null ? perf.getPerformanceDefectiveQty().intValue() : 0,
-                perf.getPerformanceDefectiveRate() != null ? perf.getPerformanceDefectiveRate().intValue() : 0,
-                serialList,
-                lot.getCreatedAt(),
-                lot.getUpdatedAt(),
-                lot.getIsDeleted()
-        );
+        return GetLotDetailResponseDto.fromEntity(lot, perf, serialFilePath);
     }
-
 }

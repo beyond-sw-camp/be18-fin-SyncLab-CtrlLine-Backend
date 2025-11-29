@@ -1,12 +1,16 @@
 package com.beyond.synclab.ctrlline.domain.lot.dto.response;
 
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
+import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -29,49 +33,46 @@ public class GetLotDetailResponseDto {
     private final Integer defectiveQty;
     private final Integer defectiveRate;
 
-    private final List<String> serialList;
+    private final String serialFilePath;
 
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
     private final Boolean isDeleted;
 
-    public static GetLotDetailResponseDto of(
-            Long lotId,
-            String lotNo,
-            String factoryCode,
-            String lineCode,
-            String productionManagerNo,
-            String productionPerformanceDocNo,
-            String remark,
-            String itemCode,
-            String itemName,
-            Integer lotQty,
-            Integer performanceQty,
-            Integer defectiveQty,
-            Integer defectiveRate,
-            List<String> serialList,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt,
-            Boolean isDeleted
+    public static GetLotDetailResponseDto fromEntity(
+            Lots lot,
+            ProductionPerformances perf,
+            String serialFilePath
     ) {
+
+        ProductionPlans plan = perf.getProductionPlan();
+        Items item = plan.getItemLine().getItem();
+        Lines line = plan.getItemLine().getLine();
+
         return GetLotDetailResponseDto.builder()
-                .lotId(lotId)
-                .lotNo(lotNo)
-                .factoryCode(factoryCode)
-                .lineCode(lineCode)
-                .productionManagerNo(productionManagerNo)
-                .productionPerformanceDocNo(productionPerformanceDocNo)
-                .remark(remark)
-                .itemCode(itemCode)
-                .itemName(itemName)
-                .lotQty(lotQty)
-                .performanceQty(performanceQty)
-                .defectiveQty(defectiveQty)
-                .defectiveRate(defectiveRate)
-                .serialList(serialList)
-                .createdAt(createdAt)
-                .updatedAt(updatedAt)
-                .isDeleted(isDeleted)
+                .lotId(lot.getId())
+                .lotNo(lot.getLotNo())
+
+                .factoryCode(line.getFactory().getFactoryCode())
+                .lineCode(line.getLineCode())
+
+                .productionManagerNo(plan.getProductionManager().getEmpNo())
+                .productionPerformanceDocNo(perf.getPerformanceDocumentNo())
+                .remark(perf.getRemark())
+
+                .itemCode(item.getItemCode())
+                .itemName(item.getItemName())
+
+                .lotQty(perf.getTotalQty() != null ? perf.getTotalQty().intValue() : 0)
+                .performanceQty(perf.getPerformanceQty() != null ? perf.getPerformanceQty().intValue() : 0)
+                .defectiveQty(perf.getPerformanceDefectiveQty() != null ? perf.getPerformanceDefectiveQty().intValue() : 0)
+                .defectiveRate(perf.getPerformanceDefectiveRate() != null ? perf.getPerformanceDefectiveRate().intValue() : 0)
+
+                .serialFilePath(serialFilePath)
+
+                .createdAt(lot.getCreatedAt())
+                .updatedAt(lot.getUpdatedAt())
+                .isDeleted(lot.getIsDeleted())
                 .build();
     }
 }
