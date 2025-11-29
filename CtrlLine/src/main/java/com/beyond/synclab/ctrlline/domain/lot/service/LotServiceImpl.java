@@ -1,7 +1,5 @@
 package com.beyond.synclab.ctrlline.domain.lot.service;
 
-import com.beyond.synclab.ctrlline.domain.item.entity.Items;
-import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.dto.request.SearchLotRequestDto;
 import com.beyond.synclab.ctrlline.domain.lot.dto.response.GetLotDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.lot.dto.response.GetLotListResponseDto;
@@ -11,18 +9,14 @@ import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceNotFoundException;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.serial.entity.ItemSerials;
 import com.beyond.synclab.ctrlline.domain.serial.repository.ItemSerialRepository;
-import com.beyond.synclab.ctrlline.domain.serial.util.SerialFileReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
