@@ -1,8 +1,11 @@
 package com.beyond.synclab.ctrlline.domain.defective.repository;
 
 import com.beyond.synclab.ctrlline.common.util.QuerydslUtils;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
+import com.beyond.synclab.ctrlline.domain.factory.entity.QFactories;
 import com.beyond.synclab.ctrlline.domain.item.entity.QItems;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.QLines;
@@ -16,6 +19,7 @@ import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -77,9 +81,9 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .leftJoin(il.line, line)
             .leftJoin(perf).on(perf.productionPlan.id.eq(pp.id))
             .where(
-                createdAtTo(request),
-                createdAtFrom(request),
-                performanceDocNoContains(request)
+                createdAtTo(request.toDate()),
+                createdAtFrom(request.fromDate()),
+                performanceDocNoContains(request.productionPerformanceDocNo())
             )
             .offset(pageable.getOffset())
             .limit(pageable.getPageSize())
@@ -92,28 +96,125 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .leftJoin(pd.productionPlan, pp)
             .leftJoin(perf).on(perf.productionPlan.id.eq(pp.id))
             .where(
-                createdAtTo(request),
-                createdAtFrom(request),
-                performanceDocNoContains(request)
+                createdAtTo(request.toDate()),
+                createdAtFrom(request.fromDate()),
+                performanceDocNoContains(request.productionPerformanceDocNo())
             );
 
         return PageableExecutionUtils.getPage(contents, pageable, countQuery::fetchOne);
     }
 
-    private BooleanExpression createdAtFrom(SearchDefectiveListRequestDto req) {
-        return req.fromDate() != null ?
-            QPlanDefectives.planDefectives.createdAt.goe(req.fromDate().atStartOfDay()) : null;
+    @Override
+    public List<GetDefectiveAllResponseDto> findAllDefective(SearchDefectiveAllRequestDto request) {
+        QPlanDefectives pd = QPlanDefectives.planDefectives;
+        QProductionPlans pp = QProductionPlans.productionPlans;
+        QItemsLines il = QItemsLines.itemsLines;
+        QItems item = QItems.items;
+        QLines line = QLines.lines;
+        QFactories fac = QFactories.factories;
+        QProductionPerformances perf = QProductionPerformances.productionPerformances;
+
+        NumberExpression<BigDecimal> defectiveQtyExpr =
+            perf.totalQty.subtract(perf.performanceQty);
+
+        return queryFactory
+            .select(Projections.constructor(
+                GetDefectiveAllResponseDto.class,
+                pd.id,
+                pd.defectiveDocumentNo,
+                item.id,
+                item.itemCode,
+                item.itemName,
+                item.itemSpecification,
+                line.id,
+                line.lineCode,
+                line.lineName,
+                fac.id,
+                fac.factoryCode,
+                fac.factoryName,
+                pp.productionManager.name,
+                pp.productionManager.empNo,
+                pp.salesManager.name,
+                pp.salesManager.empNo,
+                defectiveQtyExpr,
+                perf.performanceDefectiveRate,
+                perf.performanceDocumentNo,
+                pp.dueDate,
+                pd.createdAt
+            ))
+            .from(pd)
+            .leftJoin(pd.productionPlan, pp)
+            .leftJoin(pp.itemLine, il)
+            .leftJoin(il.item, item)
+            .leftJoin(il.line, line)
+            .leftJoin(line.factory, fac)
+            .leftJoin(perf).on(perf.productionPlan.id.eq(pp.id))
+            .where(
+                createdAtFrom(request.fromDate()),
+                createdAtTo(request.toDate()),
+                dueDateTo(request.dueDate()),
+                factoryCodeEq(request.factoryCode()),
+                lineCodeEq(request.lineCode()),
+                itemIdEq(request.itemId()),
+                prodManagerNoContains(request.productionManagerNo()),
+                salesManagerNoContains(request.salesManagerNo()),
+                performanceDocNoContains(request.productionPerformanceDocNo())
+            )
+            .orderBy(pd.createdAt.desc())
+            .fetch();
     }
 
-    private BooleanExpression createdAtTo(SearchDefectiveListRequestDto req) {
-        return req.toDate() != null ?
-            QPlanDefectives.planDefectives.createdAt.loe(req.toDate().atStartOfDay().plusDays(1)) : null;
+    private BooleanExpression createdAtFrom(LocalDate fromDate) {
+        return fromDate != null
+            ? QPlanDefectives.planDefectives.createdAt.goe(fromDate.atStartOfDay())
+            : null;
     }
 
-    private BooleanExpression performanceDocNoContains(SearchDefectiveListRequestDto req) {
-        return (req.productionPerformanceDocNo() != null && !req.productionPerformanceDocNo().isBlank()) ?
+    private BooleanExpression createdAtTo(LocalDate toDate) {
+        return toDate != null
+            ? QPlanDefectives.planDefectives.createdAt.lt(toDate.atStartOfDay().plusDays(1))
+            : null;
+    }
+
+    private BooleanExpression dueDateTo(LocalDate dueDate) {
+        return dueDate != null
+            ? QProductionPlans.productionPlans.dueDate.loe(dueDate)
+            : null;
+    }
+
+    private BooleanExpression factoryCodeEq(String factoryCode) {
+        return (factoryCode != null && !factoryCode.isBlank())
+            ? QFactories.factories.factoryCode.eq(factoryCode)
+            : null;
+    }
+
+    private BooleanExpression lineCodeEq(String lineCode) {
+        return (lineCode != null && !lineCode.isBlank())
+            ? QLines.lines.lineCode.eq(lineCode)
+            : null;
+    }
+
+    private BooleanExpression itemIdEq(Long itemId) {
+        return itemId != null
+            ? QItems.items.id.eq(itemId)
+            : null;
+    }
+
+    private BooleanExpression prodManagerNoContains(String prodManagerNo) {
+        return (prodManagerNo != null && !prodManagerNo.isBlank())
+            ? QProductionPlans.productionPlans.productionManager.empNo.containsIgnoreCase(prodManagerNo)
+            : null;
+    }
+
+    private BooleanExpression salesManagerNoContains(String salesManagerNo) {
+        return (salesManagerNo != null && !salesManagerNo.isBlank()) ?
+            QProductionPlans.productionPlans.salesManager.empNo.containsIgnoreCase(salesManagerNo) : null;
+    }
+
+    private BooleanExpression performanceDocNoContains(String perfDocNo) {
+        return (perfDocNo != null && !perfDocNo.isBlank()) ?
             QProductionPerformances.productionPerformances.performanceDocumentNo.containsIgnoreCase(
-                req.productionPerformanceDocNo()
+                perfDocNo
             ) : null;
     }
 }

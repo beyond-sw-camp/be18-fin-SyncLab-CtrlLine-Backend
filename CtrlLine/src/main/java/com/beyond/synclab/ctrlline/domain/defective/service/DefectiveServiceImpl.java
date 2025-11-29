@@ -1,8 +1,10 @@
 package com.beyond.synclab.ctrlline.domain.defective.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.errorcode.DefectiveErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
@@ -45,5 +47,13 @@ public class DefectiveServiceImpl implements DefectiveService {
         Pageable pageable
     ) {
         return planDefectiveRepository.findDefectiveList(requestDto, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<GetDefectiveAllResponseDto> getAllDefective(
+        SearchDefectiveAllRequestDto requestDto
+    ) {
+        return planDefectiveRepository.findAllDefective(requestDto);
     }
 }
