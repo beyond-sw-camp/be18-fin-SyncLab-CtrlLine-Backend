@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto.DefectiveItem;
+import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.service.DefectiveService;
@@ -154,4 +156,78 @@ class DefectiveControllerTest {
             .andExpect(jsonPath("$.data.pageInfo.currentPage").value(1))
             .andExpect(jsonPath("$.data.pageInfo.pageSize").value(10));
     }
+
+    @Test
+    @WithMockUser
+    @DisplayName("불량 전체 목록 조회 성공 - 200")
+    void getDefectiveAll_success() throws Exception {
+        // given
+        LocalDate testDate = LocalDate.now(clock);
+        SearchDefectiveAllRequestDto requestDto = SearchDefectiveAllRequestDto.builder()
+            .fromDate(testDate)
+            .toDate(testDate.plusDays(1))
+            .factoryCode("FAC-001")
+            .lineCode("L001")
+            .itemId(100L)
+            .productionManagerNo("PM-001")
+            .salesManagerNo("SM-001")
+            .productionPerformanceDocNo("2099/01/01-1")
+            .build();
+
+        GetDefectiveAllResponseDto responseDto = GetDefectiveAllResponseDto.builder()
+            .planDefectiveId(123L)
+            .defectiveDocNo("2099/01/01-1")
+            .itemId(100L)
+            .itemCode("I001")
+            .itemName("품목1")
+            .itemSpecification("Spec A")
+            .lineId(1L)
+            .lineCode("L001")
+            .lineName("라인1")
+            .factoryId(1L)
+            .factoryCode("FAC-001")
+            .factoryName("공장1")
+            .productionManagerName("생산담당자")
+            .productionManagerNo("PM-001")
+            .salesManagerName("영업담당자")
+            .salesManagerNo("SM-001")
+            .defectiveTotalQty(BigDecimal.valueOf(1000))
+            .defectiveTotalRate(BigDecimal.valueOf(0.12))
+            .productionPerformanceDocNo("2099/01/01-1")
+            .createdAt(LocalDateTime.now(clock))
+            .build();
+
+        when(defectiveService.getAllDefective(any())).thenReturn(List.of(responseDto));
+
+        // when
+        ResultActions result = mockMvc.perform(
+            get("/api/v1/defectives/all")
+                .param("fromDate", requestDto.fromDate().toString())
+                .param("toDate", requestDto.toDate().toString())
+                .param("factoryCode", requestDto.factoryCode())
+                .param("lineCode", requestDto.lineCode())
+                .param("itemId", requestDto.itemId().toString())
+                .param("productionManagerNo", requestDto.productionManagerNo())
+                .param("salesManagerNo", requestDto.salesManagerNo())
+                .param("productionPerformanceDocNo", requestDto.productionPerformanceDocNo())
+                .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // then
+        result.andExpect(status().isOk())
+            // data content 검증
+            .andExpect(jsonPath("$.data[0].planDefectiveId").value(123L))
+            .andExpect(jsonPath("$.data[0].defectiveDocNo").value("2099/01/01-1"))
+            .andExpect(jsonPath("$.data[0].itemCode").value("I001"))
+            .andExpect(jsonPath("$.data[0].factoryCode").value("FAC-001"))
+            .andExpect(jsonPath("$.data[0].lineCode").value("L001"))
+            .andExpect(jsonPath("$.data[0].productionManagerNo").value("PM-001"))
+            .andExpect(jsonPath("$.data[0].salesManagerNo").value("SM-001"))
+            .andExpect(jsonPath("$.data[0].defectiveTotalQty").value(1000))
+            .andExpect(jsonPath("$.data[0].defectiveTotalRate").value(0.12))
+            .andExpect(jsonPath("$.data[0].productionPerformanceDocNo").value("2099/01/01-1"))
+            // payload size 검증
+            .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
 }

@@ -2,7 +2,9 @@ package com.beyond.synclab.ctrlline.domain.defective.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
@@ -19,8 +21,10 @@ import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -55,6 +59,7 @@ class PlanDefectiveQueryRepositoryImplTest {
 
         // 테스트 환경에서는 엔티티 로깅 비활성화
         System.setProperty("logging.entity.enabled", "false");
+        System.setProperty("spring.jpa.auditing.enabled", "false");
 
         queryRepository = new PlanDefectiveQueryRepositoryImpl(new JPAQueryFactory(em));
 
@@ -181,14 +186,14 @@ class PlanDefectiveQueryRepositoryImplTest {
             .defectiveDocumentNo("DEF-20251118-1")
             .productionPlanId(planA.getId())
             .productionPlan(planA)
-            .createdAt(LocalDateTime.now().minusHours(4))
+            .createdAt(LocalDateTime.now().minusDays(1).withHour(12))
             .build());
 
         em.persist(PlanDefectives.builder()
             .defectiveDocumentNo("DEF-20251119-1")
             .productionPlanId(planB.getId())
             .productionPlan(planB)
-            .createdAt(LocalDateTime.now().minusHours(2))
+            .createdAt(LocalDateTime.now().withHour(12))
             .build());
 
         // ---------- 생산실적 ----------
@@ -216,64 +221,217 @@ class PlanDefectiveQueryRepositoryImplTest {
 
         em.flush();
         em.clear();
+
+        // 1건씩 엔티티 객체를 찾아서 확인해야 함
+        PlanDefectives saved1 = em.createQuery(
+                "select p from PlanDefectives p where p.defectiveDocumentNo = :doc", PlanDefectives.class)
+            .setParameter("doc", "DEF-20251118-1")
+            .getSingleResult();
+
+        PlanDefectives saved2 = em.createQuery(
+                "select p from PlanDefectives p where p.defectiveDocumentNo = :doc", PlanDefectives.class)
+            .setParameter("doc", "DEF-20251119-1")
+            .getSingleResult();
+
+        System.out.println(saved1.getCreatedAt());
+        System.out.println(saved2.getCreatedAt());
     }
 
-    // ================================================================
-    // 1. 기본 조회 + 정렬 테스트
-    // ================================================================
-    @Test
-    @DisplayName("기본 조회 - createdAt DESC 정렬 확인")
-    void testFindDefectiveList_defaultSort() {
+    @Nested
+    @DisplayName("계획불량 목록조회 테스트")
+    class FindDefectiveListTest {
 
-        SearchDefectiveListRequestDto request = SearchDefectiveListRequestDto.builder().build();
-        Pageable pageable = PageRequest.of(0, 10);
+        @Test
+        @DisplayName("기본 조회 - createdAt DESC 정렬 확인")
+        void testFindDefectiveList_defaultSort() {
 
-        Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        System.out.println("===============" + result.getContent() + "===============");
-        assertThat(result.getContent())
-                .extracting(GetDefectiveListResponseDto::getDefectiveDocNo)
-                .containsExactlyInAnyOrder("DEF-20251119-1", "DEF-20251118-1");
+            SearchDefectiveListRequestDto request = SearchDefectiveListRequestDto.builder().build();
+            Pageable pageable = PageRequest.of(0, 10);
+
+            Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
+            assertThat(result.getTotalElements()).isEqualTo(2);
+
+            assertThat(result.getContent())
+                    .extracting(GetDefectiveListResponseDto::getDefectiveDocNo)
+                    .containsExactlyInAnyOrder("DEF-20251119-1", "DEF-20251118-1");
+        }
+
+        @Test
+        @DisplayName("기간 + 문서번호 필터 조회 테스트")
+        void testFindDefectiveList_withFilter() {
+
+            LocalDate from = LocalDate.now().minusDays(1);
+            LocalDate to = LocalDate.now().plusDays(1);
+
+            SearchDefectiveListRequestDto request = SearchDefectiveListRequestDto.builder()
+                .fromDate(from)
+                .toDate(to)
+                .productionPerformanceDocNo("2025/11/18-1")
+                .build();
+
+            Pageable pageable = PageRequest.of(0, 10);
+
+            Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.getContent().get(0).getDefectiveDocNo()).isEqualTo("DEF-20251118-1");
+        }
+
+        @Test
+        @DisplayName("정렬 옵션 적용 테스트 - defectiveQty ASC")
+        void testFindDefectiveList_sortByDefectiveQty() {
+
+            SearchDefectiveListRequestDto request = SearchDefectiveListRequestDto.builder().build();
+
+            Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "defectiveQty"));
+
+            Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
+
+            assertThat(result.getContent().get(0).getDefectiveTotalQty())
+                .isLessThanOrEqualTo(result.getContent().get(1).getDefectiveTotalQty());
+        }
     }
 
-    // ================================================================
-    // 2. 조건 검색 테스트
-    // ================================================================
-    @Test
-    @DisplayName("기간 + 문서번호 필터 조회 테스트")
-    void testFindDefectiveList_withFilter() {
 
-        LocalDate from = LocalDate.now().minusDays(1);
-        LocalDate to = LocalDate.now().plusDays(1);
+    @Nested
+    @DisplayName("불량전표 현황조회 테스트")
+    class FindAllDefectiveTest {
+        @Test
+        @DisplayName("불량 전체 목록 기본 조회 - 2건 반환")
+        void findAllDefective_default_success() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder().build();
 
-        SearchDefectiveListRequestDto request = SearchDefectiveListRequestDto.builder()
-            .fromDate(from)
-            .toDate(to)
-            .productionPerformanceDocNo("2025/11/18-1")
-            .build();
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
 
-        Pageable pageable = PageRequest.of(0, 10);
+            // then
+            assertThat(result).hasSize(2);
+            assertThat(result)
+                .extracting(GetDefectiveAllResponseDto::getDefectiveDocNo)
+                .containsExactlyInAnyOrder("DEF-20251118-1", "DEF-20251119-1");
+        }
 
-        Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
+        @Test
+        @DisplayName("공장 코드 필터 - 일치 2건 반환")
+        void findAllDefective_factoryCodeFilter() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .factoryCode("F001")
+                .build();
 
-        assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).getDefectiveDocNo()).isEqualTo("DEF-20251118-1");
-    }
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
 
-    // ================================================================
-    // 3. 정렬 테스트
-    // ================================================================
-    @Test
-    @DisplayName("정렬 옵션 적용 테스트 - defectiveQty ASC")
-    void testFindDefectiveList_sortByDefectiveQty() {
+            // then
+            assertThat(result).hasSize(2);
+            assertThat(result)
+                .extracting(GetDefectiveAllResponseDto::getFactoryCode)
+                .containsOnly("F001");
+        }
 
-        SearchDefectiveListRequestDto request = SearchDefectiveListRequestDto.builder().build();
+        @Test
+        @DisplayName("라인 코드 필터 - 일치 2건 반환")
+        void findAllDefective_lineCodeFilter() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .lineCode("L01")
+                .build();
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "defectiveQty"));
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
 
-        Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
+            // then
+            assertThat(result).hasSize(2);
+            assertThat(result)
+                .extracting(GetDefectiveAllResponseDto::getLineCode)
+                .containsOnly("L01");
+        }
 
-        assertThat(result.getContent().get(0).getDefectiveTotalQty())
-            .isLessThanOrEqualTo(result.getContent().get(1).getDefectiveTotalQty());
+        @Test
+        @DisplayName("품목 ID 필터 - ITEM-A만 1건 반환")
+        void findAllDefective_itemIdFilter() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .itemId(itemA.getId())
+                .build();
+
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
+
+            // then
+            assertThat(result).hasSize(1);
+            assertThat(result)
+                .extracting(GetDefectiveAllResponseDto::getItemCode)
+                .containsOnly("ITEM-A");
+        }
+
+        @Test
+        @DisplayName("생산 담당자 번호 필터 - 대소문자 포함 2건 반환")
+        void findAllDefective_prodManagerNoFilter() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .productionManagerNo("e2000")
+                .build();
+
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
+
+            // then
+            assertThat(result).hasSize(2);
+            assertThat(result)
+                .extracting(GetDefectiveAllResponseDto::getProductionManagerNo)
+                .containsOnly("E2000");
+        }
+
+        @Test
+        @DisplayName("영업 담당자 번호 필터 - 2건 반환")
+        void findAllDefective_salesManagerNoFilter() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .salesManagerNo("E1000")
+                .build();
+
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
+
+            // then
+            assertThat(result).hasSize(2);
+            assertThat(result)
+                .extracting(GetDefectiveAllResponseDto::getSalesManagerNo)
+                .containsOnly("E1000");
+        }
+
+        @Test
+        @DisplayName("실적 문서번호 포함 검색 - 1건 반환")
+        void findAllDefective_perfDocNoContains() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .productionPerformanceDocNo("2025/11/18-1")
+                .build();
+
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
+
+            // then
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().getProductionPerformanceDocNo()).contains("2025/11/18-1");
+        }
+
+        @Test
+        @DisplayName("불량수량 계산식 검증(totalQty - performanceQty)")
+        void findAllDefective_defectiveQtyExpr_calc() {
+            // given
+            SearchDefectiveAllRequestDto request = SearchDefectiveAllRequestDto.builder()
+                .productionPerformanceDocNo("2025/11/19-1")
+                .build();
+
+            // when
+            List<GetDefectiveAllResponseDto> result = queryRepository.findAllDefective(request);
+
+            // then
+            BigDecimal defectiveQty = result.getFirst().getDefectiveTotalQty();
+            assertThat(defectiveQty).isEqualByComparingTo(BigDecimal.valueOf(10)); // 200 - 190
+        }
     }
 }
