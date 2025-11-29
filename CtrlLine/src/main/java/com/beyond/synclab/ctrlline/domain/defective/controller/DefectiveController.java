@@ -2,10 +2,13 @@ package com.beyond.synclab.ctrlline.domain.defective.controller;
 
 import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.service.DefectiveService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -43,5 +46,14 @@ public class DefectiveController {
         Page<GetDefectiveListResponseDto> responseDto = defectiveService.getDefectiveList(requestDto, pageable);
 
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(responseDto)));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<BaseResponse<List<GetDefectiveAllResponseDto>>> getDefectiveAll(
+        @ModelAttribute SearchDefectiveAllRequestDto requestDto
+    ) {
+        List<GetDefectiveAllResponseDto> responseDto = defectiveService.getAllDefective(requestDto);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 }

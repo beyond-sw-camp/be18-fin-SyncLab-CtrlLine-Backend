@@ -1,8 +1,10 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.entity;
 
+import com.beyond.synclab.ctrlline.domain.log.util.EntityActionLogger;
 import jakarta.persistence.Column;
 import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -27,6 +29,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
 public class PlanDefectives {
 
