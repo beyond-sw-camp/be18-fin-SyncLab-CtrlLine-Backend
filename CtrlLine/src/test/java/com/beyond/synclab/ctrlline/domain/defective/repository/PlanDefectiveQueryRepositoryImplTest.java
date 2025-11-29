@@ -274,7 +274,7 @@ class PlanDefectiveQueryRepositoryImplTest {
             Page<GetDefectiveListResponseDto> result = queryRepository.findDefectiveList(request, pageable);
 
             assertThat(result.getTotalElements()).isEqualTo(1);
-            assertThat(result.getContent().get(0).getDefectiveDocNo()).isEqualTo("DEF-20251118-1");
+            assertThat(result.getContent().getFirst().getDefectiveDocNo()).isEqualTo("DEF-20251118-1");
         }
 
         @Test
