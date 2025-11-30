@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto.DefectiveItem;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveTypesResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
@@ -230,4 +231,40 @@ class DefectiveControllerTest {
             .andExpect(jsonPath("$.data.length()").value(1));
     }
 
+    @Test
+    @WithMockUser
+    @DisplayName("불량 유형 조회 성공 - 200")
+    void getDefectiveTypes_success() throws Exception {
+        // given
+        String factoryCode = "FAC-001";
+        GetDefectiveTypesResponseDto.DefectiveTypesItems item =
+            GetDefectiveTypesResponseDto.DefectiveTypesItems.builder()
+                .defectiveName("스크래치")
+                .defectiveCode("DF-001")
+                .defectiveType("1")
+                .defectiveCount(BigDecimal.valueOf(42))
+                .build();
+
+        GetDefectiveTypesResponseDto responseDto = GetDefectiveTypesResponseDto.builder()
+            .factoryCode(factoryCode)
+            .types(List.of(item))
+            .build();
+
+        when(defectiveService.getDefectiveTypes(factoryCode)).thenReturn(responseDto);
+
+        // when
+        mockMvc.perform(
+                get("/api/v1/defectives/types")
+                    .param("factoryCode", factoryCode)
+                    .contentType(MediaType.APPLICATION_JSON)
+            )
+            // then
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.factoryCode").value("FAC-001"))
+            .andExpect(jsonPath("$.data.types.length()").value(1))
+            .andExpect(jsonPath("$.data.types[0].defectiveName").value("스크래치"))
+            .andExpect(jsonPath("$.data.types[0].defectiveCode").value("DF-001"))
+            .andExpect(jsonPath("$.data.types[0].defectiveType").value("1"))
+            .andExpect(jsonPath("$.data.types[0].defectiveCount").value(42));
+    }
 }

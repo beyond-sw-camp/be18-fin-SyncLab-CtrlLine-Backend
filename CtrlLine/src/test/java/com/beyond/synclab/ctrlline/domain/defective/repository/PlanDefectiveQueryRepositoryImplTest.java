@@ -1,19 +1,24 @@
 package com.beyond.synclab.ctrlline.domain.defective.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveTypesResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.telemetry.entity.Defectives;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import config.QuerydslTestConfig;
@@ -53,6 +58,7 @@ class PlanDefectiveQueryRepositoryImplTest {
     private ItemsLines itemLineB;
     private Users salesManager;
     private Users prodManager;
+    private Equipments equipment;
 
     @BeforeEach
     void setUp() {
@@ -219,22 +225,55 @@ class PlanDefectiveQueryRepositoryImplTest {
             .endTime(LocalDateTime.now())
             .build());
 
+        equipment = Equipments.builder()
+            .line(line)
+            .lineId(line.getId())
+            .equipmentCode("E001")
+            .equipmentName("설비1")
+            .equipmentType("1")
+            .operatingTime(LocalDateTime.now().minusHours(1))
+            .equipmentPpm(BigDecimal.valueOf(100))
+            .totalCount(BigDecimal.valueOf(100))
+            .defectiveCount(BigDecimal.valueOf(100))
+            .isActive(Boolean.TRUE)
+            .build();
+
+        em.persist(equipment);
+
+        em.persist(Defectives.builder()
+            .equipmentId(1L)
+            .defectiveCode("DF-001")
+            .defectiveType("1")
+            .defectiveName("스크래치")
+            .build());
+
+        em.persist(Defectives.builder()
+            .equipmentId(1L)
+            .defectiveCode("DF-002")
+            .defectiveType("2")
+            .defectiveName("크랙")
+            .build());
+
+        em.persist(PlanDefectiveXrefs.builder()
+            .defectiveId(1L)
+            .defectiveQty(BigDecimal.valueOf(10))
+            .planDefectiveId(planA.getId())
+            .build());
+
+        em.persist(PlanDefectiveXrefs.builder()
+            .defectiveId(1L)
+            .defectiveQty(BigDecimal.valueOf(32))
+            .planDefectiveId(planA.getId())
+            .build());
+
+        em.persist(PlanDefectiveXrefs.builder()
+            .defectiveId(2L)
+            .defectiveQty(BigDecimal.valueOf(58))
+            .planDefectiveId(planB.getId())
+            .build());
+
         em.flush();
         em.clear();
-
-        // 1건씩 엔티티 객체를 찾아서 확인해야 함
-        PlanDefectives saved1 = em.createQuery(
-                "select p from PlanDefectives p where p.defectiveDocumentNo = :doc", PlanDefectives.class)
-            .setParameter("doc", "DEF-20251118-1")
-            .getSingleResult();
-
-        PlanDefectives saved2 = em.createQuery(
-                "select p from PlanDefectives p where p.defectiveDocumentNo = :doc", PlanDefectives.class)
-            .setParameter("doc", "DEF-20251119-1")
-            .getSingleResult();
-
-        System.out.println(saved1.getCreatedAt());
-        System.out.println(saved2.getCreatedAt());
     }
 
     @Nested
@@ -432,6 +471,30 @@ class PlanDefectiveQueryRepositoryImplTest {
             // then
             BigDecimal defectiveQty = result.getFirst().getDefectiveTotalQty();
             assertThat(defectiveQty).isEqualByComparingTo(BigDecimal.valueOf(10)); // 200 - 190
+        }
+    }
+
+    @Nested
+    class FindDefectiveTypesTest {
+        @Test
+        @DisplayName("공장 스코프 불량 타입 집계 조회 - 합계 검증")
+        void findDefectiveTypes_success() {
+            // given
+            String factoryCode = "F001";
+
+            // when
+            GetDefectiveTypesResponseDto result = queryRepository.findDefectiveTypes(factoryCode);
+
+            // then
+            assertThat(result.getFactoryCode()).isEqualTo("F001");
+            assertThat(result.getTypes()).hasSize(2);
+
+            assertThat(result.getTypes())
+                .extracting("defectiveCode", "defectiveType", "defectiveCount")
+                .containsExactlyInAnyOrder(
+                    tuple("DF-001", "1", new BigDecimal("42.00")),
+                    tuple("DF-002", "2", new BigDecimal("58.00"))
+                );
         }
     }
 }
