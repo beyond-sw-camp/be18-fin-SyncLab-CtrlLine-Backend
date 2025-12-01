@@ -16,6 +16,7 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.service.FactoryEnvironmentService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
@@ -52,6 +53,9 @@ class MesTelemetryListenerTest {
     @Mock
     private EquipmentRuntimeStatusService equipmentRuntimeStatusService;
 
+    @Mock
+    private FactoryEnvironmentService factoryEnvironmentService;
+
     private MesTelemetryListener listener;
 
     @Mock
@@ -66,7 +70,8 @@ class MesTelemetryListenerTest {
                 mesDefectiveService,
                 mesAlarmService,
                 mesProductionPerformanceService,
-                equipmentRuntimeStatusService
+                equipmentRuntimeStatusService,
+                factoryEnvironmentService
         );
     }
 
@@ -166,6 +171,30 @@ class MesTelemetryListenerTest {
         assertThat(saved.state()).isEqualTo("STARTING");
         assertThat(saved.alarmLevel()).isEqualTo("CRITICAL");
         assertThat(saved.alarmActive()).isTrue();
+    }
+
+    @Test
+    void onTelemetry_persistsEnvironmentRecord() {
+        Factories factory = Factories.builder()
+                .id(1L)
+                .factoryCode("F0001")
+                .factoryName("Factory01")
+                .isActive(true)
+                .build();
+        when(factoryRepository.findByFactoryCode("F0001")).thenReturn(Optional.of(factory));
+
+        String payload = """
+                {"machine":"F0001.CL0001","tag":"environment","value":{"temperature":23.56,"humidity":45.12,"timestamp":1764550749000}}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<BigDecimal> temperatureCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        ArgumentCaptor<BigDecimal> humidityCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(factoryEnvironmentService, times(1))
+                .saveReading(eq(1L), temperatureCaptor.capture(), humidityCaptor.capture(), any());
+        assertThat(temperatureCaptor.getValue()).isEqualByComparingTo("23.56");
+        assertThat(humidityCaptor.getValue()).isEqualByComparingTo("45.12");
     }
 
     @Test

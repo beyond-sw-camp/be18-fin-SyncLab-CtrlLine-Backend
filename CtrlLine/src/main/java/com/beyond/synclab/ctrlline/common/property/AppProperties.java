@@ -14,7 +14,10 @@ public class AppProperties {
     private final Frontend frontend;
 
     public record Redis(AppProperties.Redis.Prefix prefix) {
-        public record Prefix(String refresh, String blacklist, String planDefectiveLastReported) {
+        public record Prefix(String refresh,
+                             String blacklist,
+                             String planDefectiveLastReported,
+                             String environmentLatest) {
         }
     }
 

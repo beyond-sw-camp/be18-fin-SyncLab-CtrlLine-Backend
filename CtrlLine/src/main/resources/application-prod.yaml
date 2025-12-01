@@ -30,6 +30,7 @@ app:
       refresh: "ctrlline:refresh:"
       blacklist: "ctrlline:blacklist:"
       plan-defective-last-reported: "ctrlline:plan-defective:last:"
+      environment-latest: "ctrlline:environment:latest:"
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:https://synclab-ctrlline.vercel.app}
   serial-storage:
