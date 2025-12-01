@@ -1,5 +1,6 @@
 package com.beyond.synclab.ctrlline.domain.user.controller;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -242,7 +243,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("사용자 상세 조회 성공 - 200 OK")
-    @WithMockUser(username = "admin@test.com", roles = {"ADMIN"})
+    @WithCustomUser(username = "admin@test.com", roles = {"ROLE_ADMIN"})
     void getUser_success() throws Exception {
         // given
         Long userId = 1L;
@@ -260,7 +261,7 @@ class UserControllerTest {
             .build();
 
         // when
-        when(userService.getUserById(userId)).thenReturn(userResponseDto);
+        when(userService.getUserById(anyLong(), any(Users.class))).thenReturn(userResponseDto);
 
         ResultActions resultActions = mockMvc.perform(
             get("/api/v1/users/{userId}", userId)
@@ -277,11 +278,11 @@ class UserControllerTest {
 
     @Test
     @DisplayName("상세 조회 유저 찾을 수 없음 - 404 NOT FOUND")
-    @WithMockUser(username = "admin@test.com", roles = {"ADMIN"})
+    @WithCustomUser(username = "admin@test.com", roles = {"ADMIN"})
     void getUser_notFound() throws Exception {
         // given
         Long userId = 1L;
-        when(userService.getUserById(userId)).thenThrow(new AppException(UserErrorCode.USER_NOT_FOUND));
+        when(userService.getUserById(eq(userId), any(Users.class))).thenThrow(new AppException(UserErrorCode.USER_NOT_FOUND));
 
         ResultActions resultActions = mockMvc.perform(
             get("/api/v1/users/{userId}", userId)
