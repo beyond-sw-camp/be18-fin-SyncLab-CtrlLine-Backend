@@ -400,18 +400,28 @@ public class MesTelemetryListener {
         if (!valueNode.isObject()) {
             return false;
         }
-        if (hasAnyNonNull(valueNode,
+        boolean hasDetailedAlarmField = hasAnyNonNull(valueNode,
                 ALARM_NAME_FIELD,
                 ALARM_NAME_FIELD_CAMEL,
                 ALARM_CODE_FIELD,
                 ALARM_CODE_FIELD_CAMEL,
                 ALARM_TYPE_FIELD,
-                ALARM_TYPE_FIELD_CAMEL,
-                ALARM_LEVEL_FIELD,
-                ALARM_LEVEL_FIELD_CAMEL)) {
+                ALARM_TYPE_FIELD_CAMEL);
+        if (hasDetailedAlarmField) {
             return true;
         }
-        return recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
+        boolean keyIndicatesAlarm = recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
+        boolean tagIndicatesAlarm = tagMatches(valueNode.path("tag").asText(), ALARM_EVENT_KEY_SUFFIX);
+        if (!keyIndicatesAlarm && !tagIndicatesAlarm) {
+            return false;
+        }
+        return hasAnyNonNull(valueNode,
+                ALARM_LEVEL_FIELD,
+                ALARM_LEVEL_FIELD_CAMEL,
+                ALARM_OCCURRED_AT_FIELD_CAMEL,
+                ALARM_OCCURRED_AT_FIELD,
+                ALARM_CLEARED_AT_FIELD_CAMEL,
+                ALARM_CLEARED_AT_FIELD);
     }
 
     private DefectiveTelemetryPayload buildDefectivePayload(JsonNode valueNode) {
