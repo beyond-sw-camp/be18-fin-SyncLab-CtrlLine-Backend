@@ -61,7 +61,6 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayloa
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
-import com.beyond.synclab.ctrlline.domain.telemetry.service.FactoryEnvironmentService;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.fasterxml.jackson.databind.JsonNode;
