@@ -11,8 +11,10 @@ import static org.mockito.Mockito.when;
 
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
+import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,9 @@ class MesTelemetryListenerTest {
     @Mock
     private MesProductionPerformanceService mesProductionPerformanceService;
 
+    @Mock
+    private EquipmentRuntimeStatusService equipmentRuntimeStatusService;
+
     private MesTelemetryListener listener;
 
     @Mock
@@ -60,7 +65,8 @@ class MesTelemetryListenerTest {
                 mesPowerConsumptionService,
                 mesDefectiveService,
                 mesAlarmService,
-                mesProductionPerformanceService
+                mesProductionPerformanceService,
+                equipmentRuntimeStatusService
         );
     }
 
@@ -124,6 +130,42 @@ class MesTelemetryListenerTest {
 
         verify(mesPowerConsumptionService, times(1))
                 .savePowerConsumption(BigDecimal.valueOf(1.50).setScale(2), 1L);
+    }
+
+    @Test
+    void onTelemetry_updatesEquipmentRuntimeStatus() {
+        String payload = """
+                {"equipment_code":"EQP-500","state":"EXECUTE","alarm_level":"WARNING","alarm_active":true}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<EquipmentStatusTelemetryPayload> captor = ArgumentCaptor.forClass(EquipmentStatusTelemetryPayload.class);
+        verify(equipmentRuntimeStatusService, times(1)).updateStatus(captor.capture());
+        EquipmentStatusTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("EQP-500");
+        assertThat(saved.state()).isEqualTo("EXECUTE");
+        assertThat(saved.alarmLevel()).isEqualTo("WARNING");
+        assertThat(saved.alarmActive()).isTrue();
+    }
+
+    @Test
+    void onTelemetry_updatesEquipmentRuntimeStatus_whenStateIsNestedValue() {
+        String payload = """
+                {"records":[
+                    {"value":{"tag":"state","value":{"equipment_code":"EQP-600","state":"STARTING","alarm_level":"CRITICAL","alarm_active":true}}}
+                ]}
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<EquipmentStatusTelemetryPayload> captor = ArgumentCaptor.forClass(EquipmentStatusTelemetryPayload.class);
+        verify(equipmentRuntimeStatusService, times(1)).updateStatus(captor.capture());
+        EquipmentStatusTelemetryPayload saved = captor.getValue();
+        assertThat(saved.equipmentCode()).isEqualTo("EQP-600");
+        assertThat(saved.state()).isEqualTo("STARTING");
+        assertThat(saved.alarmLevel()).isEqualTo("CRITICAL");
+        assertThat(saved.alarmActive()).isTrue();
     }
 
     @Test

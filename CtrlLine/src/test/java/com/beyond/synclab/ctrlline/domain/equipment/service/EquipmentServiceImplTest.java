@@ -4,8 +4,10 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRuntimeStatusLevel;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
@@ -50,6 +52,9 @@ class EquipmentServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EquipmentRuntimeStatusService equipmentRuntimeStatusService;
 
 
     // ===== 테스트용 유저 빌더 =====
@@ -125,6 +130,8 @@ class EquipmentServiceImplTest {
 
         when(equipmentRepository.findByEquipmentCode("E001"))
                 .thenReturn(Optional.of(equipment));
+        when(equipmentRuntimeStatusService.getLevelOrDefault("E001"))
+                .thenReturn(EquipmentRuntimeStatusLevel.RUNNING);
 
         // when
         var result = equipmentService.getEquipmentDetail("E001");
@@ -168,6 +175,10 @@ class EquipmentServiceImplTest {
 
         Mockito.when(equipmentRepository.searchEquipmentList(searchDto, pageable))
                 .thenReturn(page);
+        Mockito.when(equipmentRuntimeStatusService.getLevelOrDefault("EQP-0001"))
+                .thenReturn(EquipmentRuntimeStatusLevel.RUNNING);
+        Mockito.when(equipmentRuntimeStatusService.getLevelOrDefault("EQP-0002"))
+                .thenReturn(EquipmentRuntimeStatusLevel.STOPPED);
 
         // when
         PageResponse<EquipmentSearchResponseDto> response =
@@ -246,5 +257,21 @@ class EquipmentServiceImplTest {
         assertEquals(BigDecimal.valueOf(210), response.getEquipmentPpm());
     }
 
+    @Test
+    @DisplayName("전 설비 상태를 조회하면 runtimeStatusLevel을 함께 반환한다.")
+    void getAllEquipmentStatuses_returnsLevels() {
+        Equipments equipment = Equipments.builder()
+                .equipmentCode("EQ-ALL-01")
+                .equipmentName("성형기-01")
+                .build();
+        when(equipmentRepository.findAll()).thenReturn(List.of(equipment));
+        when(equipmentRuntimeStatusService.getLevelOrDefault("EQ-ALL-01"))
+                .thenReturn(EquipmentRuntimeStatusLevel.LOW_WARNING);
 
+        List<EquipmentStatusResponseDto> result = equipmentService.getAllEquipmentStatuses();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).runtimeStatusLevel()).isEqualTo(EquipmentRuntimeStatusLevel.LOW_WARNING);
+        assertThat(result.get(0).equipmentCode()).isEqualTo("EQ-ALL-01");
+    }
 }
