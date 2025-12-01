@@ -13,6 +13,10 @@ import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.FactoryEnvironmentResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -45,7 +49,9 @@ class FactoryEnvironmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         factoryEnvironmentService = new FactoryEnvironmentService(
                 factoryRepository,
                 redisTemplate,
@@ -88,6 +94,9 @@ class FactoryEnvironmentServiceTest {
                 .build();
         when(factoryRepository.findByFactoryCode("F0001")).thenReturn(Optional.of(factory));
 
+        ObjectMapper mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         FactoryEnvironmentResponse snapshot = FactoryEnvironmentResponse.builder()
                 .factoryCode("F0001")
                 .factoryId(1L)
@@ -95,7 +104,7 @@ class FactoryEnvironmentServiceTest {
                 .humidity(BigDecimal.valueOf(45.0))
                 .recordedAt(LocalDateTime.of(2025, 11, 30, 10, 0))
                 .build();
-        when(valueOperations.get("ctrlline:env:F0001")).thenReturn(new ObjectMapper().writeValueAsString(snapshot));
+        when(valueOperations.get("ctrlline:env:F0001")).thenReturn(mapper.writeValueAsString(snapshot));
 
         FactoryEnvironmentResponse result = factoryEnvironmentService.getLatestReading("F0001");
 
