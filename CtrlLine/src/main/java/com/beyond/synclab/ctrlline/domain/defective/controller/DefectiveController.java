@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveTypesResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -53,6 +55,15 @@ public class DefectiveController {
         @ModelAttribute SearchDefectiveAllRequestDto requestDto
     ) {
         List<GetDefectiveAllResponseDto> responseDto = defectiveService.getAllDefective(requestDto);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @GetMapping("/types")
+    public ResponseEntity<BaseResponse<GetDefectiveTypesResponseDto>> getDefectiveTypes(
+        @RequestParam String factoryCode
+    ) {
+        GetDefectiveTypesResponseDto responseDto = defectiveService.getDefectiveTypes(factoryCode);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }

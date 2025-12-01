@@ -3,15 +3,19 @@ package com.beyond.synclab.ctrlline.domain.defective.repository;
 import com.beyond.synclab.ctrlline.common.util.QuerydslUtils;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveTypesResponseDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
 import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.entity.QEquipments;
 import com.beyond.synclab.ctrlline.domain.factory.entity.QFactories;
 import com.beyond.synclab.ctrlline.domain.item.entity.QItems;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.QLines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.QPlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QPlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
+import com.beyond.synclab.ctrlline.domain.telemetry.entity.QDefectives;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -162,6 +166,38 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             )
             .orderBy(pd.createdAt.desc())
             .fetch();
+    }
+
+    @Override
+    public GetDefectiveTypesResponseDto findDefectiveTypes(String factoryCode) {
+        QFactories factory = QFactories.factories;
+        QLines line = QLines.lines;
+        QEquipments equipment = QEquipments.equipments;
+        QDefectives defective = QDefectives.defectives;
+        QPlanDefectiveXrefs xref = QPlanDefectiveXrefs.planDefectiveXrefs;
+
+        List<GetDefectiveTypesResponseDto.DefectiveTypesItems> result = queryFactory
+            .select(Projections.constructor(
+                GetDefectiveTypesResponseDto.DefectiveTypesItems.class,
+                defective.defectiveName,
+                defective.defectiveCode,
+                defective.defectiveType,
+                xref.defectiveQty.sumBigDecimal()
+            ))
+            .from(factory)
+            .join(line).on(line.factory.factoryCode.eq(factoryCode).and(line.isActive.isTrue()))
+            .join(equipment).on(equipment.lineId.eq(line.id).and(equipment.isActive.isTrue()))
+            .join(defective).on(defective.equipmentId.eq(equipment.id))
+            .join(xref).on(xref.defectiveId.eq(defective.id))
+            .where(factory.factoryCode.eq(factoryCode).and(factory.isActive.isTrue()))
+            .groupBy(defective.defectiveCode)
+            .fetch();
+
+
+        return GetDefectiveTypesResponseDto.builder()
+            .factoryCode(factoryCode)
+            .types(result)
+            .build();
     }
 
     private BooleanExpression createdAtFrom(LocalDate fromDate) {
