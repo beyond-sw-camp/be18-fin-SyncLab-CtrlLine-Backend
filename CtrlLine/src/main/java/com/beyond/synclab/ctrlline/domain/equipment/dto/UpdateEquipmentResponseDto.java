@@ -34,8 +34,15 @@ public class UpdateEquipmentResponseDto {
     private Boolean isActive;
     private String equipmentStatusCode;
     private String lineCode;
+    private EquipmentRuntimeStatusLevel runtimeStatusLevel;
 
-    public static UpdateEquipmentResponseDto fromEntity(Equipments equipment, Users user, EquipmentStatuses status, Lines line) {
+    public static UpdateEquipmentResponseDto fromEntity(
+            Equipments equipment,
+            Users user,
+            EquipmentStatuses status,
+            Lines line,
+            EquipmentRuntimeStatusLevel runtimeStatusLevel
+    ) {
         return UpdateEquipmentResponseDto.builder()
                 .equipmentCode(equipment.getEquipmentCode())
                 .equipmentName(equipment.getEquipmentName())
@@ -52,6 +59,7 @@ public class UpdateEquipmentResponseDto {
                 // 추가
                 .equipmentStatusCode(status.getEquipmentStatusCode())
                 .lineCode(line.getLineCode())
+                .runtimeStatusLevel(runtimeStatusLevel)
                 .build();
     }
 }

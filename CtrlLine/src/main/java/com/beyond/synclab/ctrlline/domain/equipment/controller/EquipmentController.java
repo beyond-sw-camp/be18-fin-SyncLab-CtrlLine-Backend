@@ -7,6 +7,7 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseD
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 
 @Slf4j
@@ -52,6 +54,14 @@ public class EquipmentController {
         //
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(BaseResponse.ok(responseDto));
+    }
+
+    @GetMapping("/statuses")
+    public ResponseEntity<BaseResponse<List<EquipmentStatusResponseDto>>> getEquipmentStatuses(
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        List<EquipmentStatusResponseDto> response = equipmentService.getAllEquipmentStatuses();
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
     // 설비 상세 조회
@@ -98,4 +108,3 @@ public class EquipmentController {
 
     }
 }
-
