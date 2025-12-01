@@ -103,6 +103,8 @@ public class MesTelemetryListener {
     private static final String ALARM_EVENT_KEY_SUFFIX = "alarm_event_payload";
     private static final String NG_TYPES_FIELD = "types";
 
+    private static final String STATE_FIELD = "state";
+
     private final FactoryRepository factoryRepository;
     private final MesPowerConsumptionService mesPowerConsumptionService;
     private final MesDefectiveService mesDefectiveService;
@@ -290,7 +292,7 @@ public class MesTelemetryListener {
             return false;
         }
         String equipmentCode = firstNonEmptyValue(statePayload, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
-        String state = firstNonEmptyValue(statePayload, "state");
+        String state = firstNonEmptyValue(statePayload, STATE_FIELD);
         return StringUtils.hasText(equipmentCode) && StringUtils.hasText(state);
     }
 
@@ -477,7 +479,7 @@ public class MesTelemetryListener {
             return null;
         }
         String equipmentCode = firstNonEmptyValue(valueNode, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
-        String state = firstNonEmptyValue(valueNode, "state");
+        String state = firstNonEmptyValue(valueNode, STATE_FIELD);
         if (!StringUtils.hasText(equipmentCode) || !StringUtils.hasText(state)) {
             return null;
         }
@@ -1004,29 +1006,45 @@ public class MesTelemetryListener {
 
     private boolean firstBooleanValue(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
-            JsonNode field = node.get(fieldName);
-            if (field == null || field.isNull()) {
-                continue;
-            }
-            if (field.isBoolean()) {
-                return field.asBoolean();
-            }
-            if (field.isNumber()) {
-                return field.asInt() != 0;
-            }
-            if (field.isTextual()) {
-                String text = field.asText().trim();
-                if (!text.isEmpty()) {
-                    if ("true".equalsIgnoreCase(text) || "1".equals(text)) {
-                        return true;
-                    }
-                    if ("false".equalsIgnoreCase(text) || "0".equals(text)) {
-                        return false;
-                    }
-                }
+            Boolean value = extractBooleanValue(node.get(fieldName));
+            if (value != null) {
+                return value;
             }
         }
         return false;
+    }
+
+    private Boolean extractBooleanValue(JsonNode field) {
+        if (field == null || field.isNull()) {
+            return null;
+        }
+        if (field.isBoolean()) {
+            return field.asBoolean();
+        }
+        if (field.isNumber()) {
+            return field.asInt() != 0;
+        }
+        if (field.isTextual()) {
+            return parseBooleanText(field.asText());
+        }
+        return null;
+    }
+
+    private Boolean parseBooleanText(String text) {
+        if (text == null) {
+            return null;
+        }
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if ("true".equalsIgnoreCase(trimmed) || "1".equals(trimmed)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(trimmed) || "0".equals(trimmed)) {
+            return false;
+        }
+        return null;
     }
 
     private JsonNode parseMapLikeString(String text) {
@@ -1113,7 +1131,8 @@ public class MesTelemetryListener {
         }
         String tag = valueNode.path("tag").asText();
         JsonNode innerValue = valueNode.get(VALUE_FIELD);
-        if (innerValue != null && innerValue.isObject() && ("state".equalsIgnoreCase(tag) || tag.endsWith(".state"))) {
+        if (innerValue != null && innerValue.isObject()
+                && (STATE_FIELD.equalsIgnoreCase(tag) || tag.endsWith("." + STATE_FIELD))) {
             return innerValue;
         }
         return valueNode;
