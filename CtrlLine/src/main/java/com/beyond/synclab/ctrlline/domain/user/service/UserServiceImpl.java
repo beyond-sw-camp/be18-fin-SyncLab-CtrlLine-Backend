@@ -49,11 +49,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDto getUserById(Long userId) {
+    public UserResponseDto getUserById(Long userId, Users requestUser) {
         Users user = userRepository.findById(userId)
             .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
-        return UserResponseDto.fromEntity(user);
+        return requestUser.isAdminRole() ? UserResponseDto.fromEntity(user) : UserResponseDto.fromEntityRestricted(user);
     }
 
     @Override

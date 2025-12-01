@@ -12,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 public interface UserService {
     Page<UserListResponseDto> getUserList(SearchUserParameterDto command, Pageable pageable);
 
-    UserResponseDto getUserById(Long userId);
+    UserResponseDto getUserById(Long userId, Users requestUser);
 
     UserResponseDto updateUserById(UserUpdateRequestDto dto, Long userId);
 

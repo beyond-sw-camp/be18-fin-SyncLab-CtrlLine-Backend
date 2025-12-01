@@ -51,4 +51,17 @@ public class UserResponseDto {
             .terminationDate(user.getTerminationDate())
             .build();
     }
+
+    public static UserResponseDto fromEntityRestricted(Users user) {
+        return UserResponseDto.builder()
+            .id(user.getId())
+            .empNo(user.getEmpNo())
+            .userName(user.getName())
+            .userDepartment(user.getDepartment())
+            .userStatus(user.getStatus())
+            .userEmail(user.getEmail())
+            .userPosition(user.getPosition())
+            .userExtension(user.getExtension())
+            .build();
+    }
 }
