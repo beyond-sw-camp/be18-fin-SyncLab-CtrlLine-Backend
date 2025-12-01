@@ -59,7 +59,7 @@ public class FactoryEnvironmentService {
         return readSnapshot(factory);
     }
 
-    public List<FactoryEnvironmentResponse> getReadings(String factoryCode, LocalDateTime startAt, LocalDateTime endAt) {
+    public List<FactoryEnvironmentResponse> getReadings(String factoryCode) {
         Factories factory = findFactory(factoryCode);
         return List.of(readSnapshot(factory));
     }
