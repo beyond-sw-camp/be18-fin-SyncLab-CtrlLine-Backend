@@ -105,6 +105,8 @@ public class MesTelemetryListener {
     private static final String NG_TYPES_FIELD = "types";
 
     private static final String STATE_FIELD = "state";
+    private static final String TEMPERATURE_FIELD = "temperature";
+    private static final String HUMIDITY_FIELD = "humidity";
 
     private final FactoryRepository factoryRepository;
     private final MesPowerConsumptionService mesPowerConsumptionService;
@@ -112,6 +114,7 @@ public class MesTelemetryListener {
     private final MesAlarmService mesAlarmService;
     private final MesProductionPerformanceService mesProductionPerformanceService;
     private final EquipmentRuntimeStatusService equipmentRuntimeStatusService;
+    private final FactoryEnvironmentService factoryEnvironmentService;
 
     private final NavigableMap<AggregationKey, Double> energyUsageByBucket = new TreeMap<>();
     private final ReentrantLock aggregationLock = new ReentrantLock();
@@ -174,10 +177,14 @@ public class MesTelemetryListener {
             }
             return;
         }
+        if (isEnvironmentRecord(valueNode)) {
+            persistEnvironmentRecord(valueNode);
+            return;
+        }
         if (isEnergyUsageRecord(valueNode)) {
             double energyUsage = valueNode.path(VALUE_FIELD).asDouble(Double.NaN);
             long timestamp = valueNode.path(TIMESTAMP_FIELD).asLong(0L);
-            Long factoryId = resolveFactoryIdFromEnergyUsage(valueNode);
+            Long factoryId = resolveFactoryId(valueNode);
             if (factoryId == null) {
                 log.warn("Factory ID를 확인할 수 없어 전력 소모량을 저장하지 않습니다. payload={}", valueNode);
                 return;
@@ -287,6 +294,10 @@ public class MesTelemetryListener {
                 DEFECTIVE_CODE_FIELD_SNAKE);
     }
 
+    private boolean isEnvironmentRecord(JsonNode valueNode) {
+        return extractEnvironmentPayload(valueNode) != null;
+    }
+
     private boolean isEquipmentStateRecord(JsonNode valueNode) {
         JsonNode statePayload = extractEquipmentStatePayload(valueNode);
         if (statePayload == null || !statePayload.isObject()) {
@@ -312,6 +323,26 @@ public class MesTelemetryListener {
         } else {
             log.warn("NG telemetry skipped due to missing required fields payload={}", valueNode);
         }
+    }
+
+    private void persistEnvironmentRecord(JsonNode valueNode) {
+        JsonNode environmentPayload = extractEnvironmentPayload(valueNode);
+        if (environmentPayload == null) {
+            return;
+        }
+        BigDecimal temperature = firstDecimal(environmentPayload, TEMPERATURE_FIELD, "temp");
+        BigDecimal humidity = firstDecimal(environmentPayload, HUMIDITY_FIELD, "hum");
+        if (temperature == null || humidity == null) {
+            log.warn("온습도 텔레메트리에서 필수 정보가 누락되었습니다. payload={}", environmentPayload);
+            return;
+        }
+        Long factoryId = resolveFactoryId(valueNode);
+        if (factoryId == null) {
+            return;
+        }
+        LocalDateTime recordedAt = Optional.ofNullable(resolveEventTime(environmentPayload))
+                .orElse(LocalDateTime.now());
+        factoryEnvironmentService.saveReading(factoryId, temperature, humidity, recordedAt);
     }
 
     private void persistOrderSummary(JsonNode summaryNode, JsonNode containerNode, String recordKey) {
@@ -758,7 +789,7 @@ public class MesTelemetryListener {
         return null;
     }
 
-    private Long resolveFactoryIdFromEnergyUsage(JsonNode valueNode) {
+    private Long resolveFactoryId(JsonNode valueNode) {
         String rawFactoryCode = firstNonEmptyValue(valueNode, "factoryCode", "factory_code");
         String machine = firstNonEmptyValue(valueNode, "machine", "machineId");
         String factoryCode = rawFactoryCode;
@@ -1137,6 +1168,24 @@ public class MesTelemetryListener {
             return innerValue;
         }
         return valueNode;
+    }
+
+    private JsonNode extractEnvironmentPayload(JsonNode valueNode) {
+        if (valueNode == null) {
+            return null;
+        }
+        if (valueNode.isObject()
+                && valueNode.hasNonNull(TEMPERATURE_FIELD)
+                && valueNode.hasNonNull(HUMIDITY_FIELD)) {
+            return valueNode;
+        }
+        JsonNode innerValue = valueNode.get(VALUE_FIELD);
+        if (innerValue != null && innerValue.isObject()
+                && innerValue.hasNonNull(TEMPERATURE_FIELD)
+                && innerValue.hasNonNull(HUMIDITY_FIELD)) {
+            return innerValue;
+        }
+        return null;
     }
 
     private boolean isOrderSummaryPayloadNode(JsonNode node) {

@@ -6,7 +6,8 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum TelemetryErrorCode implements ErrorCode {
-    ENERGY_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "ENERGY_DATA_NOT_FOUND", "해당 공장의 전력 소모량 데이터가 없습니다.");
+    ENERGY_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "ENERGY_DATA_NOT_FOUND", "해당 공장의 전력 소모량 데이터가 없습니다."),
+    ENVIRONMENT_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "ENVIRONMENT_DATA_NOT_FOUND", "해당 공장의 온습도 데이터가 없습니다.");
 
     private final HttpStatus status;
     private final String code;
