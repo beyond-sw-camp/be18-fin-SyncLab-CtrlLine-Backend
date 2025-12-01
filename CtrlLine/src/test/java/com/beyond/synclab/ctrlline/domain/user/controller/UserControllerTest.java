@@ -38,6 +38,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -64,20 +65,22 @@ class UserControllerTest {
     @TestConfiguration
     static class UserControllerTestConfig {
         @Bean
-        public UserService userService() {
+        public UserService mockUserService() {
             return mock(UserService.class);
         }
 
         @Bean
-        public UserAuthServiceImpl userAuthService() {
+        public UserAuthServiceImpl mockUserAuthService() {
             return mock(UserAuthServiceImpl.class);
         }
     }
 
     @Autowired
+    @Qualifier("mockUserService")
     private UserService userService;
 
     @Autowired
+    @Qualifier("mockUserAuthService")
     private UserAuthServiceImpl userAuthServiceImpl;
 
     @AfterEach
