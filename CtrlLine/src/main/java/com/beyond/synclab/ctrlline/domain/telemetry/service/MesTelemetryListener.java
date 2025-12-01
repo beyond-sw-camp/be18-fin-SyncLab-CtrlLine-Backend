@@ -55,8 +55,10 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
 
+import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
@@ -69,8 +71,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -80,6 +84,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.GZIPInputStream;
@@ -99,11 +104,14 @@ public class MesTelemetryListener {
     private static final String ALARM_EVENT_KEY_SUFFIX = "alarm_event_payload";
     private static final String NG_TYPES_FIELD = "types";
 
+    private static final String STATE_FIELD = "state";
+
     private final FactoryRepository factoryRepository;
     private final MesPowerConsumptionService mesPowerConsumptionService;
     private final MesDefectiveService mesDefectiveService;
     private final MesAlarmService mesAlarmService;
     private final MesProductionPerformanceService mesProductionPerformanceService;
+    private final EquipmentRuntimeStatusService equipmentRuntimeStatusService;
 
     private final NavigableMap<AggregationKey, Double> energyUsageByBucket = new TreeMap<>();
     private final ReentrantLock aggregationLock = new ReentrantLock();
@@ -176,6 +184,9 @@ public class MesTelemetryListener {
             }
             accumulateEnergyUsage(timestamp, energyUsage, factoryId);
             return;
+        }
+        if (isEquipmentStateRecord(valueNode)) {
+            persistEquipmentState(valueNode);
         }
         if (isNgDefectiveRecord(valueNode)) {
             persistDefectiveRecord(valueNode, recordKey);
@@ -276,6 +287,16 @@ public class MesTelemetryListener {
                 DEFECTIVE_CODE_FIELD_SNAKE);
     }
 
+    private boolean isEquipmentStateRecord(JsonNode valueNode) {
+        JsonNode statePayload = extractEquipmentStatePayload(valueNode);
+        if (statePayload == null || !statePayload.isObject()) {
+            return false;
+        }
+        String equipmentCode = firstNonEmptyValue(statePayload, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
+        String state = firstNonEmptyValue(statePayload, STATE_FIELD);
+        return StringUtils.hasText(equipmentCode) && StringUtils.hasText(state);
+    }
+
     private void persistDefectiveRecord(JsonNode valueNode, String recordKey) {
         DefectiveTelemetryPayload payload = buildDefectivePayload(valueNode);
         if (payload != null) {
@@ -305,6 +326,17 @@ public class MesTelemetryListener {
                 payload.producedQuantity(),
                 payload.defectiveQuantity());
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
+    }
+
+    private void persistEquipmentState(JsonNode valueNode) {
+        JsonNode statePayload = extractEquipmentStatePayload(valueNode);
+        if (statePayload == null) {
+            return;
+        }
+        EquipmentStatusTelemetryPayload payload = buildEquipmentStatePayload(statePayload);
+        if (payload != null) {
+            equipmentRuntimeStatusService.updateStatus(payload);
+        }
     }
 
     private void persistProductionPerformance(JsonNode performanceNode) {
@@ -371,18 +403,28 @@ public class MesTelemetryListener {
         if (!valueNode.isObject()) {
             return false;
         }
-        if (hasAnyNonNull(valueNode,
+        boolean hasDetailedAlarmField = hasAnyNonNull(valueNode,
                 ALARM_NAME_FIELD,
                 ALARM_NAME_FIELD_CAMEL,
                 ALARM_CODE_FIELD,
                 ALARM_CODE_FIELD_CAMEL,
                 ALARM_TYPE_FIELD,
-                ALARM_TYPE_FIELD_CAMEL,
-                ALARM_LEVEL_FIELD,
-                ALARM_LEVEL_FIELD_CAMEL)) {
+                ALARM_TYPE_FIELD_CAMEL);
+        if (hasDetailedAlarmField) {
             return true;
         }
-        return recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
+        boolean keyIndicatesAlarm = recordKey != null && recordKey.contains(ALARM_EVENT_KEY_SUFFIX);
+        boolean tagIndicatesAlarm = tagMatches(valueNode.path("tag").asText(), ALARM_EVENT_KEY_SUFFIX);
+        if (!keyIndicatesAlarm && !tagIndicatesAlarm) {
+            return false;
+        }
+        return hasAnyNonNull(valueNode,
+                ALARM_LEVEL_FIELD,
+                ALARM_LEVEL_FIELD_CAMEL,
+                ALARM_OCCURRED_AT_FIELD_CAMEL,
+                ALARM_OCCURRED_AT_FIELD,
+                ALARM_CLEARED_AT_FIELD_CAMEL,
+                ALARM_CLEARED_AT_FIELD);
     }
 
     private DefectiveTelemetryPayload buildDefectivePayload(JsonNode valueNode) {
@@ -431,6 +473,27 @@ public class MesTelemetryListener {
                 .status(resolveStatus(valueNode))
                 .defectiveType(defectiveType)
                 .build();
+    }
+
+    private EquipmentStatusTelemetryPayload buildEquipmentStatePayload(JsonNode valueNode) {
+        if (valueNode == null || !valueNode.isObject()) {
+            return null;
+        }
+        String equipmentCode = firstNonEmptyValue(valueNode, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
+        String state = firstNonEmptyValue(valueNode, STATE_FIELD);
+        if (!StringUtils.hasText(equipmentCode) || !StringUtils.hasText(state)) {
+            return null;
+        }
+        String alarmLevel = firstNonEmptyValue(valueNode, ALARM_LEVEL_FIELD_CAMEL, ALARM_LEVEL_FIELD);
+        boolean alarmActive = firstBooleanValue(valueNode, "alarm_active", "alarmActive");
+        LocalDateTime eventTime = resolveEventTime(valueNode);
+        return new EquipmentStatusTelemetryPayload(
+                equipmentCode,
+                state,
+                alarmLevel,
+                alarmActive,
+                eventTime
+        );
     }
 
     private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode, String fallbackEquipmentCode) {
@@ -653,6 +716,15 @@ public class MesTelemetryListener {
                 return null;
             }
         }
+    }
+
+    private LocalDateTime resolveEventTime(JsonNode node) {
+        JsonNode timestampNode = node.get(TIMESTAMP_FIELD);
+        if (timestampNode != null && timestampNode.isNumber()) {
+            long epochMillis = timestampNode.asLong();
+            return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+        }
+        return parseDateTime(firstNonEmptyValue(node, TIMESTAMP_FIELD));
     }
 
     private String firstTextualValue(JsonNode node, String fieldName) {
@@ -933,6 +1005,49 @@ public class MesTelemetryListener {
         return node;
     }
 
+    private boolean firstBooleanValue(JsonNode node, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            Optional<Boolean> value = extractBooleanValue(node.get(fieldName));
+            if (value.isPresent()) {
+                return value.get();
+            }
+        }
+        return false;
+    }
+
+    private Optional<Boolean> extractBooleanValue(JsonNode field) {
+        if (field == null || field.isNull()) {
+            return Optional.empty();
+        }
+        if (field.isBoolean()) {
+            return Optional.of(field.asBoolean());
+        }
+        if (field.isNumber()) {
+            return Optional.of(field.asInt() != 0);
+        }
+        if (field.isTextual()) {
+            return parseBooleanText(field.asText());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Boolean> parseBooleanText(String text) {
+        if (text == null) {
+            return Optional.empty();
+        }
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) {
+            return Optional.empty();
+        }
+        if ("true".equalsIgnoreCase(trimmed) || "1".equals(trimmed)) {
+            return Optional.of(true);
+        }
+        if ("false".equalsIgnoreCase(trimmed) || "0".equals(trimmed)) {
+            return Optional.of(false);
+        }
+        return Optional.empty();
+    }
+
     private JsonNode parseMapLikeString(String text) {
         if (text == null || text.isBlank()) {
             return null;
@@ -1006,6 +1121,22 @@ public class MesTelemetryListener {
                 ALARM_EVENT_KEY_SUFFIX,
                 ORDER_NG_EVENT_FIELD,
                 NG_EVENT_PAYLOAD_FIELD);
+    }
+
+    private JsonNode extractEquipmentStatePayload(JsonNode valueNode) {
+        if (valueNode == null || !valueNode.isObject()) {
+            return null;
+        }
+        if (valueNode.hasNonNull(EQUIPMENT_CODE_FIELD) || valueNode.hasNonNull(EQUIPMENT_CODE_FIELD_SNAKE)) {
+            return valueNode;
+        }
+        String tag = valueNode.path("tag").asText();
+        JsonNode innerValue = valueNode.get(VALUE_FIELD);
+        if (innerValue != null && innerValue.isObject()
+                && (STATE_FIELD.equalsIgnoreCase(tag) || tag.endsWith("." + STATE_FIELD))) {
+            return innerValue;
+        }
+        return valueNode;
     }
 
     private boolean isOrderSummaryPayloadNode(JsonNode node) {

@@ -4,11 +4,13 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDto;
-import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRuntimeStatusLevel;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.errorcode.EquipmentErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
@@ -28,6 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     private final UserRepository userRepository;
     private final LineRepository lineRepository;
     private final EquipmentStatusRepository equipmentStatusRepository;
+    private final EquipmentRuntimeStatusService equipmentRuntimeStatusService;
 
 
     // 설비 등록
@@ -75,7 +79,9 @@ public class EquipmentServiceImpl implements EquipmentService {
         EquipmentStatuses status = equipment.getEquipmentStatus();
         Lines line = equipment.getLine();
 
-        return UpdateEquipmentResponseDto.fromEntity(equipment, user, status, line);
+        EquipmentRuntimeStatusLevel runtimeStatusLevel =
+                equipmentRuntimeStatusService.getLevelOrDefault(equipment.getEquipmentCode());
+        return UpdateEquipmentResponseDto.fromEntity(equipment, user, status, line, runtimeStatusLevel);
     }
 
     // 설비 목록 조회
@@ -84,9 +90,11 @@ public class EquipmentServiceImpl implements EquipmentService {
     public PageResponse<EquipmentSearchResponseDto> getEquipmentsList(Users users, EquipmentSearchDto searchDto, Pageable pageable) {
         Page<Equipments> page = equipmentRepository.searchEquipmentList(searchDto, pageable);
 
-        Page<EquipmentSearchResponseDto> dtoPage = page.map(equipment ->
-                EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUser())
-        );
+        Page<EquipmentSearchResponseDto> dtoPage = page.map(equipment -> {
+            EquipmentRuntimeStatusLevel runtimeStatusLevel =
+                    equipmentRuntimeStatusService.getLevelOrDefault(equipment.getEquipmentCode());
+            return EquipmentSearchResponseDto.fromEntity(equipment, equipment.getUser(), runtimeStatusLevel);
+        });
         return PageResponse.from(dtoPage);
     }
 
@@ -116,6 +124,18 @@ public class EquipmentServiceImpl implements EquipmentService {
             equipment.updateManager(newManagerRequested);
         }
         return CreateEquipmentResponseDto.fromEntity(equipment, equipment.getUser());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EquipmentStatusResponseDto> getAllEquipmentStatuses() {
+        return equipmentRepository.findAll().stream()
+                .map(equipment -> {
+                    EquipmentRuntimeStatusLevel runtimeStatusLevel =
+                            equipmentRuntimeStatusService.getLevelOrDefault(equipment.getEquipmentCode());
+                    return EquipmentStatusResponseDto.of(equipment, runtimeStatusLevel);
+                })
+                .toList();
     }
 
 }

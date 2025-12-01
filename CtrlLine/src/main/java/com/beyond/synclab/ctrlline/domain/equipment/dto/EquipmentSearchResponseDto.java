@@ -21,8 +21,13 @@ public class EquipmentSearchResponseDto {
         private final String userName;
         private final String empNo;
         private final Boolean isActive;
+        private final EquipmentRuntimeStatusLevel runtimeStatusLevel;
 
-        public static EquipmentSearchResponseDto fromEntity(Equipments equipment, Users user) {
+        public static EquipmentSearchResponseDto fromEntity(
+                Equipments equipment,
+                Users user,
+                EquipmentRuntimeStatusLevel runtimeStatusLevel
+        ) {
             return EquipmentSearchResponseDto.builder()
                     .equipmentCode(equipment.getEquipmentCode())
                     .equipmentName(equipment.getEquipmentName())
@@ -31,6 +36,7 @@ public class EquipmentSearchResponseDto {
                     .userName(user.getName())
                     .empNo(user.getEmpNo())
                     .isActive(equipment.getIsActive())
+                    .runtimeStatusLevel(runtimeStatusLevel)
                     .build();
         }
 }

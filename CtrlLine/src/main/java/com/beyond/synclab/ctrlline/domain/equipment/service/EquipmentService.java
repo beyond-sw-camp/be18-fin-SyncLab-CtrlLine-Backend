@@ -7,8 +7,10 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseD
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import org.springframework.data.domain.Pageable;
+import java.util.List;
 
 public interface EquipmentService {
 
@@ -24,4 +26,7 @@ public interface EquipmentService {
 
     // 설비 업데이트
     CreateEquipmentResponseDto updateEquipment(Users users, UpdateEquipmentRequestDto request, String equipmentCode);
+
+    // 설비 상태 전체 조회
+    List<EquipmentStatusResponseDto> getAllEquipmentStatuses();
 }
