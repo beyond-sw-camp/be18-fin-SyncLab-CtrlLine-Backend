@@ -84,6 +84,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.GZIPInputStream;
@@ -1006,45 +1007,45 @@ public class MesTelemetryListener {
 
     private boolean firstBooleanValue(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
-            Boolean value = extractBooleanValue(node.get(fieldName));
-            if (value != null) {
-                return value;
+            Optional<Boolean> value = extractBooleanValue(node.get(fieldName));
+            if (value.isPresent()) {
+                return value.get();
             }
         }
         return false;
     }
 
-    private Boolean extractBooleanValue(JsonNode field) {
+    private Optional<Boolean> extractBooleanValue(JsonNode field) {
         if (field == null || field.isNull()) {
-            return null;
+            return Optional.empty();
         }
         if (field.isBoolean()) {
-            return field.asBoolean();
+            return Optional.of(field.asBoolean());
         }
         if (field.isNumber()) {
-            return field.asInt() != 0;
+            return Optional.of(field.asInt() != 0);
         }
         if (field.isTextual()) {
             return parseBooleanText(field.asText());
         }
-        return null;
+        return Optional.empty();
     }
 
-    private Boolean parseBooleanText(String text) {
+    private Optional<Boolean> parseBooleanText(String text) {
         if (text == null) {
-            return null;
+            return Optional.empty();
         }
         String trimmed = text.trim();
         if (trimmed.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
         if ("true".equalsIgnoreCase(trimmed) || "1".equals(trimmed)) {
-            return true;
+            return Optional.of(true);
         }
         if ("false".equalsIgnoreCase(trimmed) || "0".equals(trimmed)) {
-            return false;
+            return Optional.of(false);
         }
-        return null;
+        return Optional.empty();
     }
 
     private JsonNode parseMapLikeString(String text) {
