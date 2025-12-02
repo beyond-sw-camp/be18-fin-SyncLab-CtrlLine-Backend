@@ -1,0 +1,17 @@
+spring:
+  profiles:
+    active: staging   # 기본 활성화 profile (로컬 개발 시)
+  jackson:
+    time-zone: Asia/Seoul
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+
+app:
+  serial-storage:
+    type: local
+    local:
+      base-dir: ./serial-archive
