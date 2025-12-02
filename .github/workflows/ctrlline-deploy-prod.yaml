@@ -1,4 +1,4 @@
-name: Prod Build → ECR Push → Manifest Repo PR
+name: Prod Build → ECR Push → Manifest Repo Update
 
 on:
   push:
@@ -13,12 +13,11 @@ concurrency:
 permissions:
   contents: write
   id-token: write
-  pull-requests: write
 
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: ctrlline-backend
-  MANIFEST_REPO: beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Backend-Manifests
+  MANIFEST_REPO: git@github.com:beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Manifests.git
   MANIFEST_REPO_PATH: apps/backend/overlays/green/image-patch.yaml
 
 jobs:
@@ -84,7 +83,7 @@ jobs:
         run: docker push ${{ env.IMAGE_URI }}
 
       # 10) Checkout Manifest Repo
-      - name: Checkout Manifests
+      - name: Checkout Manifest Repo
         uses: actions/checkout@v4
         with:
           repository: ${{ env.MANIFEST_REPO }}
@@ -105,4 +104,4 @@ jobs:
           git config user.email "actions@github.com"
           git add .
           git commit -m "[Chore] update prod image → ${{ env.IMAGE_TAG }}"
-          git push
+          git push origin main
