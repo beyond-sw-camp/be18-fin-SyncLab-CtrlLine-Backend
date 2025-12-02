@@ -32,9 +32,11 @@ public class LogSpecification {
         };
     }
 
-    public Specification<Logs> logsEntityNameEquals(String entityName) {
+    public Specification<Logs> logsEntityNameContains(String entityName) {
         return (root, query, cb) ->
-            entityName == null || entityName.isBlank() ? null : cb.equal(root.get("entityName"), entityName);
+            entityName == null || entityName.isBlank()
+                ? null
+                : cb.like(root.get("entityName"), "%" + entityName + "%");
     }
 
     public Specification<Logs> logsActionTypeEquals(ActionType actionType) {

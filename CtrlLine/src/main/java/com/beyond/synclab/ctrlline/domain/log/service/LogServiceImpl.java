@@ -26,12 +26,12 @@ public class LogServiceImpl implements LogService {
     public List<LogListResponseDto> getLogsList(LogSearchDto logSearchDto) {
         Specification<Logs> spec = Specification.allOf(
             LogSpecification.logsBetween(logSearchDto.fromDate(), logSearchDto.toDate()),
-            LogSpecification.logsEntityNameEquals(logSearchDto.entityName()),
+            LogSpecification.logsEntityNameContains(logSearchDto.entityName()),
             LogSpecification.logsActionTypeEquals(logSearchDto.actionType()),
             LogSpecification.logsUserIdEquals(logSearchDto.userId())
         );
 
-        List<Logs> logs = logRepository.findAll(spec, Sort.by(Direction.ASC, "createdAt"));
+        List<Logs> logs = logRepository.findAll(spec, Sort.by(Direction.DESC, "createdAt"));
 
         return logs.stream().map(LogListResponseDto::fromEntity).toList();
     }
