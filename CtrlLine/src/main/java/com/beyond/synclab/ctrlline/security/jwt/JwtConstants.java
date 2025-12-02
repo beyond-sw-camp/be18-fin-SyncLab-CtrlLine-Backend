@@ -1,8 +1,10 @@
 package com.beyond.synclab.ctrlline.security.jwt;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class JwtConstants {
-    public static final String CLAIM_USERNAME = "username";
-    public static final String CLAIM_ROLE = "role";
-    public static final String CLAIM_CATEGORY = "category";
-    private JwtConstants() {}
+    public final String CLAIM_USERNAME = "username";
+    public final String CLAIM_ROLE = "role";
+    public final String CLAIM_CATEGORY = "category";
 }
