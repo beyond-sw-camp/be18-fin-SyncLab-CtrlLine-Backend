@@ -208,7 +208,7 @@ class UserServiceImplTest {
         // when
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        UserResponseDto responseDto = userService.getUserById(userId);
+        UserResponseDto responseDto = userService.getUserById(userId, user);
 
         assertThat(responseDto).isNotNull();
         assertThat(responseDto.getEmpNo()).isEqualTo("202510001");
