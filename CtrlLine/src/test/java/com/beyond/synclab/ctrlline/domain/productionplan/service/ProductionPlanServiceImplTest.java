@@ -1224,14 +1224,14 @@ class ProductionPlanServiceImplTest {
         }
 
         @Test
-        @DisplayName("생산 계획 일정 조회 실패 - 조회 기간 30일 초과")
+        @DisplayName("생산 계획 일정 조회 실패 - 조회 기간 31일 초과")
         void getProductionPlanSchedule_fail_maxRangeExceeded() {
             // given
             GetProductionPlanScheduleRequestDto requestDto = GetProductionPlanScheduleRequestDto.builder()
                 .factoryName("A공장")
                 .lineName("1호라인")
                 .startTime(testDateTime)
-                .endTime(testDateTime.plusDays(31))
+                .endTime(testDateTime.plusDays(32))
                 .build();
 
             // when & then
