@@ -19,7 +19,7 @@ env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: ctrlline-backend
   MANIFEST_REPO: beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Backend-Manifests
-  MANIFEST_REPO_PATH: apps/backend/overlays/prod/patch-image.yaml
+  MANIFEST_REPO_PATH: apps/backend/overlays/green/image-patch.yaml
 
 jobs:
   prod-build-push:
@@ -103,18 +103,6 @@ jobs:
           cd manifests-repo
           git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
-          git checkout -b update-image-${{ env.IMAGE_TAG }}
           git add .
-          git commit -m "chore: update prod image → ${{ env.IMAGE_TAG }}"
-          git push origin update-image-${{ env.IMAGE_TAG }}
-
-      # 13) PR to manifest repo
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: manifests-repo
-          branch: update-image-${{ env.IMAGE_TAG }}
-          commit-message: "chore: image update → ${{ env.IMAGE_TAG }}"
-          title: "Prod Deploy → ${{ env.IMAGE_TAG }}"
-          body: "Auto PR generated for Prod deployment."
+          git commit -m "[Chore] update prod image → ${{ env.IMAGE_TAG }}"
+          git push
