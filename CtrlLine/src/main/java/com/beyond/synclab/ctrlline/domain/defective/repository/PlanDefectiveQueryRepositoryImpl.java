@@ -87,7 +87,14 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .where(
                 createdAtTo(request.toDate()),
                 createdAtFrom(request.fromDate()),
-                performanceDocNoContains(request.productionPerformanceDocNo())
+                performanceDocNoContains(request.productionPerformanceDocNo()),
+                defectiveDocNoContains(request.defectiveDocNo()),
+                itemCodeContains(request.itemCode()),
+                itemNameContains(request.itemName()),
+                lineNameContains(request.lineName()),
+                lineCodeContains(request.lineCode()),
+                defectiveQtyEq(request.defectiveQty(), defectiveQtyExpr),
+                defectiveRateEq(request.defectiveRate())
             )
             .offset(pageable.getOffset())
             .limit(pageable.getPageSize())
@@ -102,7 +109,14 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .where(
                 createdAtTo(request.toDate()),
                 createdAtFrom(request.fromDate()),
-                performanceDocNoContains(request.productionPerformanceDocNo())
+                performanceDocNoContains(request.productionPerformanceDocNo()),
+                defectiveDocNoContains(request.defectiveDocNo()),
+                itemCodeContains(request.itemCode()),
+                itemNameContains(request.itemName()),
+                lineNameContains(request.lineName()),
+                lineCodeContains(request.lineCode()),
+                defectiveQtyEq(request.defectiveQty(), defectiveQtyExpr),
+                defectiveRateEq(request.defectiveRate())
             );
 
         return PageableExecutionUtils.getPage(contents, pageable, countQuery::fetchOne);
@@ -198,6 +212,36 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .factoryCode(factoryCode)
             .types(result)
             .build();
+    }
+
+    private BooleanExpression defectiveDocNoContains(String defectiveDocNo) {
+        return defectiveDocNo == null
+            ? null
+            : QPlanDefectives.planDefectives.defectiveDocumentNo.contains(defectiveDocNo);
+    }
+
+    private BooleanExpression itemCodeContains(String itemCode) {
+        return itemCode == null ? null : QItems.items.itemCode.contains(itemCode);
+    }
+
+    private BooleanExpression itemNameContains(String itemName) {
+        return itemName == null ? null : QItems.items.itemName.contains(itemName);
+    }
+
+    private BooleanExpression lineNameContains(String lineName) {
+        return lineName == null ? null : QLines.lines.lineName.contains(lineName);
+    }
+
+    private BooleanExpression lineCodeContains(String lineCode) {
+        return lineCode == null ? null : QLines.lines.lineCode.contains(lineCode);
+    }
+
+    private BooleanExpression defectiveQtyEq(BigDecimal qty, NumberExpression<BigDecimal> defectiveExpr) {
+        return qty == null ? null : defectiveExpr.eq(qty);
+    }
+
+    private BooleanExpression defectiveRateEq(BigDecimal rate) {
+        return rate == null ? null : QProductionPerformances.productionPerformances.performanceDefectiveRate.eq(rate);
     }
 
     private BooleanExpression createdAtFrom(LocalDate fromDate) {
