@@ -67,7 +67,7 @@ jobs:
       - name: Docker Build
         working-directory: CtrlLine
         run: |
-          docker build -t $ECR_REPO .
+          docker build -f Dockerfile.prod -t $ECR_REPO .
 
       # 8) Image Tag
       - name: Tag Image
