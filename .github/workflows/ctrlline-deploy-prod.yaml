@@ -18,7 +18,7 @@ permissions:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: ctrlline-backend
-  MANIFEST_REPO: beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Backend-Manifests
+  MANIFEST_REPO: beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Manifests
   MANIFEST_REPO_PATH: apps/backend/overlays/green/image-patch.yaml
 
 jobs:
