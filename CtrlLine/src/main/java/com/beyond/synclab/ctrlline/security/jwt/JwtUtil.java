@@ -94,7 +94,7 @@ public class JwtUtil {
                 .getId();
     }
 
-    // ================== Expiration ==================
+    // ================== Expiration =================
     public boolean isExpired(String token, TokenType tokenType) {
         return Jwts.parser().verifyWith(resolveKey(tokenType)).build()
                 .parseSignedClaims(token).getPayload()
