@@ -23,6 +23,7 @@ public class GetProductionPlanScheduleResponseDto {
     private String salesManagerNo;
     private String productionManagerNo;
     private String documentNo;
+    private String itemName;
     private String itemCode;
     private ProductionPlans.PlanStatus status;
     private LocalDate dueDate;
@@ -41,6 +42,8 @@ public class GetProductionPlanScheduleResponseDto {
             .salesManagerNo(pp.getSalesManager().getEmpNo())
             .productionManagerNo(pp.getProductionManager().getEmpNo())
             .documentNo(pp.getDocumentNo())
+            .itemName(pp.getItemLine().getItem().getItemName())
+            .itemCode(pp.getItemLine().getItem().getItemCode())
             .status(pp.getStatus())
             .dueDate(pp.getDueDate())
             .plannedQty(pp.getPlannedQty())
