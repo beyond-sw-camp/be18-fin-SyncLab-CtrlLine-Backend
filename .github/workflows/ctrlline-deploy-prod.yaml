@@ -97,7 +97,7 @@ jobs:
           cd manifests-repo
           sed -i "s#image: .*\$#image: ${{ env.IMAGE_URI }}#" ${{ env.MANIFEST_REPO_PATH }}
 
-      # 12) Commit & Push new branch
+      # 12) Commit & Push
       - name: Commit & Push Changes
         run: |
           cd manifests-repo
