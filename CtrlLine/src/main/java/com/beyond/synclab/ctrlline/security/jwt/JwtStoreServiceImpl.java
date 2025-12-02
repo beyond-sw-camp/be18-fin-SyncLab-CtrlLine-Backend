@@ -45,7 +45,7 @@ public class JwtStoreServiceImpl implements JwtStoreService {
         );
     }
 
-    // ================== Access Token 블랙리스트 관리 ==================
+    // ================== Access Token 블랙리스트 관리 =================
 
     // 블랙리스트 등록 (jti 기준)
     public void blacklistAccessToken(String jti, long ttlSeconds) {

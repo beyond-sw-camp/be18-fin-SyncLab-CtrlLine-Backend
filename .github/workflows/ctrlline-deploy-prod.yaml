@@ -18,7 +18,6 @@ permissions:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: ctrlline-backend
-  MANIFEST_REPO: beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Manifests
   MANIFEST_REPO_PATH: apps/backend/overlays/green/image-patch.yaml
 
 jobs:
@@ -87,15 +86,17 @@ jobs:
       - name: Checkout Manifests
         uses: actions/checkout@v4
         with:
-          repository: ${{ env.MANIFEST_REPO }}
+          repository: ${{ vars.MANIFEST_REPO }}   # 매니페스트 레포
+          ssh-key: ${{ secrets.STAGING_DEPLOY_KEY }}      # SSH Private Key
           path: manifests-repo
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main
+          persist-credentials: false
 
       # 11) Update Deployment Image Tag
       - name: Update Image Tag in Manifest
         run: |
           cd manifests-repo
-          sed -i "s#image: .*\$#image: ${{ env.IMAGE_URI }}#" ${{ env.MANIFEST_REPO_PATH }}
+          sed -i "s#image: .*#image: ${IMAGE_URI}#g" ${{ env.MANIFEST_REPO_PATH }}
 
       # 12) Commit & Push
       - name: Commit & Push Changes
