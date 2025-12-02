@@ -1,0 +1,108 @@
+name: Prod Build → ECR Push → Manifest Repo PR
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "CtrlLine/**"
+
+concurrency:
+  group: "prod-main"
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPO: ctrlline-backend
+  MANIFEST_REPO: beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Backend-Manifests
+  MANIFEST_REPO_PATH: apps/backend/overlays/green/image-patch.yaml
+
+jobs:
+  prod-build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout App Repository
+      - name: Checkout App
+        uses: actions/checkout@v4
+
+      # 2) Setup JDK
+      - name: Setup JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # 3) Cache Gradle
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*') }}
+
+      # 4) Build & Test
+      - name: Build & Test
+        working-directory: CtrlLine
+        run: ./gradlew clean build test --no-daemon
+
+      # 5) Configure AWS Credentials (OIDC → IAM Role)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::980921712223:role/GitHubActions-ECR-Role
+          role-session-name: github-prod-ecr-session
+
+      # 6) Login to ECR
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 7) Docker Build
+      - name: Docker Build
+        working-directory: CtrlLine
+        run: |
+          docker build -t $ECR_REPO .
+
+      # 8) Image Tag
+      - name: Tag Image
+        run: |
+          IMAGE_TAG="main-${{ github.sha }}"
+          IMAGE_URI="${{ steps.ecr.outputs.registry }}/${ECR_REPO}:${IMAGE_TAG}"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          docker tag $ECR_REPO $IMAGE_URI
+
+      # 9) Push to ECR
+      - name: Push Image
+        run: docker push ${{ env.IMAGE_URI }}
+
+      # 10) Checkout Manifest Repo
+      - name: Checkout Manifests
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MANIFEST_REPO }}
+          path: manifests-repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 11) Update Deployment Image Tag
+      - name: Update Image Tag in Manifest
+        run: |
+          cd manifests-repo
+          sed -i "s#image: .*\$#image: ${{ env.IMAGE_URI }}#" ${{ env.MANIFEST_REPO_PATH }}
+
+      # 12) Commit & Push new branch
+      - name: Commit & Push Changes
+        run: |
+          cd manifests-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "[Chore] update prod image → ${{ env.IMAGE_TAG }}"
+          git push
