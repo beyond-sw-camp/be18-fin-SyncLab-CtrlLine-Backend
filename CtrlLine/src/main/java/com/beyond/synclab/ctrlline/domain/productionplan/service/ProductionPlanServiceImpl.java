@@ -469,7 +469,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     public List<GetProductionPlanScheduleResponseDto> getProductionPlanSchedule(
         GetProductionPlanScheduleRequestDto requestDto
     ) {
-        Duration maxRange = Duration.ofDays(30); // 최대 30일 조회 허용
+        Duration maxRange = Duration.ofDays(31); // 최대 31일 조회 허용
         if (Duration.between(requestDto.startTime(), requestDto.endTime()).compareTo(maxRange) > 0) {
             log.debug("조회 기간은 최대 30일을 초과할 수 없습니다.");
             throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
