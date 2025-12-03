@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 @Builder
 public class GetProductionPerformanceListResponseDto {
 
+    private final Long id;
     private final String documentNo;
     private final String salesManagerNo;
     private final String productionManagerNo;

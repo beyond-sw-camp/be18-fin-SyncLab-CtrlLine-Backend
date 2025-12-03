@@ -76,6 +76,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         List<GetProductionPerformanceListResponseDto> results = queryFactory
                 .select(Projections.constructor(
                         GetProductionPerformanceListResponseDto.class,
+                        perf.id,
                         perf.performanceDocumentNo,
                         salesManager.empNo,
                         prodManager.empNo,
