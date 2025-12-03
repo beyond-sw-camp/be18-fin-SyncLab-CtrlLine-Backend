@@ -57,6 +57,7 @@ public class GetProductionPerformanceDetailResponseDto {
         Factories factory = line.getFactory();
 
         return GetProductionPerformanceDetailResponseDto.builder()
+                .id(perf.getId())
                 .documentNo(perf.getPerformanceDocumentNo())
                 .factoryCode(factory.getFactoryCode())
                 .lineCode(line.getLineCode())
