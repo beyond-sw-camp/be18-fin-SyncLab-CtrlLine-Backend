@@ -15,10 +15,18 @@ public class SearchAllProductionPerformanceRequestDto {
     private String documentNoEnd;
 
     private String factoryCode;
+    private String factoryName;
     private String lineCode;
+    private String lineName;
     private String salesManagerEmpNo;
+    private String salesManagerName;
     private String productionManagerEmpNo;
+    private String productionManagerName;
+
     private String lotNo;
+    private String defectiveDocumentNo;
+    private String productionPlanDocumentNo;
+
     private String itemCode;
     private String itemName;
     private String specification;

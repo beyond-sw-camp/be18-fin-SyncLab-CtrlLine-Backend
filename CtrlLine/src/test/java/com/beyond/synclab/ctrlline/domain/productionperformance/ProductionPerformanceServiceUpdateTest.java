@@ -13,6 +13,7 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.exception.Produc
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceServiceImpl;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,9 @@ class ProductionPerformanceServiceUpdateTest {
 
     @Mock
     private LotRepository lotRepository;
+
+    @Mock
+    private PlanDefectiveRepository planDefectiveRepository;
 
     @InjectMocks
     private ProductionPerformanceServiceImpl service;
@@ -156,6 +160,8 @@ class ProductionPerformanceServiceUpdateTest {
 
         when(performanceRepository.findById(1L)).thenReturn(Optional.of(perf));
         when(lotRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(lot));
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId()))
+                .thenReturn(Optional.empty());
 
         GetProductionPerformanceDetailResponseDto result =
                 service.updatePerformanceRemark(1L, "NEW");
@@ -173,6 +179,8 @@ class ProductionPerformanceServiceUpdateTest {
 
         when(performanceRepository.findById(1L)).thenReturn(Optional.of(perf));
         when(lotRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(lot));
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId()))
+                .thenReturn(Optional.empty());
 
         GetProductionPerformanceDetailResponseDto result =
                 service.updatePerformanceRemark(1L, null);
@@ -189,6 +197,8 @@ class ProductionPerformanceServiceUpdateTest {
 
         when(performanceRepository.findById(1L)).thenReturn(Optional.of(perf));
         when(lotRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(lot));
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId()))
+                .thenReturn(Optional.empty());
 
         GetProductionPerformanceDetailResponseDto result =
                 service.updatePerformanceRemark(1L, "");
