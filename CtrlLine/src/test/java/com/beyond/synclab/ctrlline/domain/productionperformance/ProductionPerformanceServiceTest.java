@@ -158,6 +158,7 @@ class ProductionPerformanceServiceTest {
 
         // then
         assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(perfId);
         assertThat(response.getDocumentNo()).isEqualTo("2099/01/01-1");
         assertThat(response.getFactoryCode()).isEqualTo("F001");
         assertThat(response.getLineCode()).isEqualTo("L01");
