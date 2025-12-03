@@ -8,6 +8,7 @@ import com.beyond.synclab.ctrlline.domain.lot.entity.QLots;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.GetAllProductionPerformanceResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.QPlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
 import com.querydsl.core.types.Projections;
@@ -45,6 +46,7 @@ public class ProductionPerformanceAllQueryRepositoryImpl
         QUsers salesManager = QUsers.users;
         QUsers prodManager = new QUsers("prodManager");
         QLots lot = QLots.lots;
+        QPlanDefectives planDefective = QPlanDefectives.planDefectives;
 
         NumberExpression<BigDecimal> defectiveQtyExpr =
                 perf.totalQty.subtract(perf.performanceQty);
@@ -62,7 +64,14 @@ public class ProductionPerformanceAllQueryRepositoryImpl
                         salesManager.name,
                         prodManager.empNo,
                         prodManager.name,
+
+                        lot.id,
                         lot.lotNo,
+                        planDefective.id,
+                        planDefective.defectiveDocumentNo,
+                        plan.id,
+                        plan.documentNo,
+
                         item.itemCode,
                         item.itemName,
                         item.itemSpecification,
@@ -87,6 +96,7 @@ public class ProductionPerformanceAllQueryRepositoryImpl
                 .leftJoin(plan.salesManager, salesManager)
                 .leftJoin(plan.productionManager, prodManager)
                 .leftJoin(lot).on(lot.productionPlanId.eq(plan.id))
+                .leftJoin(planDefective).on(planDefective.productionPlanId.eq(plan.id))
                 .where(
                         documentNoBetween(condition.getDocumentNoStart(), condition.getDocumentNoEnd()),
                         stringEq(factory.factoryCode, condition.getFactoryCode()),
@@ -94,6 +104,8 @@ public class ProductionPerformanceAllQueryRepositoryImpl
                         stringEq(salesManager.empNo, condition.getSalesManagerEmpNo()),
                         stringEq(prodManager.empNo, condition.getProductionManagerEmpNo()),
                         contains(lot.lotNo, condition.getLotNo()),
+                        contains(planDefective.defectiveDocumentNo, condition.getDefectiveDocumentNo()),
+                        contains(plan.documentNo, condition.getProductionPlanDocumentNo()),
                         contains(item.itemCode, condition.getItemCode()),
                         contains(item.itemName, condition.getItemName()),
                         contains(item.itemSpecification, condition.getSpecification()),
