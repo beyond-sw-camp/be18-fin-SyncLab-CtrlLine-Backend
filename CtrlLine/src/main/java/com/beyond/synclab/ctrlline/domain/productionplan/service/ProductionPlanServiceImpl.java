@@ -47,7 +47,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -64,6 +67,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ProductionPlanServiceImpl implements ProductionPlanService {
+
+    private static final BigDecimal TRAY_CAPACITY = BigDecimal.valueOf(36L);
 
     private final ProductionPlanRepository productionPlanRepository;
     private final UserRepository userRepository;
@@ -145,17 +150,28 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             throw new AppException(LineErrorCode.NO_EQUIPMENT_FOUND);
         }
 
-        // 1. 라인 전체 유효 PPM 계산
-        BigDecimal totalEffectivePPM = equipments.stream()
-            .map(this::calculateEffectivePPM)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 라인은 Stage 의 순차 공정으로 구성되므로 Stage 별 유효 PPM 을 계산한 뒤
+        // 가장 느린 Stage 를 병목으로 간주한다.
+        Map<String, BigDecimal> stageEffectivePpm = equipments.stream()
+            .collect(Collectors.groupingBy(
+                equipment -> normalizeEquipmentType(equipment.getEquipmentType()),
+                Collectors.mapping(this::calculateEffectivePPM, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))
+            ));
+        int stageCount = stageEffectivePpm.size();
 
-        if (totalEffectivePPM.compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal bottleneckPpm = stageEffectivePpm.values().stream()
+            .filter(ppm -> ppm.compareTo(BigDecimal.ZERO) > 0)
+            .min(BigDecimal::compareTo)
+            .orElseThrow(() -> new AppException(LineErrorCode.INVALID_EQUIPMENT_PPM));
+
+        if (bottleneckPpm.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(LineErrorCode.INVALID_EQUIPMENT_PPM);
         }
 
+        BigDecimal effectiveQty = adjustQuantityForTrayProcess(plannedQty, stageCount);
+
         // 2. 예상 소요 시간 (분 단위)
-        BigDecimal minutes = plannedQty.divide(totalEffectivePPM, 2, RoundingMode.CEILING);
+        BigDecimal minutes = effectiveQty.divide(bottleneckPpm, 2, RoundingMode.CEILING);
 
         // 3. 소요 시간 계산 (분 단위)
         long minutesToAdd = minutes
@@ -164,6 +180,24 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 4. 종료 시간 계산
         return startTime.plusMinutes(minutesToAdd);
+    }
+
+    private BigDecimal adjustQuantityForTrayProcess(BigDecimal plannedQty, int stageCount) {
+        BigDecimal sanitizedQty = plannedQty == null ? BigDecimal.ZERO : plannedQty.max(BigDecimal.ZERO);
+        BigDecimal traysNeeded = sanitizedQty.divide(TRAY_CAPACITY, 0, RoundingMode.CEILING);
+        if (traysNeeded.compareTo(BigDecimal.ONE) < 0) {
+            traysNeeded = BigDecimal.ONE;
+        }
+        BigDecimal pipelineBufferTrays = stageCount > 1 ? BigDecimal.ONE : BigDecimal.ZERO;
+        BigDecimal totalTrays = traysNeeded.add(pipelineBufferTrays);
+        return totalTrays.multiply(TRAY_CAPACITY);
+    }
+
+    private String normalizeEquipmentType(String equipmentType) {
+        if (equipmentType == null || equipmentType.isBlank()) {
+            return "UNKNOWN";
+        }
+        return equipmentType.trim().toUpperCase(Locale.ROOT);
     }
 
     private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
