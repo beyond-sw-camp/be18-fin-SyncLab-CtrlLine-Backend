@@ -16,6 +16,8 @@ import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
@@ -69,6 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     private static final BigDecimal TRAY_CAPACITY = BigDecimal.valueOf(36L);
+    private static final int PERFORMANCE_SAMPLE_SIZE = 5;
 
     private final ProductionPlanRepository productionPlanRepository;
     private final UserRepository userRepository;
@@ -77,6 +80,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final ItemLineRepository itemLineRepository;
     private final ItemRepository itemRepository;
     private final EquipmentRepository equipmentRepository;
+    private final ProductionPerformanceRepository productionPerformanceRepository;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
     private final Clock clock;
 
@@ -121,7 +125,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 5. 종료시간 설정
         List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
 
-        LocalDateTime endTime = calculateEndTime(processingEquips, requestDto.getPlannedQty(), startTime);
+        LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
         log.debug("생산계획등록 - 예상 종료 시간 : {}", endTime);
         productionPlan.updateEndTime(endTime);
 
@@ -145,7 +149,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return ppm.multiply(BigDecimal.ONE.subtract(defectiveRate));
     }
 
-    private LocalDateTime calculateEndTime(List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
+    private LocalDateTime calculateEndTime(Long lineId, List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
         if (equipments == null || equipments.isEmpty()) {
             throw new AppException(LineErrorCode.NO_EQUIPMENT_FOUND);
         }
@@ -169,11 +173,16 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         BigDecimal effectiveQty = adjustQuantityForTrayProcess(plannedQty, stageCount);
-        BigDecimal stageTraversalMinutes = calculateStageTraversalMinutes(stageEffectivePpm);
-
-        // 2. 예상 소요 시간 (분 단위)
-        BigDecimal minutes = effectiveQty.divide(bottleneckPpm, 2, RoundingMode.CEILING)
-            .add(stageTraversalMinutes);
+        BigDecimal performanceMinutes = calculatePerformanceMinutes(lineId, effectiveQty);
+        BigDecimal minutes;
+        if (performanceMinutes != null) {
+            minutes = performanceMinutes;
+        } else {
+            BigDecimal stageTraversalMinutes = calculateStageTraversalMinutes(stageEffectivePpm);
+            // 2. 예상 소요 시간 (분 단위)
+            minutes = effectiveQty.divide(bottleneckPpm, 2, RoundingMode.CEILING)
+                .add(stageTraversalMinutes);
+        }
 
         // 3. 소요 시간 계산 (분 단위)
         long minutesToAdd = minutes
@@ -189,6 +198,55 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .filter(ppm -> ppm.compareTo(BigDecimal.ZERO) > 0)
             .map(ppm -> TRAY_CAPACITY.divide(ppm, 2, RoundingMode.CEILING))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculatePerformanceMinutes(Long lineId, BigDecimal effectiveQty) {
+        if (lineId == null || effectiveQty == null || effectiveQty.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        List<ProductionPerformances> performances = productionPerformanceRepository.findRecentByLineId(
+            lineId,
+            PageRequest.of(0, PERFORMANCE_SAMPLE_SIZE)
+        );
+
+        if (performances == null || performances.isEmpty()) {
+            return null;
+        }
+
+        BigDecimal totalMinutes = BigDecimal.ZERO;
+        BigDecimal totalOutputQty = BigDecimal.ZERO;
+
+        for (ProductionPerformances performance : performances) {
+            if (performance.getPerformanceQty() == null ||
+                performance.getStartTime() == null ||
+                performance.getEndTime() == null) {
+                continue;
+            }
+
+            Duration duration = Duration.between(performance.getStartTime(), performance.getEndTime());
+            long seconds = duration.getSeconds();
+            if (seconds <= 0) {
+                continue;
+            }
+
+            BigDecimal minutes = BigDecimal.valueOf(seconds)
+                .divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
+            totalMinutes = totalMinutes.add(minutes);
+            totalOutputQty = totalOutputQty.add(performance.getPerformanceQty());
+        }
+
+        if (totalMinutes.compareTo(BigDecimal.ZERO) <= 0 || totalOutputQty.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        BigDecimal minutesPerUnit = totalMinutes.divide(totalOutputQty, 6, RoundingMode.HALF_UP);
+        if (minutesPerUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        return minutesPerUnit.multiply(effectiveQty)
+            .setScale(2, RoundingMode.CEILING);
     }
 
     private BigDecimal adjustQuantityForTrayProcess(BigDecimal plannedQty, int stageCount) {
@@ -465,7 +523,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
             List<Equipments> equipments = equipmentRepository.findAllByLineId(line.getId());
 
-            newEndTime = calculateEndTime(equipments, dto.getPlannedQty(), newStartTime);
+            newEndTime = calculateEndTime(line.getId(), equipments, dto.getPlannedQty(), newStartTime);
         }
 
         // 주어지는 종료시각 이후에 존재하는 생산계획 중 시작시간이 그 이후인 것들 모두 조회
@@ -544,7 +602,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         List<Equipments> equipments =  equipmentRepository.findAllByLineId(line.getId());
 
         LocalDateTime endTime =
-            calculateEndTime(equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
+            calculateEndTime(line.getId(), equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
 
         return GetProductionPlanEndTimeResponseDto.builder()
             .endTime(endTime)

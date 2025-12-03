@@ -28,6 +28,8 @@ import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
@@ -105,6 +107,9 @@ class ProductionPlanServiceImplTest {
     private EquipmentRepository equipmentRepository;
 
     @Mock
+    private ProductionPerformanceRepository productionPerformanceRepository;
+
+    @Mock
     private ProductionPlanStatusNotificationService planStatusNotificationService;
 
     private ProductionPlanServiceImpl productionPlanService;
@@ -143,9 +148,13 @@ class ProductionPlanServiceImplTest {
             itemLineRepository,
             itemRepository,
             equipmentRepository,
+            productionPerformanceRepository,
             planStatusNotificationService,
             testClock
         );
+
+        lenient().when(productionPerformanceRepository.findRecentByLineId(anyLong(), any(Pageable.class)))
+            .thenReturn(Collections.emptyList());
 
         factory = Factories.builder()
             .id(1L)
@@ -1276,6 +1285,48 @@ class ProductionPlanServiceImplTest {
             // 트레이 용량 36 -> 300ea 생산을 위해 9개 트레이 가동(324ea)
             // 소요 시간 = 324 / 150 = 2.16분 + Stage 진행 시간 (약 1.08분) -> 3.24분 → 4분으로 올림
             assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(4));
+        }
+
+        @Test
+        @DisplayName("종료시간 반환 - 생산실적 기반 보정")
+        void testGetProductionPlanEndTime_withPerformanceCalibration() {
+            // given
+            GetProductionPlanEndTimeRequestDto request = GetProductionPlanEndTimeRequestDto.builder()
+                .lineCode("LINE001")
+                .plannedQty(BigDecimal.valueOf(100))
+                .startTime(testDateTime)
+                .build();
+
+            Equipments eq1 = equipment.toBuilder()
+                .id(1L)
+                .equipmentPpm(BigDecimal.valueOf(80))
+                .build();
+            Equipments eq2 = equipment.toBuilder()
+                .id(2L)
+                .equipmentPpm(BigDecimal.valueOf(90))
+                .build();
+
+            ProductionPerformances performance = ProductionPerformances.builder()
+                .id(100L)
+                .productionPlanId(200L)
+                .performanceDocumentNo("PERF-001")
+                .totalQty(BigDecimal.valueOf(220))
+                .performanceQty(BigDecimal.valueOf(200))
+                .performanceDefectiveRate(BigDecimal.valueOf(10))
+                .startTime(testDateTime.minusMinutes(40))
+                .endTime(testDateTime)
+                .build();
+
+            when(lineRepository.findBylineCode("LINE001")).thenReturn(Optional.of(line));
+            when(equipmentRepository.findAllByLineId(1L)).thenReturn(List.of(eq1, eq2));
+            when(productionPerformanceRepository.findRecentByLineId(eq(line.getId()), any(Pageable.class)))
+                .thenReturn(List.of(performance));
+
+            // when
+            GetProductionPlanEndTimeResponseDto response = productionPlanService.getProductionPlanEndTime(request);
+
+            // then
+            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(29));
         }
 
         @Test
