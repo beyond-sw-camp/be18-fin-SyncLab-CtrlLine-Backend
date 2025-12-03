@@ -19,7 +19,7 @@ env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: ctrlline-backend
   MANIFEST_REPO: git@github.com:beyond-sw-camp/be18-fin-SyncLab-CtrlLine-Manifests.git
-  MANIFEST_REPO_PATH: apps/backend/overlays/green/image-patch.yaml
+  MANIFEST_REPO_PATH: apps/backend/base/deployment.yaml
 
 jobs:
   prod-build-push:
