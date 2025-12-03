@@ -169,9 +169,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         BigDecimal effectiveQty = adjustQuantityForTrayProcess(plannedQty, stageCount);
+        BigDecimal stageTraversalMinutes = calculateStageTraversalMinutes(stageEffectivePpm);
 
         // 2. 예상 소요 시간 (분 단위)
-        BigDecimal minutes = effectiveQty.divide(bottleneckPpm, 2, RoundingMode.CEILING);
+        BigDecimal minutes = effectiveQty.divide(bottleneckPpm, 2, RoundingMode.CEILING)
+            .add(stageTraversalMinutes);
 
         // 3. 소요 시간 계산 (분 단위)
         long minutesToAdd = minutes
@@ -180,6 +182,13 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 4. 종료 시간 계산
         return startTime.plusMinutes(minutesToAdd);
+    }
+
+    private BigDecimal calculateStageTraversalMinutes(Map<String, BigDecimal> stageEffectivePpm) {
+        return stageEffectivePpm.values().stream()
+            .filter(ppm -> ppm.compareTo(BigDecimal.ZERO) > 0)
+            .map(ppm -> TRAY_CAPACITY.divide(ppm, 2, RoundingMode.CEILING))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal adjustQuantityForTrayProcess(BigDecimal plannedQty, int stageCount) {

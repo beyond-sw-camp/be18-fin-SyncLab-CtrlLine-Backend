@@ -1274,8 +1274,8 @@ class ProductionPlanServiceImplTest {
             // then
             // 장비 총 PPM = 50 + 100 = 150
             // 트레이 용량 36 -> 300ea 생산을 위해 9개 트레이 가동(324ea)
-            // 소요 시간 = 324 / 150 = 2.16분 -> 3분으로 올림
-            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(3));
+            // 소요 시간 = 324 / 150 = 2.16분 + Stage 진행 시간 (약 1.08분) -> 3.24분 → 4분으로 올림
+            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(4));
         }
 
         @Test
