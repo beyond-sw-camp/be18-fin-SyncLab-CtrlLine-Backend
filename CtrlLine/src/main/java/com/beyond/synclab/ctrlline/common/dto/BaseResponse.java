@@ -12,6 +12,7 @@ public class BaseResponse<T> {
     private final int code;
     private final T data;
 
+    // ok data
     public static <T> BaseResponse<T> ok(T data) {
         return BaseResponse.<T>builder()
             .code(200)
