@@ -36,18 +36,6 @@ jobs:
         working-directory: CtrlLine
         run: .\gradlew.bat clean build test
       
-      - name: Download JUnit test results
-        uses: actions/download-artifact@v4
-        with:
-          name: junit-results
-          path: build/test-results/test
-
-      - name: Publish Test Report
-        uses: dorny/test-reporter@v1
-        with:
-          name: JUnit Tests
-          path: build/test-results/test/TEST-*.xml
-          reporter: java-junit
       - name: Docker Build & Push
         shell: cmd
         working-directory: CtrlLine
