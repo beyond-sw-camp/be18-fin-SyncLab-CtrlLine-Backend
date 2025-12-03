@@ -4,6 +4,8 @@
 FROM gradle:9.1.0-jdk21-alpine AS builder
 WORKDIR /app
 
+#
+
 # 프로젝트 전체 복사
 COPY . .
 #

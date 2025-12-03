@@ -91,7 +91,8 @@ jobs:
         with:
           repository: ${{ env.MANIFEST_REPO }}
           path: manifests-repo
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.PROD_DEPLOY_KEY }}
+          ref: main
 
       # 11) Update Deployment Image Tag
       - name: Update Image Tag in Manifest
