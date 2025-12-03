@@ -81,6 +81,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
                 .orElseThrow(LotNotFoundException::new);
 
         return GetProductionPerformanceDetailResponseDto.builder()
+                .id(perf.getId())
                 .documentNo(perf.getPerformanceDocumentNo())
 
                 .factoryCode(factory.getFactoryCode())
@@ -252,7 +253,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         // remark 필드가 요청에 존재하는 경우에만 수정
         perf.updateRemark(remark);
 
-        // 여기! 다시 DB에서 조회해서 DTO 변환
+        // 다시 DB에서 조회해서 DTO 변환
         ProductionPerformances updated = performanceRepository.findById(id)
                 .orElseThrow(ProductionPerformanceNotFoundException::new);
 

@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 @Builder
 public class GetProductionPerformanceDetailResponseDto {
 
+    private final Long id;
     private final String documentNo;
     private final String factoryCode;
     private final String factoryName;
