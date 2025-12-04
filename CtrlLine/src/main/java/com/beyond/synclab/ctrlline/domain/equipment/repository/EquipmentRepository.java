@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.equipment.repository;
 
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
+import com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentLocation;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
@@ -22,4 +23,20 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
     boolean existsByEquipmentCode(String equipmentCode);
 
     List<Equipments> findAllByLineId(Long lineId);
+
+    @Query("""
+            select new com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentLocation(
+                e.id,
+                e.equipmentCode,
+                l.id,
+                l.lineCode,
+                f.id,
+                f.factoryCode
+            )
+            from Equipments e
+            join e.line l
+            join l.factory f
+            where e.equipmentCode = :equipmentCode
+            """)
+    Optional<EquipmentLocation> findLocationByEquipmentCode(String equipmentCode);
 }
