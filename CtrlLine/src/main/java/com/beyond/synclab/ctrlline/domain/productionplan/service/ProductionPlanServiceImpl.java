@@ -16,6 +16,8 @@ import com.beyond.synclab.ctrlline.domain.itemline.repository.ItemLineRepository
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
@@ -47,7 +49,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -65,6 +71,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProductionPlanServiceImpl implements ProductionPlanService {
 
+    private static final BigDecimal TRAY_CAPACITY = BigDecimal.valueOf(36L);
+    private static final int PERFORMANCE_SAMPLE_SIZE = 5;
+
     private final ProductionPlanRepository productionPlanRepository;
     private final UserRepository userRepository;
     private final LineRepository lineRepository;
@@ -72,6 +81,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final ItemLineRepository itemLineRepository;
     private final ItemRepository itemRepository;
     private final EquipmentRepository equipmentRepository;
+    private final ProductionPerformanceRepository productionPerformanceRepository;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
     private final Clock clock;
 
@@ -116,7 +126,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 5. 종료시간 설정
         List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
 
-        LocalDateTime endTime = calculateEndTime(processingEquips, requestDto.getPlannedQty(), startTime);
+        LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
         log.debug("생산계획등록 - 예상 종료 시간 : {}", endTime);
         productionPlan.updateEndTime(endTime);
 
@@ -140,22 +150,39 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return ppm.multiply(BigDecimal.ONE.subtract(defectiveRate));
     }
 
-    private LocalDateTime calculateEndTime(List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
+    private LocalDateTime calculateEndTime(Long lineId, List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
         if (equipments == null || equipments.isEmpty()) {
             throw new AppException(LineErrorCode.NO_EQUIPMENT_FOUND);
         }
 
-        // 1. 라인 전체 유효 PPM 계산
-        BigDecimal totalEffectivePPM = equipments.stream()
-            .map(this::calculateEffectivePPM)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 라인은 Stage 의 순차 공정으로 구성되므로 Stage 별 유효 PPM 을 계산한 뒤
+        // 가장 느린 Stage 를 병목으로 간주한다.
+        AtomicInteger stageSequence = new AtomicInteger();
+        Map<String, BigDecimal> stageEffectivePpm = equipments.stream()
+            .collect(Collectors.groupingBy(
+                equipment -> resolveStageKey(equipment, stageSequence.getAndIncrement()),
+                Collectors.mapping(this::calculateEffectivePPM, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))
+            ));
+        int stageCount = stageEffectivePpm.size();
 
-        if (totalEffectivePPM.compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal totalEffectivePpm = stageEffectivePpm.values().stream()
+            .filter(ppm -> ppm.compareTo(BigDecimal.ZERO) > 0)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalEffectivePpm.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(LineErrorCode.INVALID_EQUIPMENT_PPM);
         }
 
-        // 2. 예상 소요 시간 (분 단위)
-        BigDecimal minutes = plannedQty.divide(totalEffectivePPM, 2, RoundingMode.CEILING);
+        BigDecimal effectiveQty = adjustQuantityForTrayProcess(plannedQty, stageCount);
+        BigDecimal performanceMinutes = calculatePerformanceMinutes(lineId, effectiveQty);
+        BigDecimal minutes;
+        if (performanceMinutes != null) {
+            minutes = performanceMinutes;
+        } else {
+            BigDecimal stageTraversalMinutes = calculateStageTraversalMinutes(stageEffectivePpm);
+            // 2. 예상 소요 시간 (분 단위)
+            minutes = effectiveQty.divide(totalEffectivePpm, 2, RoundingMode.CEILING)
+                .add(stageTraversalMinutes);
+        }
 
         // 3. 소요 시간 계산 (분 단위)
         long minutesToAdd = minutes
@@ -164,6 +191,87 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 4. 종료 시간 계산
         return startTime.plusMinutes(minutesToAdd);
+    }
+
+    private BigDecimal calculateStageTraversalMinutes(Map<String, BigDecimal> stageEffectivePpm) {
+        return stageEffectivePpm.values().stream()
+            .filter(ppm -> ppm.compareTo(BigDecimal.ZERO) > 0)
+            .map(ppm -> TRAY_CAPACITY.divide(ppm, 2, RoundingMode.CEILING))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculatePerformanceMinutes(Long lineId, BigDecimal effectiveQty) {
+        if (lineId == null || effectiveQty == null || effectiveQty.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        List<ProductionPerformances> performances = productionPerformanceRepository.findRecentByLineId(
+            lineId,
+            PageRequest.of(0, PERFORMANCE_SAMPLE_SIZE)
+        );
+
+        if (performances == null || performances.isEmpty()) {
+            return null;
+        }
+
+        BigDecimal totalMinutes = BigDecimal.ZERO;
+        BigDecimal totalOutputQty = BigDecimal.ZERO;
+
+        for (ProductionPerformances performance : performances) {
+            if (performance.getPerformanceQty() == null ||
+                performance.getStartTime() == null ||
+                performance.getEndTime() == null) {
+                continue;
+            }
+
+            Duration duration = Duration.between(performance.getStartTime(), performance.getEndTime());
+            long seconds = duration.getSeconds();
+            if (seconds <= 0) {
+                continue;
+            }
+
+            BigDecimal minutes = BigDecimal.valueOf(seconds)
+                .divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
+            totalMinutes = totalMinutes.add(minutes);
+            totalOutputQty = totalOutputQty.add(performance.getPerformanceQty());
+        }
+
+        if (totalMinutes.compareTo(BigDecimal.ZERO) <= 0 || totalOutputQty.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        BigDecimal minutesPerUnit = totalMinutes.divide(totalOutputQty, 6, RoundingMode.HALF_UP);
+        if (minutesPerUnit.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
+        return minutesPerUnit.multiply(effectiveQty)
+            .setScale(2, RoundingMode.CEILING);
+    }
+
+    private BigDecimal adjustQuantityForTrayProcess(BigDecimal plannedQty, int stageCount) {
+        BigDecimal sanitizedQty = plannedQty == null ? BigDecimal.ZERO : plannedQty.max(BigDecimal.ZERO);
+        BigDecimal traysNeeded = sanitizedQty.divide(TRAY_CAPACITY, 0, RoundingMode.CEILING);
+        if (traysNeeded.compareTo(BigDecimal.ONE) < 0) {
+            traysNeeded = BigDecimal.ONE;
+        }
+        BigDecimal pipelineBufferTrays = stageCount > 1 ? BigDecimal.ONE : BigDecimal.ZERO;
+        BigDecimal totalTrays = traysNeeded.add(pipelineBufferTrays);
+        return totalTrays.multiply(TRAY_CAPACITY);
+    }
+
+    private String resolveStageKey(Equipments equipment, int fallbackIndex) {
+        String equipmentType = equipment.getEquipmentType();
+        if (equipmentType != null && !equipmentType.isBlank()) {
+            return equipmentType.trim().toUpperCase(Locale.ROOT);
+        }
+        if (equipment.getId() != null) {
+            return "ID_" + equipment.getId();
+        }
+        if (equipment.getEquipmentCode() != null && !equipment.getEquipmentCode().isBlank()) {
+            return equipment.getEquipmentCode().trim().toUpperCase(Locale.ROOT);
+        }
+        return "IDX_" + fallbackIndex;
     }
 
     private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
@@ -422,7 +530,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
             List<Equipments> equipments = equipmentRepository.findAllByLineId(line.getId());
 
-            newEndTime = calculateEndTime(equipments, dto.getPlannedQty(), newStartTime);
+            newEndTime = calculateEndTime(line.getId(), equipments, dto.getPlannedQty(), newStartTime);
         }
 
         // 주어지는 종료시각 이후에 존재하는 생산계획 중 시작시간이 그 이후인 것들 모두 조회
@@ -501,7 +609,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         List<Equipments> equipments =  equipmentRepository.findAllByLineId(line.getId());
 
         LocalDateTime endTime =
-            calculateEndTime(equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
+            calculateEndTime(line.getId(), equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
 
         return GetProductionPlanEndTimeResponseDto.builder()
             .endTime(endTime)

@@ -146,6 +146,8 @@ class ProductionOrderServiceTest {
                 .build();
 
 
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
+                .thenReturn(List.of());
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
@@ -202,6 +204,8 @@ class ProductionOrderServiceTest {
                 .status(PlanStatus.CONFIRMED)
                 .build();
 
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
+                .thenReturn(List.of());
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
@@ -217,5 +221,30 @@ class ProductionOrderServiceTest {
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.RETURNED);
         verify(productionPlanRepository).save(plan);
         Mockito.verifyNoInteractions(planDefectiveService, lotGeneratorService);
+    }
+
+    @Test
+    @DisplayName("PENDING 상태에서 시작 시간이 경과한 생산계획은 RETURNED로 변경된다")
+    void dispatchDuePlans_expirePendingPlan() {
+        LocalDateTime now = LocalDateTime.now(fixedClock);
+        ProductionPlans pendingPlan = ProductionPlans.builder()
+            .documentNo("2025-10-24-2")
+            .startTime(now.minusMinutes(10))
+            .status(PlanStatus.PENDING)
+            .plannedQty(new java.math.BigDecimal("5000"))
+            .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(Lines.builder().id(1L).lineCode("L001").build()).build())
+            .build();
+
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
+            .thenReturn(List.of(pendingPlan));
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
+            .thenReturn(List.of());
+
+        productionOrderService.dispatchDuePlans();
+
+        assertThat(pendingPlan.getStatus()).isEqualTo(PlanStatus.RETURNED);
+        verify(productionPlanRepository).save(pendingPlan);
+        verify(planStatusNotificationService).notifyStatusChange(eq(pendingPlan), eq(PlanStatus.PENDING));
+        Mockito.verifyNoInteractions(miloProductionOrderClient);
     }
 }

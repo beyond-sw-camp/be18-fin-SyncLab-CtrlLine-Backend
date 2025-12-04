@@ -52,6 +52,7 @@ public class ProductionOrderService {
     @Transactional
     public void dispatchDuePlans() {
         LocalDateTime now = LocalDateTime.now(clock);
+        expirePendingPlans(now);
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
                 ProductionPlans.PlanStatus.CONFIRMED, now
         );
@@ -99,6 +100,22 @@ public class ProductionOrderService {
                 log.error("Failed to dispatch production plan documentNo={}", plan.getDocumentNo(), ex);
                 markPlanReturned(plan, "Exception while dispatching plan. message=" + ex.getMessage());
             }
+        }
+    }
+
+    private void expirePendingPlans(LocalDateTime now) {
+        List<ProductionPlans> pendingPlans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
+            ProductionPlans.PlanStatus.PENDING, now
+        );
+        if (pendingPlans.isEmpty()) {
+            return;
+        }
+        for (ProductionPlans pendingPlan : pendingPlans) {
+            log.info("Pending production plan documentNo={} expired at {} and will be marked RETURNED", pendingPlan.getDocumentNo(), now);
+            ProductionPlans.PlanStatus previousStatus = pendingPlan.getStatus();
+            pendingPlan.markDispatchFailed();
+            productionPlanRepository.save(pendingPlan);
+            planStatusNotificationService.notifyStatusChange(pendingPlan, previousStatus);
         }
     }
 
