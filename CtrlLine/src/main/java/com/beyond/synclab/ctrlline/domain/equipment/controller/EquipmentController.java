@@ -8,9 +8,12 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseD
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentActRequestDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentActResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentService;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -106,5 +109,15 @@ public class EquipmentController {
                 (users.getUser(), request, equipmentCode);
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
 
+    }
+
+    @PatchMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<UpdateEquipmentActResponseDto>> updateEquipmentsAct(
+            @Valid @RequestBody UpdateEquipmentActRequestDto request
+    ) {
+        Boolean updated = equipmentService.updateEquipmentAct(request);
+        UpdateEquipmentActResponseDto response = UpdateEquipmentActResponseDto.of(updated);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 }
