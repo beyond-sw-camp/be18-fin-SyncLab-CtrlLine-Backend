@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessActRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import org.springframework.data.domain.Pageable;
@@ -17,4 +18,6 @@ public interface ProcessService {
 
     // 공정 목록 조회
     PageResponse<SearchProcessResponseDto> getProcessList(Users users, SearchProcessDto searchDto, Pageable pageable);
+
+    Boolean updateProcessAct(UpdateProcessActRequestDto request);
 }
