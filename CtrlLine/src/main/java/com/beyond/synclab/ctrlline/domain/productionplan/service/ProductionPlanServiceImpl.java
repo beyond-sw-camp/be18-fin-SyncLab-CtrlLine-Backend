@@ -18,9 +18,8 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
@@ -37,6 +36,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
@@ -107,6 +107,15 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 2. 요청 DTO 정보로 생산계획 생성
         ProductionPlans productionPlan = requestDto.toEntity(salesManager, productionManager, itemsLines, documentNo);
 
+        // 긴급큐면 맨 앞에 삽입 + 전체 shift
+        if (Boolean.TRUE.equals(requestDto.getIsEmergent())) {
+            List<Equipments> equips = equipmentRepository.findAllByLineId(line.getId());
+            insertEmergentPlan(productionPlan, line, equips);
+
+            productionPlanRepository.save(productionPlan);
+            return GetProductionPlanResponseDto.fromEntity(productionPlan, factory, item);
+        }
+
         // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
         // 종료 시각이 현재 이후 중에 최근
         Optional<ProductionPlans> latestProdPlan = productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
@@ -114,20 +123,33 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         );
 
         PlanStatus requestedStatus = user.isAdminRole() ? PlanStatus.CONFIRMED : PlanStatus.PENDING;
-        PlanStatus previousStatus = productionPlan.getStatus();
+
         productionPlan.updateStatus(requestedStatus);
-        planStatusNotificationService.notifyStatusChange(productionPlan, previousStatus);
 
         // 4. 시작 시간 계산
         LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
-        log.debug("생산계획등록 - 예상 시작 시간 : {}", startTime);
-        productionPlan.updateStartTime(startTime);
 
         // 5. 종료시간 설정
         List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
-
         LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
+
+
+        // 🔥 6. 납기일 체크 (등록 불가)
+        if (requestDto.getDueDate() != null) {
+            LocalDateTime dueDateEnd = requestDto.getDueDate().atTime(23, 59, 59);
+
+            if (endTime.isAfter(dueDateEnd)) {
+                log.debug(
+                    "납기일 초과로 생산계획 등록 불가. start={}, end={}, dueDate={}",
+                    startTime, endTime, requestDto.getDueDate()
+                );
+                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_DUEDATE_EXCEEDED);
+            }
+        }
+
+        log.debug("생산계획등록 - 예상 시작 시간 : {}", startTime);
         log.debug("생산계획등록 - 예상 종료 시간 : {}", endTime);
+        productionPlan.updateStartTime(startTime);
         productionPlan.updateEndTime(endTime);
 
         productionPlanRepository.save(productionPlan);
@@ -412,6 +434,67 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             log.debug("시작시간이 오늘 날짜 이전입니다.");
             throw new AppException(CommonErrorCode.INVALID_REQUEST);
         }
+    }
+
+    private void insertEmergentPlan(
+        ProductionPlans newPlan,
+        Lines line,
+        List<Equipments> equipments
+    ) {
+        List<ProductionPlans> plans =
+            productionPlanRepository.findAllByLineIdAndStatusInOrderByStartTimeAsc(
+                line.getId(),
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+            );
+
+        // 라인에 계획 없음 → 그냥 등록
+        if (plans.isEmpty()) {
+            return;
+        }
+
+        // 1) 새로운 계획을 맨 앞에 위치시킨다
+        ProductionPlans first = plans.getFirst();
+        LocalDateTime newStart = first.getStartTime();
+        newPlan.updateStartTime(newStart);
+
+        // 종료 계산
+        LocalDateTime newEnd = calculateEndTime(
+            line.getId(),
+            equipments,
+            newPlan.getPlannedQty(),
+            newStart
+        );
+
+        newPlan.updateEndTime(newEnd);
+
+        // 2) 기존 계획들 모두 밀기
+        LocalDateTime prevEnd = newEnd;
+        Duration delta = Duration.ofMinutes(30);
+
+        for (ProductionPlans plan : plans) {
+
+            LocalDateTime shiftedStart = prevEnd.plus(delta);
+            LocalDateTime shiftedEnd = shiftedStart.plus(
+                Duration.between(plan.getStartTime(), plan.getEndTime())
+            );
+
+            plan.updateStartTime(shiftedStart);
+            plan.updateEndTime(shiftedEnd);
+
+            // 3) dueDate 초과 시 이메일 알림
+            if (plan.getDueDate() != null) {
+                LocalDateTime dueEnd = plan.getDueDate().atTime(23, 59, 59);
+
+                if (shiftedEnd.isAfter(dueEnd)) {
+                    planStatusNotificationService.notifyDueDateExceeded(plan);
+                }
+            }
+
+            prevEnd = shiftedEnd;
+        }
+
+        // DB 반영
+        productionPlanRepository.saveAll(plans);
     }
 
     private void shiftAfterPlansIfNeeded(

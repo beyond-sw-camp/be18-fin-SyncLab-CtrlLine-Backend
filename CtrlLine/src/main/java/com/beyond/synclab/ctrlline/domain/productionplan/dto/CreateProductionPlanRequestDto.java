@@ -46,6 +46,8 @@ public class CreateProductionPlanRequestDto {
     @Size(max = 500, message = "비고는 최대 500자까지 가능합니다.")
     private String remark;
 
+    private Boolean isEmergent;
+
     public ProductionPlans toEntity(Users salesManager, Users productionManager, ItemsLines itemsLines, String documentNo) {
         return ProductionPlans.builder()
                 .itemLineId(itemsLines.getId())
