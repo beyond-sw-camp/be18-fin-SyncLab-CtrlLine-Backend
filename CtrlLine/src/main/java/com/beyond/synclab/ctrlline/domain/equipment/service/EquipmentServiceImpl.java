@@ -9,6 +9,7 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRuntimeStatusLe
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentActRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
@@ -136,6 +137,25 @@ public class EquipmentServiceImpl implements EquipmentService {
                     return EquipmentStatusResponseDto.of(equipment, runtimeStatusLevel);
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public Boolean updateEquipmentAct(UpdateEquipmentActRequestDto request) {
+        if (request.getEquipmentIds() == null || request.getEquipmentIds().isEmpty()) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (request.getIsActive() == null) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        request.getEquipmentIds().forEach(id -> {
+            Equipments equipment = equipmentRepository.findById(id)
+                    .orElseThrow(() -> new AppException(EquipmentErrorCode.EQUIPMENT_NOT_FOUND));
+            equipment.updateStatus(request.getIsActive());
+        });
+
+        return request.getIsActive();
     }
 
 }

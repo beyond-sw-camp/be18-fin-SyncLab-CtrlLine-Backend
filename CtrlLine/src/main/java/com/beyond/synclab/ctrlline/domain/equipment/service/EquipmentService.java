@@ -6,6 +6,7 @@ import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentRequestDt
 import com.beyond.synclab.ctrlline.domain.equipment.dto.CreateEquipmentResponseDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentSearchResponseDto;
+import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentActRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.UpdateEquipmentRequestDto;
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -29,4 +30,6 @@ public interface EquipmentService {
 
     // 설비 상태 전체 조회
     List<EquipmentStatusResponseDto> getAllEquipmentStatuses();
+
+    Boolean updateEquipmentAct(UpdateEquipmentActRequestDto request);
 }
