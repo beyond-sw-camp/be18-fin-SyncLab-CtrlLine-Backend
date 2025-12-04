@@ -80,7 +80,9 @@ public class GetProductionPerformanceDetailResponseDto {
                 .lineName(line.getLineName())
 
                 .salesManagerNo(plan.getSalesManager().getEmpNo())
+                .salesManagerName(plan.getSalesManager().getName())
                 .productionManagerNo(plan.getProductionManager().getEmpNo())
+                .productionManagerName(plan.getProductionManager().getName())
 
                 .lotId(lot != null ? lot.getId() : null)
                 .lotNo(lot != null ? lot.getLotNo() : null)

@@ -214,7 +214,6 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     }
 
     // 생산실적 remark 수정
-    // 생산실적 remark 수정
     @Override
     @Transactional
     public GetProductionPerformanceDetailResponseDto updatePerformanceRemark(Long id, String remark) {
