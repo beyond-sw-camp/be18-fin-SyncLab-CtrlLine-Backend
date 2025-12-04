@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActRequestDto;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
@@ -194,6 +195,34 @@ class LineServiceImplTest {
     @DisplayName("존재하지 않는 라인 코드는 예외를 발생시킨다")
     void getLine_notFound() {
         assertThatThrownBy(() -> lineService.getLine("UNKNOWN"))
+                .isInstanceOf(AppException.class);
+    }
+
+    @Test
+    @DisplayName("라인 다건 사용 여부를 비활성화로 변경한다")
+    void updateLineAct_success() {
+        UpdateLineActRequestDto requestDto = UpdateLineActRequestDto.builder()
+                .lineIds(List.of(lineRepository.findBylineCode("PL01").orElseThrow().getId(),
+                        lineRepository.findBylineCode("PL03").orElseThrow().getId()))
+                .isActive(false)
+                .build();
+
+        Boolean result = lineService.updateLineAct(requestDto);
+
+        assertThat(result).isFalse();
+        assertThat(lineRepository.findBylineCode("PL01").orElseThrow().getIsActive()).isFalse();
+        assertThat(lineRepository.findBylineCode("PL03").orElseThrow().getIsActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("라인 다건 사용 여부 변경 시 잘못된 ID가 포함되면 예외가 발생한다")
+    void updateLineAct_notFound() {
+        UpdateLineActRequestDto requestDto = UpdateLineActRequestDto.builder()
+                .lineIds(List.of(9999L))
+                .isActive(false)
+                .build();
+
+        assertThatThrownBy(() -> lineService.updateLineAct(requestDto))
                 .isInstanceOf(AppException.class);
     }
 }
