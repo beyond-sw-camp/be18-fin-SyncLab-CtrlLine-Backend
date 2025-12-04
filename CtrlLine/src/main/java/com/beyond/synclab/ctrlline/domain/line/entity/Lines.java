@@ -99,5 +99,11 @@ public class Lines {
                                      .build();
         return new Lines(id, factory, lineCode);
     }
-}
 
+    public void updateActive(Boolean isActive) {
+        if (isActive != null) {
+            this.isActive = isActive;
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+}
