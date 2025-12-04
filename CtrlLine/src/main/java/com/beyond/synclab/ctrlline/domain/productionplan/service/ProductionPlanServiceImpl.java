@@ -249,14 +249,12 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
             Duration duration = Duration.between(performance.getStartTime(), performance.getEndTime());
             long seconds = duration.getSeconds();
-            if (seconds <= 0) {
-                continue;
+            if (seconds > 0) {
+                BigDecimal minutes = BigDecimal.valueOf(seconds)
+                    .divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
+                totalMinutes = totalMinutes.add(minutes);
+                totalOutputQty = totalOutputQty.add(performance.getPerformanceQty());
             }
-
-            BigDecimal minutes = BigDecimal.valueOf(seconds)
-                .divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
-            totalMinutes = totalMinutes.add(minutes);
-            totalOutputQty = totalOutputQty.add(performance.getPerformanceQty());
         }
 
         if (totalMinutes.compareTo(BigDecimal.ZERO) <= 0 || totalOutputQty.compareTo(BigDecimal.ZERO) <= 0) {
@@ -791,7 +789,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 2. 라인 전체 계획 조회
         List<ProductionPlans> plans =
-            productionPlanRepository.findAllByLineIdOrderByStartTimeAsc(line.getId());
+            productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                line.getId(),
+                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+                );
 
         if (plans.isEmpty()) {
             return GetProductionPlanBoundaryResponseDto.builder()

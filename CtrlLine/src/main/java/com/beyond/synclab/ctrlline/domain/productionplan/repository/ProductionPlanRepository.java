@@ -67,13 +67,18 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     @Query("UPDATE ProductionPlans p SET p.status = :status WHERE p.id IN :ids")
     int updateAllStatusById(@Param("ids") List<Long> planIds, @Param("status") PlanStatus planStatus);
 
+
     @Query("""
-        SELECT p
-        FROM ProductionPlans p
-        WHERE p.itemLine.lineId = :lineId
-        ORDER BY p.startTime ASC
-    """)
-    List<ProductionPlans> findAllByLineIdOrderByStartTimeAsc(@Param("lineId") Long lineId);
+    SELECT p
+    FROM ProductionPlans p
+    WHERE p.itemLine.lineId = :lineId
+      AND (:statuses IS NULL OR p.status IN :statuses)
+    ORDER BY p.startTime ASC
+""")
+    List<ProductionPlans> findAllByLineIdAndStatusesOrderByStartTimeAsc(
+        @Param("lineId") Long lineId,
+        @Param("statuses") List<ProductionPlans.PlanStatus> statuses
+    );
 
     List<ProductionPlans> findAllByIdIn(List<Long> ids);
 }
