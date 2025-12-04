@@ -3,6 +3,7 @@ package com.beyond.synclab.ctrlline.domain.line.service;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
 import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActRequestDto;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,4 +13,6 @@ public interface LineService {
     Page<LineResponseDto> getLineList(LineSearchCommand lineSearchCommand, Pageable pageable);
 
     Boolean updateLineAct(UpdateLineActRequestDto request);
+
+    LineResponseDto updateLine(String lineCode, UpdateLineRequestDto request);
 }

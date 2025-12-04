@@ -5,10 +5,14 @@ import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
 import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActRequestDto;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineRequestDto;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.line.spec.LineSpecification;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
+import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class LineServiceImpl implements LineService {
     private final LineRepository lineRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -69,5 +74,31 @@ public class LineServiceImpl implements LineService {
                 request.getLineIds().size(), request.getIsActive());
 
         return request.getIsActive();
+    }
+
+    @Override
+    @Transactional
+    public LineResponseDto updateLine(String lineCode, UpdateLineRequestDto request) {
+        Lines line = lineRepository.findBylineCode(lineCode)
+                .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+
+        if (request.getIsActive() != null) {
+            line.updateActive(request.getIsActive());
+        }
+
+        if (request.getLineName() != null) {
+            line.updateLineName(request.getLineName());
+        }
+
+        if (request.getEmpNo() != null) {
+            Users manager = userRepository.findByEmpNo(request.getEmpNo())
+                    .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
+            if (request.getUserName() != null && !manager.getName().equals(request.getUserName())) {
+                throw new AppException(UserErrorCode.USER_INFO_MISMATCH);
+            }
+            line.updateManager(manager);
+        }
+
+        return LineResponseDto.fromEntity(line, line.getUser(), line.getFactory());
     }
 }

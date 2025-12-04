@@ -22,6 +22,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -103,6 +104,21 @@ public class Lines {
     public void updateActive(Boolean isActive) {
         if (isActive != null) {
             this.isActive = isActive;
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    public void updateLineName(String lineName) {
+        if (StringUtils.hasText(lineName)) {
+            this.lineName = lineName.trim();
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    public void updateManager(Users newManager) {
+        if (newManager != null) {
+            this.user = newManager;
+            this.userId = newManager.getId();
             this.updatedAt = LocalDateTime.now();
         }
     }

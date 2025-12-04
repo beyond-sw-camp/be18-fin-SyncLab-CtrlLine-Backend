@@ -6,6 +6,7 @@ import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
 import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActRequestDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActResponseDto;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineRequestDto;
 import com.beyond.synclab.ctrlline.domain.line.service.LineService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,16 @@ public class LineController {
     ) {
         Page<LineResponseDto> users = lineService.getLineList(lineSearchCommand, pageable);
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(users)));
+    }
+
+    @PatchMapping("/{lineCode}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<LineResponseDto>> updateLine(
+            @PathVariable String lineCode,
+            @Valid @RequestBody UpdateLineRequestDto request
+    ) {
+        LineResponseDto updated = lineService.updateLine(lineCode, request);
+        return ResponseEntity.ok(BaseResponse.ok(updated));
     }
 
     @PatchMapping
