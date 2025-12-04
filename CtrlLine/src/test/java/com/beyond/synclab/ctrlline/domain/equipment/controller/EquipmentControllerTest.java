@@ -166,6 +166,7 @@ class EquipmentControllerTest {
     void get_equipment_list_success() throws Exception {
         // given - 서비스가 반환할 가짜 DTO 준비
         EquipmentSearchResponseDto dto1 = EquipmentSearchResponseDto.builder()
+                .lineId(101L)
                 .equipmentCode("EQP-0001")
                 .equipmentName("절단기-01")
                 .equipmentType("공정설비")
@@ -175,6 +176,7 @@ class EquipmentControllerTest {
                 .build();
 
         EquipmentSearchResponseDto dto2 = EquipmentSearchResponseDto.builder()
+                .lineId(102L)
                 .equipmentCode("EQP-0002")
                 .equipmentName("포장기-03")
                 .equipmentType("포장설비")
@@ -202,6 +204,7 @@ class EquipmentControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content[0].lineId").value(101))
                 .andExpect(jsonPath("$.data.content[0].equipmentCode").value("EQP-0001"))
                 .andExpect(jsonPath("$.data.content[1].equipmentCode").value("EQP-0002"));
     }
