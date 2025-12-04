@@ -60,7 +60,10 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 "endTime", perf.endTime,
                 "totalQty", perf.totalQty,
                 "performanceQty", perf.performanceQty,
-                "performanceDefectiveRate", perf.performanceDefectiveRate
+                "performanceDefectiveRate", perf.performanceDefectiveRate,
+                "factoryName", factory.factoryName,
+                "lineName", line.lineName,
+                "itemName", item.itemName
         );
 
         List<OrderSpecifier<?>> orders =
@@ -79,10 +82,15 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         perf.id,
                         perf.performanceDocumentNo,
                         salesManager.empNo,
+                        salesManager.name,
                         prodManager.empNo,
+                        prodManager.name,
                         factory.factoryCode,
+                        factory.factoryName,
                         line.lineCode,
+                        line.lineName,
                         item.itemCode,
+                        item.itemName,
                         perf.totalQty,
                         perf.performanceQty,
                         defectiveQtyExpr,
