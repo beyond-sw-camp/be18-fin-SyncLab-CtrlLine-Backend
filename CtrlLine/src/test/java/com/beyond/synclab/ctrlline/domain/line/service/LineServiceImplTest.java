@@ -23,7 +23,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.beyond.synclab.ctrlline.common.exception.AppException;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
 @Import({LineServiceImpl.class, QuerydslTestConfig.class})
@@ -177,5 +179,21 @@ class LineServiceImplTest {
         Page<LineResponseDto> result = lineService.getLineList(cmd, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("라인 코드를 이용해 단건 상세 조회에 성공한다")
+    void getLine_success() {
+        LineResponseDto response = lineService.getLine("PL01");
+
+        assertThat(response.getLineCode()).isEqualTo("PL01");
+        assertThat(response.getLineName()).isEqualTo("전지1라인");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 라인 코드는 예외를 발생시킨다")
+    void getLine_notFound() {
+        assertThatThrownBy(() -> lineService.getLine("UNKNOWN"))
+                .isInstanceOf(AppException.class);
     }
 }
