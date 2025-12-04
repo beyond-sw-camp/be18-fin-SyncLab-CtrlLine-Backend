@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -156,19 +157,18 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 라인은 Stage 의 순차 공정으로 구성되므로 Stage 별 유효 PPM 을 계산한 뒤
         // 가장 느린 Stage 를 병목으로 간주한다.
+        AtomicInteger stageSequence = new AtomicInteger();
         Map<String, BigDecimal> stageEffectivePpm = equipments.stream()
             .collect(Collectors.groupingBy(
-                equipment -> normalizeEquipmentType(equipment.getEquipmentType()),
+                equipment -> resolveStageKey(equipment, stageSequence.getAndIncrement()),
                 Collectors.mapping(this::calculateEffectivePPM, Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))
             ));
         int stageCount = stageEffectivePpm.size();
 
-        BigDecimal bottleneckPpm = stageEffectivePpm.values().stream()
+        BigDecimal totalEffectivePpm = stageEffectivePpm.values().stream()
             .filter(ppm -> ppm.compareTo(BigDecimal.ZERO) > 0)
-            .min(BigDecimal::compareTo)
-            .orElseThrow(() -> new AppException(LineErrorCode.INVALID_EQUIPMENT_PPM));
-
-        if (bottleneckPpm.compareTo(BigDecimal.ZERO) <= 0) {
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalEffectivePpm.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(LineErrorCode.INVALID_EQUIPMENT_PPM);
         }
 
@@ -180,7 +180,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         } else {
             BigDecimal stageTraversalMinutes = calculateStageTraversalMinutes(stageEffectivePpm);
             // 2. 예상 소요 시간 (분 단위)
-            minutes = effectiveQty.divide(bottleneckPpm, 2, RoundingMode.CEILING)
+            minutes = effectiveQty.divide(totalEffectivePpm, 2, RoundingMode.CEILING)
                 .add(stageTraversalMinutes);
         }
 
@@ -260,11 +260,18 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return totalTrays.multiply(TRAY_CAPACITY);
     }
 
-    private String normalizeEquipmentType(String equipmentType) {
-        if (equipmentType == null || equipmentType.isBlank()) {
-            return "UNKNOWN";
+    private String resolveStageKey(Equipments equipment, int fallbackIndex) {
+        String equipmentType = equipment.getEquipmentType();
+        if (equipmentType != null && !equipmentType.isBlank()) {
+            return equipmentType.trim().toUpperCase(Locale.ROOT);
         }
-        return equipmentType.trim().toUpperCase(Locale.ROOT);
+        if (equipment.getId() != null) {
+            return "ID_" + equipment.getId();
+        }
+        if (equipment.getEquipmentCode() != null && !equipment.getEquipmentCode().isBlank()) {
+            return equipment.getEquipmentCode().trim().toUpperCase(Locale.ROOT);
+        }
+        return "IDX_" + fallbackIndex;
     }
 
     private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
