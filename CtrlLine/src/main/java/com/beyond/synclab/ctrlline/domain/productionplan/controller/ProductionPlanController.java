@@ -6,6 +6,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanBoundaryResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -155,5 +157,16 @@ public class ProductionPlanController {
         Users user =  userDetails.getUser();
         productionPlanService.deleteProductionPlans(requestDto, user);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/boundary")
+    public ResponseEntity<BaseResponse<GetProductionPlanBoundaryResponseDto>> getPlanBoundaries(
+        @RequestParam String factoryCode,
+        @RequestParam String lineCode
+    ) {
+        GetProductionPlanBoundaryResponseDto response =
+            productionPlanService.getPlanBoundaries(factoryCode, lineCode);
+
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 }

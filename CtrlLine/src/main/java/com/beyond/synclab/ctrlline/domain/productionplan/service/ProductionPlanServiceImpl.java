@@ -22,6 +22,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanBoundaryResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
@@ -769,5 +770,43 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 일괄 삭제
         productionPlanRepository.deleteAll(plans);
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetProductionPlanBoundaryResponseDto getPlanBoundaries(String factoryCode,
+        String lineCode) {
+
+        // 1. Factory & Line 검증
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+            .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
+
+        Lines line = lineRepository.findBylineCode(lineCode)
+            .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+
+        if (!line.getFactoryId().equals(factory.getId())) {
+            throw new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
+        }
+
+        // 2. 라인 전체 계획 조회
+        List<ProductionPlans> plans =
+            productionPlanRepository.findAllByLineIdOrderByStartTimeAsc(line.getId());
+
+        if (plans.isEmpty()) {
+            return GetProductionPlanBoundaryResponseDto.builder()
+                .earliestStartTime(null)
+                .latestEndTime(null)
+                .build();
+        }
+
+        // 3. 맨 앞 / 맨 뒤
+        ProductionPlans first = plans.getFirst();
+        ProductionPlans last = plans.getLast();
+
+        return GetProductionPlanBoundaryResponseDto.builder()
+            .earliestStartTime(first.getStartTime())
+            .latestEndTime(last.getEndTime())
+            .build();
     }
 }
