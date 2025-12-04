@@ -1,8 +1,10 @@
 package com.beyond.synclab.ctrlline.domain.line.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActRequestDto;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
@@ -48,5 +50,24 @@ public class LineServiceImpl implements LineService {
         return lineRepository.findAll(spec, pageable)
                              .map(line -> LineResponseDto.fromEntity(line, line.getUser(), line.getFactory()));
 
+    }
+
+    @Override
+    @Transactional
+    public Boolean updateLineAct(UpdateLineActRequestDto request) {
+        if (request.getLineIds() == null || request.getLineIds().isEmpty()) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        request.getLineIds().forEach(id -> {
+            Lines line = lineRepository.findById(id)
+                    .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+            line.updateActive(request.getIsActive());
+        });
+
+        log.info("[LINE-ACT] {}건 isActive 변경 완료 (isActive={})",
+                request.getLineIds().size(), request.getIsActive());
+
+        return request.getIsActive();
     }
 }
