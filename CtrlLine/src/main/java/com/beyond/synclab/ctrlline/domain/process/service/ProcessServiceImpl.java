@@ -2,11 +2,13 @@ package com.beyond.synclab.ctrlline.domain.process.service;
 
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessActRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.entity.Processes;
 import com.beyond.synclab.ctrlline.domain.process.errorcode.ProcessErrorCode;
@@ -87,5 +89,24 @@ public class ProcessServiceImpl implements ProcessService {
                 SearchProcessResponseDto.fromEntity(process, process.getUser())
         );
         return PageResponse.from(dtoPage);
+    }
+
+    @Override
+    @Transactional
+    public Boolean updateProcessAct(UpdateProcessActRequestDto request) {
+        if (request.getProcessIds() == null || request.getProcessIds().isEmpty()) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (request.getIsActive() == null) {
+            throw new AppException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        request.getProcessIds().forEach(id -> {
+            Processes process = processRepository.findById(id)
+                    .orElseThrow(() -> new AppException(ProcessErrorCode.PROCESS_NOT_FOUND));
+            process.updateStatus(request.getIsActive());
+        });
+
+        return request.getIsActive();
     }
 }
