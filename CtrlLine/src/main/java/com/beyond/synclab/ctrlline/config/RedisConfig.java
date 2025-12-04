@@ -39,7 +39,7 @@ public class RedisConfig {
         );
 
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(10)) // 기본 TTL
+            .entryTtl(Duration.ofMinutes(2)) // 기본 TTL
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(serializer)
             )
