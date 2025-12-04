@@ -96,7 +96,7 @@ class FactoryServiceImplTest {
         // then
         assertThat(response.getFactoryCode()).isEqualTo(factory.getFactoryCode());
         assertThat(response.getFactoryName()).isEqualTo(factory.getFactoryName());
-        assertThat(response.getManager().getName()).isEqualTo(manager.getName());
+        assertThat(response.getName()).isEqualTo(manager.getName());
     }
 
     @Test
