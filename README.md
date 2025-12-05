@@ -178,6 +178,7 @@
 
 [백엔드 테스트 결과서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?usp=sharing)
 [프론트 테스트 결과서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?usp=sharing)
+[UI/UX 테스트 결과서](https://www.notion.so/playdatacademy/UIUX-2c0d943bcac280b99964e270a5747064?source=copy_link)
 
 
 <br>
