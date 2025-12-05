@@ -4,13 +4,14 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPla
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanBoundaryResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
@@ -22,14 +23,14 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProductionPlanService {
 
-    GetProductionPlanResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user);
+    PlanScheduleChangeResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user);
 
     GetProductionPlanDetailResponseDto getProductionPlan(Long planId);
 
     Page<GetProductionPlanListResponseDto> getProductionPlanList(
         SearchProductionPlanCommand searchCommand, Pageable pageable);
 
-    GetProductionPlanResponseDto updateProductionPlan(UpdateProductionPlanRequestDto requestDto, Long planId, Users user);
+    PlanScheduleChangeResponseDto updateProductionPlan(UpdateProductionPlanRequestDto requestDto, Long planId, Users user);
 
     List<GetAllProductionPlanResponseDto> getAllProductionPlan(GetAllProductionPlanRequestDto requestDto);
 
@@ -43,4 +44,6 @@ public interface ProductionPlanService {
     void deleteProductionPlan(Long planId, Users user);
 
     void deleteProductionPlans(DeleteProductionPlanRequestDto requestDto, Users user);
+
+    GetProductionPlanBoundaryResponseDto getPlanBoundaries(String factoryCode, String lineCode);
 }

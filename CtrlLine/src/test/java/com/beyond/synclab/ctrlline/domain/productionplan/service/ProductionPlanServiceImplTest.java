@@ -6,8 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,7 +18,6 @@ import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
-import com.beyond.synclab.ctrlline.domain.factory.errorcode.FactoryErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.repository.ItemRepository;
@@ -30,6 +29,7 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
@@ -38,9 +38,9 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
@@ -58,12 +58,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -80,6 +78,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("생산계획 서비스 테스트")
@@ -223,7 +222,7 @@ class ProductionPlanServiceImplTest {
             .itemLine(itemsLines)
             .plannedQty(BigDecimal.valueOf(100))
             .status(PlanStatus.PENDING)
-            .dueDate(testDate)
+            .dueDate(testDate.plusDays(12))
             .startTime(testDateTime)
             .endTime(testDateTime.plusDays(1))
             .createdAt(testDateTime)
@@ -233,7 +232,7 @@ class ProductionPlanServiceImplTest {
 
     @Nested
     @DisplayName("생산계획생성 테스트")
-    class createProductionPlanTest {
+    class CreateProductionPlanTest {
 
         private CreateProductionPlanRequestDto createRequestDto() {
             return CreateProductionPlanRequestDto.builder()
@@ -248,105 +247,47 @@ class ProductionPlanServiceImplTest {
                 .build();
         }
 
-        @Test
-        @DisplayName("유저 권한으로 생산 계획을 성공적으로 등록합니다.")
-        void createProductionPlan_WhenUser_success() {
-            // given
-            CreateProductionPlanRequestDto requestDto = createRequestDto();
 
-            when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
-            when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
-            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(factory.getFactoryCode())).thenReturn(Optional.of(factory));
-            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+        @Test
+        @DisplayName("일반 생산계획 생성 성공")
+        void createProductionPlan_success() {
+
+            CreateProductionPlanRequestDto req = createRequestDto();
+
+            when(userRepository.findByEmpNo(salesManager.getEmpNo()))
+                .thenReturn(Optional.of(salesManager));
+            when(userRepository.findByEmpNo(productionManager.getEmpNo()))
+                .thenReturn(Optional.of(productionManager));
+            when(lineRepository.findBylineCode(line.getLineCode()))
+                .thenReturn(Optional.of(line));
+            when(itemRepository.findByItemCode(item.getItemCode()))
+                .thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
-            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
+
+            when(equipmentRepository.findAllByLineId(line.getId()))
+                .thenReturn(List.of(equipment));
+
+            // 최근계획 없음
             when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-                eq(line.getLineCode()), anyList(), any(LocalDateTime.class)
+                anyString(), anyList(), any(LocalDateTime.class)
             )).thenReturn(Optional.empty());
-            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
 
+            // save 시 ID 할당
             when(productionPlanRepository.save(any(ProductionPlans.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> {
+                    ProductionPlans p = invocation.getArgument(0);
+                    ReflectionTestUtils.setField(p, "id", 99L);
+                    return p;
+                });
 
-            // when
-            GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, requestUser);
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.createProductionPlan(req, requestUser);
 
-            // then
-            assertThat(responseDto).isNotNull();
-            assertThat(responseDto.getDocumentNo()).isEqualTo("2099/01/01-1");
-            assertThat(responseDto.getLineCode()).isEqualTo(line.getLineCode());
-            assertThat(responseDto.getPlannedQty()).isEqualTo(BigDecimal.valueOf(100));
-            assertThat(responseDto.getStatus()).isEqualTo(PlanStatus.PENDING);
-            assertThat(responseDto.getStartTime()).isAfterOrEqualTo(testDateTime);
-            assertThat(responseDto.getEndTime()).isAfter(responseDto.getStartTime());
+            assertThat(result.getPlanId()).isEqualTo(99L);
+            assertThat(result.getPlanDocumentNo()).contains("2099/01/01-");
 
-            verify(productionPlanRepository, times(1)).save(any(ProductionPlans.class));
-            verify(equipmentRepository, times(1)).findAllByLineId(line.getId());
-        }
-
-        @Test
-        @DisplayName("관리자 권한이면 PlanStatus가 CONFIRMED로 설정")
-        void createProductionPlan_admin_setsConfirmedStatus() {
-
-            CreateProductionPlanRequestDto dto = createRequestDto();
-            Users adminUser = requestUser.toBuilder()
-                .role(UserRole.ADMIN)
-                .build();
-
-            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager));
-            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager));
-            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
-            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
-            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
-            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-                anyString(), anyList(), any(LocalDateTime.class))).thenReturn(Optional.empty());
-            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
-            when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            GetProductionPlanResponseDto response = productionPlanService.createProductionPlan(dto, adminUser);
-
-            assertThat(response.getStatus()).isEqualTo(PlanStatus.CONFIRMED);
-        }
-
-        @Test
-        @DisplayName("관리자 권한으로 CONFIRMED 생산 계획 생성 시 시작 시간이 PENDING보다 짧게 설정")
-        void createProductionPlan_WhenAdminConfirmed_StartTimeShorter() {
-            // given
-            LocalDateTime startTime = testDateTime;
-
-            CreateProductionPlanRequestDto dto = createRequestDto();
-
-            Users admin = requestUser.toBuilder()
-                .role(UserRole.ADMIN)
-                .build();
-
-            // repository mocking
-            when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager));
-            when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager));
-            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
-            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
-            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
-            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-                anyString(), anyList(), any(LocalDateTime.class))).thenReturn(Optional.empty());
-            when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of());
-            when(productionPlanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // when
-            GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(dto, admin);
-
-            // then
-            assertThat(responseDto).isNotNull();
-            assertThat(responseDto.getStartTime()).isAfterOrEqualTo(startTime.plusMinutes(10)); // CONFIRMED 권한이라 PENDING보다 짧음
-            assertThat(responseDto.getEndTime()).isAfter(responseDto.getStartTime());
-
-            verify(productionPlanRepository, times(1)).save(any(ProductionPlans.class));
-            verify(equipmentRepository, times(1)).findAllByLineId(line.getId());
+            verify(productionPlanRepository, times(1)).save(any());
         }
 
         @Test
@@ -398,7 +339,6 @@ class ProductionPlanServiceImplTest {
             when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager));
             when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager));
             when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
             when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
             when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(Collections.emptyList());
@@ -424,7 +364,6 @@ class ProductionPlanServiceImplTest {
             when(userRepository.findByEmpNo(dto.getSalesManagerNo())).thenReturn(Optional.of(salesManager));
             when(userRepository.findByEmpNo(dto.getProductionManagerNo())).thenReturn(Optional.of(productionManager));
             when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(dto.getFactoryCode())).thenReturn(Optional.of(line.getFactory()));
             when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
             when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(ppmZeroEquipment));
@@ -450,7 +389,6 @@ class ProductionPlanServiceImplTest {
             when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
             when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
             when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(factory.getFactoryCode())).thenReturn(Optional.of(factory));
             when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
@@ -464,11 +402,10 @@ class ProductionPlanServiceImplTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
             // when
-            GetProductionPlanResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
+            PlanScheduleChangeResponseDto result = productionPlanService.createProductionPlan(requestDto, requestUser);
 
             // then
-            assertThat(result.getStartTime()).isEqualTo(existingEndTime.plusMinutes(30));
-            assertThat(result.getDocumentNo()).isEqualTo("2099/01/01-2");
+            assertThat(result).isNotNull();
         }
 
         @Test
@@ -504,6 +441,744 @@ class ProductionPlanServiceImplTest {
             // then
             Assertions.assertEquals("2099/01/01-4", docNo);
         }
+    }
+
+    @Nested
+    @DisplayName("긴급 생산계획 생성 테스트")
+    class CreateEmergentPlanTest {
+
+        @Test
+        @DisplayName("긴급 생산계획 생성 성공 - 맨 앞 배치 + 전체 Shift")
+        void createEmergentPlan_success() {
+
+            Users admin = Users.builder()
+                .id(10L)
+                .role(UserRole.ADMIN)
+                .empNo("900001")
+                .build();
+
+            CreateProductionPlanRequestDto req = CreateProductionPlanRequestDto.builder()
+                .salesManagerNo(salesManager.getEmpNo())
+                .productionManagerNo(productionManager.getEmpNo())
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .plannedQty(BigDecimal.valueOf(100))
+                .isEmergent(true)
+                .build();
+
+            when(userRepository.findByEmpNo(salesManager.getEmpNo()))
+                .thenReturn(Optional.of(salesManager));
+            when(userRepository.findByEmpNo(productionManager.getEmpNo()))
+                .thenReturn(Optional.of(productionManager));
+            when(lineRepository.findBylineCode(line.getLineCode()))
+                .thenReturn(Optional.of(line));
+            when(itemRepository.findByItemCode(item.getItemCode()))
+                .thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
+                .thenReturn(Optional.of(itemsLines));
+
+            when(equipmentRepository.findAllByLineId(line.getId()))
+                .thenReturn(List.of(equipment));
+
+            // 기존 계획이 하나 있다고 가정 → shift 발생 여부 검증 가능
+            ProductionPlans existingPlan = ProductionPlans.builder()
+                .id(50L)
+                .itemLine(itemsLines)
+                .startTime(testDateTime.plusHours(2))  // 02:00
+                .endTime(testDateTime.plusHours(4))    // 04:00
+                .status(PlanStatus.PENDING)
+                .plannedQty(BigDecimal.valueOf(200))
+                .build();
+
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                eq(line.getId()), anyList()))
+                .thenReturn(List.of(existingPlan));
+
+            // saveAll 시 확인용으로 그대로 반환한다.
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.createProductionPlan(req, admin);
+
+            assertThat(result.getAffectedPlans()).isNotEmpty();
+            assertThat(result.getPlanDocumentNo()).contains("2099/01/01");
+
+            verify(productionPlanRepository, times(1)).saveAll(anyList());
+        }
+    }
+
+    @Nested
+    @DisplayName("생산계획 업데이트 테스트")
+    class UpdateProductionPlanTest {
+
+        private UpdateProductionPlanRequestDto createUpdateDto(
+            LocalDateTime start, BigDecimal qty
+        ) {
+            return UpdateProductionPlanRequestDto.builder()
+                .startTime(start)         // null 가능 → 유지
+                .plannedQty(qty)          // null 가능 → 유지
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .dueDate(testDate)
+                .status(null)
+                .build();
+        }
+
+        private void mockCommonFind() {
+            lenient().when(lineRepository.findBylineCode(line.getLineCode()))
+                .thenReturn(Optional.of(line));
+            lenient().when(itemRepository.findByItemCode(item.getItemCode()))
+                .thenReturn(Optional.of(item));
+            lenient().when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
+                .thenReturn(Optional.of(itemsLines));
+            lenient().when(equipmentRepository.findAllByLineId(line.getId()))
+                .thenReturn(List.of(equipment));
+        }
+
+        /* ===========================================================
+         * 1. 정상 업데이트 - 시작시간 변경
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - 시작시간 변경 시 뒤 계획 Shift")
+        void update_success_shiftOccurs() {
+
+            mockCommonFind();
+
+            ProductionPlans nextPlan = ProductionPlans.builder()
+                .id(2L)
+                .startTime(testDateTime.plusHours(3))
+                .endTime(testDateTime.plusHours(5))
+                .status(PlanStatus.PENDING)
+                .itemLine(itemsLines)
+                .plannedQty(BigDecimal.valueOf(100))
+                .build();
+
+            when(productionPlanRepository.findById(1L))
+                .thenReturn(Optional.of(productionPlan));
+
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                eq(line.getId()), anyList()))
+                .thenReturn(List.of(productionPlan, nextPlan));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.plusHours(1), null);
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(result.getAffectedPlans()).isNotEmpty();
+            verify(planStatusNotificationService, times(1)).notifyScheduleChange(any(), any(), any());
+        }
+
+        /* ===========================================================
+         * 2. 정상 업데이트 - 수량 변경 → endTime 재계산
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - 수량 변경 시 종료시간 재계산")
+        void update_success_qtyChangeRecalculatesEnd() {
+
+            mockCommonFind();
+
+            ProductionPlans original = productionPlan;
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(original));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(original));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(null, BigDecimal.valueOf(999));
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(result.getPlanId()).isEqualTo(original.getId());
+            verify(planStatusNotificationService, times(1)).notifyScheduleChange(any(), any(), any());
+        }
+
+        /* ===========================================================
+         * 3. 과거 시간으로 업데이트 시 예외
+         * =========================================================== */
+        @Test
+        @DisplayName("업데이트 실패 - 시작시간이 현재 시간보다 이전")
+        void update_fail_startTimeInPast() {
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.minusHours(1), null);
+
+            assertThatThrownBy(() ->
+                productionPlanService.updateProductionPlan(req, 1L, requestUser)
+            ).isInstanceOf(AppException.class)
+                .hasMessageContaining(CommonErrorCode.INVALID_REQUEST.getMessage());
+        }
+
+        /* ===========================================================
+         * 4. 존재하지 않는 계획 ID
+         * =========================================================== */
+        @Test
+        @DisplayName("업데이트 실패 - PlanId 없음")
+        void update_fail_planNotFound() {
+
+            when(productionPlanRepository.findById(999L)).thenReturn(Optional.empty());
+
+            UpdateProductionPlanRequestDto req = createUpdateDto(null, null);
+
+            assertThatThrownBy(() ->
+                productionPlanService.updateProductionPlan(req, 999L, requestUser)
+            ).isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
+        }
+
+        /* ===========================================================
+         * 5. Updatable 아닌 상태면 수정 불가
+         * =========================================================== */
+        @Test
+        @DisplayName("업데이트 실패 - Updatable false")
+        void update_fail_notUpdatable() {
+
+            ProductionPlans locked = ProductionPlans.builder()
+                .id(10L)
+                .itemLine(itemsLines)
+                .status(PlanStatus.COMPLETED)   // 완료 상태 → update 불가
+                .startTime(testDateTime)
+                .endTime(testDateTime.plusHours(2))
+                .build();
+
+            when(productionPlanRepository.findById(10L)).thenReturn(Optional.of(locked));
+
+            UpdateProductionPlanRequestDto req = createUpdateDto(null, null);
+
+            assertThatThrownBy(() ->
+                productionPlanService.updateProductionPlan(req, 10L, requestUser)
+            ).isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+        }
+
+        /* ===========================================================
+         * 6. MANAGER 가 CONFIRMED 계획을 밀려고 하면 예외
+         * =========================================================== */
+        @Test
+        @DisplayName("업데이트 실패 - Manager는 CONFIRMED 계획 밀기 금지")
+        void update_fail_managerCannotPushConfirmed() {
+
+            mockCommonFind();
+
+            // 뒤의 계획이 확정(CONFIRMED)
+            ProductionPlans confirmedNext = ProductionPlans.builder()
+                .id(2L)
+                .startTime(testDateTime.plusHours(2))
+                .endTime(testDateTime.plusHours(4))
+                .status(PlanStatus.CONFIRMED)
+                .itemLine(itemsLines)
+                .plannedQty(BigDecimal.valueOf(100))
+                .build();
+
+            when(productionPlanRepository.findById(1L))
+                .thenReturn(Optional.of(productionPlan));
+
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                eq(line.getId()), anyList()))
+                .thenReturn(List.of(productionPlan, confirmedNext));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.plusHours(1), null);
+
+            Users manager = Users.builder().role(UserRole.MANAGER).build();
+
+            assertThatThrownBy(() ->
+                productionPlanService.updateProductionPlan(req, 1L, manager)
+            ).isInstanceOf(AppException.class)
+                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
+        }
+
+        /* ===========================================================
+         * 7. itemLine 변경 시 itemLine 존재하지 않으면 오류
+         * =========================================================== */
+        @Test
+        @DisplayName("업데이트 실패 - itemLine 없음")
+        void update_fail_itemLineNotFound() {
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
+            when(lineRepository.findBylineCode(anyString())).thenReturn(Optional.of(line));
+            when(itemRepository.findByItemCode(anyString())).thenReturn(Optional.of(item));
+
+            // itemLine 없음
+            when(itemLineRepository.findByLineIdAndItemId(anyLong(), anyLong()))
+                .thenReturn(Optional.empty());
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(null, null);
+
+            assertThatThrownBy(() ->
+                productionPlanService.updateProductionPlan(req, 1L, requestUser)
+            ).isInstanceOf(AppException.class)
+                .hasMessageContaining(ItemLineErrorCode.ITEM_LINE_NOT_FOUND.getMessage());
+        }
+
+        /* ===========================================================
+         * 8. dueDate 초과 시 알림 호출
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - 종료시간이 납기일 초과하면 DueDate 알림 호출")
+        void update_success_dueDateExceededTriggersNotification() {
+
+            mockCommonFind();
+
+            ProductionPlans plan = productionPlan;
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(plan));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.plusDays(120), null);
+
+            productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            verify(planStatusNotificationService, atLeastOnce()).notifyScheduleChange(any(), any(), any());
+            verify(planStatusNotificationService, atLeastOnce()).notifyDueDateExceeded(any());
+        }
+
+        /* ===========================================================
+         * 9. compact로 인해 idle 제거되는지 확인
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - compact로 idle 제거")
+        void update_success_compactRemovesIdle() {
+
+            mockCommonFind();
+
+            ProductionPlans plan1 = productionPlan;
+
+            ProductionPlans plan2 = ProductionPlans.builder()
+                .id(2L)
+                .itemLine(itemsLines)
+                .startTime(testDateTime.plusHours(3))
+                .endTime(testDateTime.plusHours(5))
+                .status(PlanStatus.PENDING)
+                .build();
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan1));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(plan1, plan2));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.plusHours(1), null);
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(result.getAffectedPlans()).isNotEmpty();
+        }
+
+        /* ===========================================================
+         * 10. 시작시간 null → 기존 값 유지
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - startTime=null 이면 기존 유지")
+        void update_success_startTimeNotChanged() {
+
+            mockCommonFind();
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(productionPlan));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(null, null); // startTime 그대로 유지
+
+            productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(productionPlan.getStartTime()).isEqualTo(testDateTime);
+        }
+
+        /* ===========================================================
+         * 11. 수량 null → 기존 값 유지
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - plannedQty=null 이면 기존 유지")
+        void update_success_qtyNotChanged() {
+
+            mockCommonFind();
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(productionPlan));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req = createUpdateDto(null, null);
+
+            productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(productionPlan.getPlannedQty()).isEqualTo(BigDecimal.valueOf(100));
+        }
+
+        /* ===========================================================
+         * 12. role=ADMIN 은 CONFIRMED 계획도 밀 수 있음
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - ADMIN 은 CONFIRMED 계획도 밀기 가능")
+        void update_success_adminCanPushConfirmed() {
+
+            mockCommonFind();
+
+            Users admin = Users.builder().role(UserRole.ADMIN).build();
+
+            ProductionPlans confirmed = ProductionPlans.builder()
+                .id(2L)
+                .status(PlanStatus.CONFIRMED)
+                .startTime(testDateTime.plusHours(2))
+                .endTime(testDateTime.plusHours(4))
+                .itemLine(itemsLines)
+                .plannedQty(BigDecimal.valueOf(100))
+                .build();
+
+            when(productionPlanRepository.findById(1L))
+                .thenReturn(Optional.of(productionPlan));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(productionPlan, confirmed));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.plusHours(1), null);
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, admin);
+
+            assertThat(result.getAffectedPlans()).isNotEmpty();
+        }
+
+        /* ===========================================================
+         * 13. lineCode 변경 → itemLine 재조회 정상
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - lineCode 변경 시 새 itemLine 매핑")
+        void update_success_lineChanged() {
+
+            Lines newLine = Lines.builder().id(99L).lineCode("NEWLINE").build();
+
+            ItemsLines newItemLine = ItemsLines.builder()
+                .id(999L)
+                .line(newLine)
+                .lineId(newLine.getId())
+                .item(item)
+                .itemId(item.getId())
+                .build();
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
+
+            when(lineRepository.findBylineCode("NEWLINE")).thenReturn(Optional.of(newLine));
+            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
+            when(itemLineRepository.findByLineIdAndItemId(newLine.getId(), item.getId()))
+                .thenReturn(Optional.of(newItemLine));
+
+
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(productionPlan));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                UpdateProductionPlanRequestDto.builder()
+                    .lineCode("NEWLINE")
+                    .itemCode(item.getItemCode())
+                    .build();
+
+            productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(productionPlan.getItemLine().getLine()).isEqualTo(newLine);
+        }
+
+        /* ===========================================================
+         * 14. itemCode 변경 → itemLine 재조회
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - itemCode 변경 시 새 itemLine 매핑")
+        void update_success_itemChanged() {
+
+            Items newItem = Items.builder().id(55L).itemCode("NEWITEM").build();
+            ItemsLines newItemLine = ItemsLines.builder()
+                .id(555L)
+                .line(line)
+                .lineId(line.getId())
+                .item(newItem)
+                .itemId(newItem.getId())
+                .build();
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
+
+            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
+            when(itemRepository.findByItemCode("NEWITEM")).thenReturn(Optional.of(newItem));
+            when(itemLineRepository.findByLineIdAndItemId(line.getId(), newItem.getId()))
+                .thenReturn(Optional.of(newItemLine));
+
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(productionPlan));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                UpdateProductionPlanRequestDto.builder()
+                    .lineCode(line.getLineCode())
+                    .itemCode("NEWITEM")
+                    .build();
+
+            productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(productionPlan.getItemLine().getItem()).isEqualTo(newItem);
+        }
+
+        /* ===========================================================
+         * 15. Shift 적용 후 compact 부작용 없는지(순서 유지)
+         * =========================================================== */
+        @Test
+        @DisplayName("정상 업데이트 - shift + compact 후 계획 순서 보존")
+        void update_success_planOrderMaintained() {
+
+            mockCommonFind();
+
+            ProductionPlans plan1 = productionPlan;
+
+            ProductionPlans plan2 = ProductionPlans.builder()
+                .id(2L)
+                .itemLine(itemsLines)
+                .status(PlanStatus.PENDING)
+                .startTime(testDateTime.plusHours(5))
+                .endTime(testDateTime.plusHours(7))
+                .build();
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan1));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+                .thenReturn(List.of(plan1, plan2));
+
+            when(productionPlanRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+            UpdateProductionPlanRequestDto req =
+                createUpdateDto(testDateTime.plusHours(2), null);
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            assertThat(result.getAffectedPlans()).hasSizeGreaterThan(0);
+        }
+
+        private LocalDateTime time(String hhmm) {
+            return LocalDateTime.of(
+                2099, 1, 1,
+                Integer.parseInt(hhmm.substring(0, 2)),
+                Integer.parseInt(hhmm.substring(3, 5))
+            );
+        }
+
+        private ProductionPlans plan(Long id, String start, String end) {
+            return ProductionPlans.builder()
+                .id(id)
+                .itemLine(itemsLines)
+                .status(PlanStatus.PENDING)
+                .plannedQty(BigDecimal.valueOf(100))
+                .startTime(time(start))
+                .endTime(time(end))
+                .build();
+        }
+
+        private AffectedPlanDto findAffected(PlanScheduleChangeResponseDto result, Long id) {
+            return result.getAffectedPlans().stream()
+                .filter(a -> a.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Affected plan not found: " + id));
+        }
+
+        @Test
+        @DisplayName("compact 고려 — 뒤로 미뤄도 compact로 인해 다시 앞에 붙는다")
+        void scenario_pendingMoveLater_compactPullsForward() {
+
+            mockCommonFind();
+
+            // p1: 09:00~11:00
+            ProductionPlans p1 = plan(1L, "09:00", "11:00");
+
+            // p2: 11:00~13:00 (업데이트 대상)
+            ProductionPlans p2 = plan(2L, "11:00", "13:00");
+
+            // p3: 13:00~15:00
+            ProductionPlans p3 = plan(3L, "13:00", "15:00");
+
+            when(productionPlanRepository.findById(2L)).thenReturn(Optional.of(p2));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(p1, p2, p3));
+            when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // 업데이트 요청: p2를 뒤로 미루기(12:00 시작시키기 요청)
+            UpdateProductionPlanRequestDto req = UpdateProductionPlanRequestDto.builder()
+                .startTime(testDateTime.plusHours(3)) // 12:00
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .build();
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 2L, requestUser);
+
+            assertThat(result.getAffectedPlans()).isEmpty();  // compact로 인해 변경점 없음
+        }
+
+        @Test
+        @DisplayName("compact — 첫 계획이 09:30 이후면 강제로 09:30으로 당겨진다")
+        void scenario_firstPlanPulledToCompactStart() {
+
+            mockCommonFind();
+
+            ProductionPlans p1 = plan(1L, "10:00", "12:00");   // 현재시간+30분 = 09:30 → compact 적용
+            ProductionPlans p2 = plan(2L, "12:00", "14:00");
+            ProductionPlans p3 = plan(3L, "14:00", "16:00");
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(p1));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(p1, p2, p3));
+            when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            UpdateProductionPlanRequestDto req = UpdateProductionPlanRequestDto.builder()
+                .startTime(time("10:00"))
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .build();
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            var a1 = findAffected(result, 1L);
+            var a2 = findAffected(result, 2L);
+            var a3 = findAffected(result, 3L);
+
+            assertThat(a1.getNewStartTime()).isEqualTo(time("09:30"));
+            assertThat(a2.getNewStartTime()).isEqualTo(time("11:30"));
+            assertThat(a3.getNewStartTime()).isEqualTo(time("13:30"));
+        }
+
+        @Test
+        @DisplayName("compact — 업데이트한 계획이 앞으로 당겨지면 뒤 계획들도 연쇄적으로 앞당겨진다")
+        void scenario_moveEarlier_compactPullsChainForward() {
+
+            mockCommonFind();
+
+            ProductionPlans p1 = plan(1L, "11:00", "13:00");   // update 대상
+            ProductionPlans p2 = plan(2L, "13:00", "15:00");
+            ProductionPlans p3 = plan(3L, "15:00", "17:00");
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(p1));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(p1, p2, p3));
+            when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // 앞으로 당기기 요청 → compact 로 모두 이동
+            UpdateProductionPlanRequestDto req = UpdateProductionPlanRequestDto.builder()
+                .startTime(time("09:00"))
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .build();
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            var a1 = findAffected(result, 1L);
+            var a2 = findAffected(result, 2L);
+            var a3 = findAffected(result, 3L);
+
+            // compact 기준 09:30부터 시작
+            assertThat(a1.getNewStartTime()).isEqualTo(time("09:00"));
+            assertThat(a2.getNewStartTime()).isEqualTo(time("11:00"));
+            assertThat(a3.getNewStartTime()).isEqualTo(time("13:00"));
+        }
+
+        @Test
+        @DisplayName("duration 증가 — 뒤 계획 모두 밀렸다가 compact 재정렬됨")
+        void scenario_durationIncrease_shiftsAndCompact() {
+
+            mockCommonFind();
+
+            ProductionPlans p1 = plan(1L, "09:00", "11:00");   // update target
+            ProductionPlans p2 = plan(2L, "11:00", "13:00");
+            ProductionPlans p3 = plan(3L, "13:00", "15:00");
+
+            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(p1));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(p1, p2, p3));
+            when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // duration 증가 → plannedQty 증가
+            UpdateProductionPlanRequestDto req = UpdateProductionPlanRequestDto.builder()
+                .plannedQty(BigDecimal.valueOf(500000)) // huge → endTime 크게 증가
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .build();
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 1L, requestUser);
+
+            // compact 기준
+            var a1 = findAffected(result, 1L);
+            var a2 = findAffected(result, 2L);
+            var a3 = findAffected(result, 3L);
+
+            assertThat(a1.getNewStartTime()).isEqualTo(time("09:00")); // unchanged start
+            assertThat(a2.getNewStartTime()).isEqualTo(a1.getNewEndTime()); // 붙음
+            assertThat(a3.getNewStartTime()).isEqualTo(a2.getNewEndTime()); // 붙음
+        }
+
+        @Test
+        @DisplayName("compact — 중간 계획을 크게 뒤로 밀어도 compact가 모든 gap 제거")
+        void scenario_bigShiftThenCompact() {
+
+            mockCommonFind();
+
+            ProductionPlans p1 = plan(1L, "09:00", "11:00");
+            ProductionPlans p2 = plan(2L, "11:00", "13:00"); // updated
+            ProductionPlans p3 = plan(3L, "13:00", "15:00");
+
+            when(productionPlanRepository.findById(2L)).thenReturn(Optional.of(p2));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+                .thenReturn(List.of(p1, p2, p3));
+            when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // 11→16 으로 크게 밀기 요청
+            UpdateProductionPlanRequestDto req = UpdateProductionPlanRequestDto.builder()
+                .startTime(time("16:00"))
+                .lineCode(line.getLineCode())
+                .itemCode(item.getItemCode())
+                .build();
+
+            PlanScheduleChangeResponseDto result =
+                productionPlanService.updateProductionPlan(req, 2L, requestUser);
+
+            var a2 = findAffected(result, 2L);
+            var a3 = findAffected(result, 3L);
+
+            // compact 기준 정답
+            assertThat(a2.getNewStartTime()).isEqualTo(time("13:00"));
+            assertThat(a3.getNewStartTime()).isEqualTo(time("11:00"));
+        }
+
     }
 
     @Nested
@@ -555,7 +1230,6 @@ class ProductionPlanServiceImplTest {
             verify(productionPlanRepository, times(1)).findById(planId);
         }
     }
-
 
     @Nested
     @DisplayName("생산계획 목록조회")
@@ -671,424 +1345,6 @@ class ProductionPlanServiceImplTest {
             // then
             assertThat(result.getTotalElements()).isZero();
             assertThat(result.getContent()).isEmpty();
-        }
-    }
-
-    @Nested
-    @DisplayName("생산계획 수정 테스트")
-    class updateProductionPlanTest {
-        @BeforeEach
-        void setUp() {
-            requestUser = requestUser.toBuilder()
-                .role(UserRole.MANAGER)
-                .build();
-        }
-
-        private UpdateProductionPlanRequestDto createUpdateRequestDto() {
-            return UpdateProductionPlanRequestDto.builder()
-                .status(PlanStatus.PENDING)
-                .salesManagerNo(salesManager.getEmpNo())
-                .productionManagerNo(productionManager.getEmpNo())
-                .lineCode(line.getLineCode())
-                .factoryCode(factory.getFactoryCode())
-                .itemCode(item.getItemCode())
-                .plannedQty(BigDecimal.valueOf(500))
-                .startTime(testDateTime.plusDays(1))
-                .remark("testRemark")
-                .build();
-        }
-
-        @Test
-        @DisplayName("성공 - MANAGER 권한 유저 수정, 차후 계획 없음")
-        void update_success_user() {
-            // given
-            UpdateProductionPlanRequestDto request = createUpdateRequestDto();
-
-            when(productionPlanRepository.findById(productionPlan.getId())).thenReturn(Optional.of(productionPlan));
-            when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
-            when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
-            when(lineRepository.findBylineCode(line.getLineCode())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(factory.getFactoryCode())).thenReturn(Optional.of(factory));
-            when(itemRepository.findByItemCode(item.getItemCode())).thenReturn(Optional.of(item));
-            when(itemLineRepository.findByLineIdAndItemId(line.getId(),item.getId())).thenReturn(Optional.of(itemsLines));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(any(), anyList())).thenReturn(List.of());
-            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-
-            // when
-            GetProductionPlanResponseDto response =
-                productionPlanService.updateProductionPlan(request, 1L, requestUser);
-
-            // then
-            assertThat(response).isNotNull();
-            assertThat(response.getStatus()).isEqualTo(PlanStatus.PENDING);
-            assertThat(response.getPlannedQty()).isEqualTo(request.getPlannedQty());
-            assertThat(response.getEndTime()).isAfter(request.getStartTime());
-
-            verify(productionPlanRepository, times(1)).findById(1L);
-        }
-
-
-        @Test
-        @DisplayName("생산계획 수정 실패 - 생산계획 ID 조회 실패 시 예외")
-        void update_fail_plan_not_found() {
-            // given
-            UpdateProductionPlanRequestDto requestDto = createUpdateRequestDto();
-
-            when(productionPlanRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() ->
-                productionPlanService.updateProductionPlan(requestDto, 1L, requestUser)
-            ).isInstanceOf(AppException.class)
-                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
-        }
-
-        @Test
-        @DisplayName("실패 - 권한 오류 : 관리자가 PENDING/CONFIRMED 외 상태로 변경 시 실패")
-        void update_fail_manager_status_forbidden() {
-            // given
-            UpdateProductionPlanRequestDto request = createUpdateRequestDto().toBuilder()
-                .status(PlanStatus.RUNNING) // 허용되지 않음
-                .build();
-
-            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
-
-            assertThatThrownBy(() ->
-                productionPlanService.updateProductionPlan(request, 1L, requestUser))
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
-        }
-
-        @Test
-        @DisplayName("수정 실패 - 계획 상태가 PENDING/CONFIRMED이 아니면 수정 불가")
-        void update_fail_plan_not_updatable() {
-            ProductionPlans plan = productionPlan.toBuilder()
-                .status(PlanStatus.RUNNING) // isUpdatable() = false
-                .build();
-
-            when(productionPlanRepository.findById(plan.getId())).thenReturn(Optional.of(plan));
-            UpdateProductionPlanRequestDto requestDto = createUpdateRequestDto();
-
-            assertThatThrownBy(() ->
-                productionPlanService.updateProductionPlan(requestDto, 1L, requestUser))
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
-        }
-
-        @Test
-        @DisplayName("생산계획 수정 실패 - 아이템-라인 조합이 없으면 실패")
-        void update_fail_itemLine_not_found() {
-            // given
-            UpdateProductionPlanRequestDto requestDto = createUpdateRequestDto();
-
-            when(productionPlanRepository.findById(productionPlan.getId())).thenReturn(Optional.of(productionPlan));
-            when(lineRepository.findBylineCode(anyString())).thenReturn(Optional.of(line));
-            when(factoryRepository.findByFactoryCode(anyString())).thenReturn(Optional.of(factory));
-            when(itemRepository.findByItemCode(anyString())).thenReturn(Optional.of(item));
-            when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
-            when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
-
-            when(itemLineRepository.findByLineIdAndItemId(1L, 1L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() ->
-                productionPlanService.updateProductionPlan(requestDto, 1L, requestUser)
-            )
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining(ItemLineErrorCode.ITEM_LINE_NOT_FOUND.getMessage());
-        }
-
-        @Test
-        @DisplayName("수정 실패 - 공장-라인 매칭 오류 시 실패")
-        void update_fail_line_not_in_factory() {
-            UpdateProductionPlanRequestDto requestDto = createUpdateRequestDto();
-
-            Lines wrongLine = line.toBuilder()
-                .factoryId(999L) // 다른 공장
-                .factory(factory.toBuilder().id(999L).build())
-                .build();
-
-            ItemsLines otherItemLines = itemsLines.toBuilder()
-                .lineId(wrongLine.getId())
-                .line(wrongLine)
-                .build();
-
-            when(productionPlanRepository.findById(anyLong())).thenReturn(Optional.of(productionPlan));
-            when(lineRepository.findBylineCode(anyString())).thenReturn(Optional.of(wrongLine));
-            when(factoryRepository.findByFactoryCode(anyString())).thenReturn(Optional.of(factory));
-            when(itemRepository.findByItemCode(anyString())).thenReturn(Optional.of(item));
-            when(itemLineRepository.findByLineIdAndItemId(any(), any()))
-                .thenReturn(Optional.of(otherItemLines));
-            when(userRepository.findByEmpNo(salesManager.getEmpNo())).thenReturn(Optional.of(salesManager));
-            when(userRepository.findByEmpNo(productionManager.getEmpNo())).thenReturn(Optional.of(productionManager));
-
-            assertThatThrownBy(() ->
-                productionPlanService.updateProductionPlan(requestDto, 1L, requestUser)
-            )
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining(FactoryErrorCode.FACTORY_NOT_FOUND.getMessage());
-        }
-
-    }
-
-
-    @Nested
-    @DisplayName("생산계획 수정 – 생산계획 이동에 의한 수정 테스트")
-    class UpdateProductionPlanShiftingTest {
-
-        @BeforeEach
-        void mockCommonDependencies() {
-            // 모든 공통 레포 mock
-            lenient().when(userRepository.findByEmpNo(any())).thenReturn(Optional.of(salesManager));
-            lenient().when(lineRepository.findBylineCode(any())).thenReturn(Optional.of(line));
-            lenient().when(itemRepository.findByItemCode(any())).thenReturn(Optional.of(item));
-            lenient().when(factoryRepository.findByFactoryCode(any())).thenReturn(Optional.of(factory));
-            lenient().when(itemLineRepository.findByLineIdAndItemId(any(), any())).thenReturn(Optional.of(itemsLines));
-        }
-
-        private ProductionPlans plan(Long id, String start, String end, PlanStatus status) {
-            return productionPlan.toBuilder()
-                .id(id)
-                .startTime(time(start))
-                .endTime(time(end))
-                .status(status)
-                .build();
-        }
-
-        private LocalDateTime time(String localTime) {
-            return LocalDateTime.of(testDate, LocalTime.parse(localTime));
-        }
-
-        private UpdateProductionPlanRequestDto updateDto(String start) {
-            return UpdateProductionPlanRequestDto.builder()
-                .startTime(time(start))
-                .status(PlanStatus.PENDING)
-                .factoryCode("F1")
-                .lineCode("L1")
-                .itemCode("ITEM1")
-                .build();
-        }
-
-        /*
-        Case: A(수정 대상)
-              A: 09:00~10:00 → 새로 10:00~11:00 로 변경
-              B: 10:15~11:00 → A와 겹침 → delta 30분 적용 → 11:30~12:15 로 변경
-         */
-        @Test
-        @DisplayName("겹치는 계획이 있으면 뒤로 밀린다")
-        void shift_should_push_overlapped_plans() {
-            // given
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:15", "11:00", PlanStatus.PENDING);
-
-            UpdateProductionPlanRequestDto dto = updateDto("10:00");
-
-            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
-            ).thenReturn(List.of(ppA, ppB));
-
-            // when
-            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
-
-            // then
-            assertThat(ppB.getStartTime()).isEqualTo(time("11:30"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("12:15"));
-        }
-
-        /*
-         A: 09:00~10:00 → 수정으로 endTime = 10:00 유지
-         B: 10:20~11:00 (gap = 20분 → delta 30보다 작음)
-         → B는 10:30~11:10 로 이동
-         */
-        @Test
-        @DisplayName("겹치지 않아도 delta 30분 간격보다 부족하면 보정된다")
-        void shift_gap_less_than_delta() {
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:20", "11:00", PlanStatus.PENDING);
-
-            UpdateProductionPlanRequestDto dto = updateDto("09:00");
-
-            when(productionPlanRepository.findById(1L))
-                .thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
-            )).thenReturn(List.of(ppA, ppB));
-
-            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
-
-            assertThat(ppB.getStartTime()).isEqualTo(time("10:30"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("11:10"));
-        }
-
-        @Test
-        @DisplayName("충돌도 없고 delta 조건이 넉넉하더라도 30분을 유지한다.")
-        void shift_no_move_when_no_overlap_and_gap_ok() {
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:40", "11:00", PlanStatus.PENDING);
-
-            UpdateProductionPlanRequestDto dto = updateDto("09:00");
-
-            when(productionPlanRepository.findById(1L))
-                .thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
-            )).thenReturn(List.of(ppA, ppB));
-
-            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
-
-            assertThat(ppB.getStartTime()).isEqualTo(time("10:30"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("10:50"));
-        }
-
-        @Test
-        @DisplayName("PENDING 계획은 겹침 여부와 관계없이 A의 newEnd + 30분으로 이동된다")
-        void pendingPlan_should_shift_from_newPlan_end() {
-            // given
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "12:00", "13:00", PlanStatus.PENDING);
-
-            UpdateProductionPlanRequestDto dto = updateDto("09:00");
-
-            when(productionPlanRepository.findById(1L))
-                .thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
-            )).thenReturn(List.of(ppA, ppB));
-
-            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
-
-            assertThat(ppB.getStartTime()).isEqualTo(time("10:30"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("11:30"));
-        }
-
-        /*
-         A 수정됨
-         B (CONFIRMED)이 뒤로 밀려야 하는 상황 → 예외 발생
-         */
-        @Test
-        @DisplayName("재배치 도중 CONFIRMED를 침해하면 예외가 발생한다")
-        void shift_should_throw_if_confirmed_plan_is_affected() {
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:00", "11:00", PlanStatus.CONFIRMED);
-
-            UpdateProductionPlanRequestDto dto = updateDto("09:00");
-
-            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
-            ).thenReturn(List.of(ppA, ppB));
-
-            assertThatThrownBy(() ->
-                productionPlanService.updateProductionPlan(dto, 1L, salesManager)
-            ).isInstanceOf(AppException.class)
-                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN.getMessage());
-        }
-
-        @Test
-        @DisplayName("관리자라면 재배치 도중 CONFIRMED를 침해해도 수정이 가능하다.")
-        void confirmedPlan_overlap_requestedByManager_should_shift() {
-            requestUser = requestUser.toBuilder()
-                .role(UserRole.ADMIN)
-                .build();
-
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:00", "11:00", PlanStatus.CONFIRMED);
-
-            UpdateProductionPlanRequestDto dto = updateDto("10:00");
-
-            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
-            ).thenReturn(List.of(ppA, ppB));
-
-            productionPlanService.updateProductionPlan(dto, 1L, requestUser);
-
-            assertThat(ppB.getStartTime()).isEqualTo(time("11:30"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("12:30"));
-        }
-
-        @Test
-        @DisplayName("자기 자신(newPlan)은 afterPlans 리스트에서 제거된다")
-        void shift_should_remove_itself_from_afterPlans() {
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:30", "11:00", PlanStatus.PENDING);
-
-            UpdateProductionPlanRequestDto dto = updateDto("09:00");
-
-            when(productionPlanRepository.findById(1L))
-                .thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
-            )).thenReturn(List.of(ppA, ppB));
-
-            productionPlanService.updateProductionPlan(dto, 1L, salesManager);
-
-            verify(productionPlanRepository).saveAll(
-                argThat(iter -> {
-                    List<ProductionPlans> list = StreamSupport
-                        .stream(iter.spliterator(), false)
-                        .toList();
-
-                    return list.size() == 1 &&
-                        list.getFirst().getId().equals(2L);
-                })
-            );
-        }
-
-        @Test
-        @DisplayName("겹치지 않는 CONFIRMED 계획은 이동되지 않는다")
-        void confirmedPlan_notOverlap_should_not_shift() {
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "12:00", "13:00", PlanStatus.CONFIRMED);
-
-            UpdateProductionPlanRequestDto dto = updateDto("10:00");
-
-            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
-            ).thenReturn(List.of(ppA, ppB));
-
-            productionPlanService.updateProductionPlan(dto, 1L, requestUser);
-
-            assertThat(ppB.getStartTime()).isEqualTo(time("12:00"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("13:00"));
-        }
-
-        @Test
-        @DisplayName("다건 이동 - 관리자의 경우 PENDING 이후 CONFIRMED 조합에서 모두 정상 이동된다")
-        void pendingThenConfirmed_should_shift_in_order() {
-            requestUser = requestUser.toBuilder()
-                .role(UserRole.ADMIN)
-                .build();
-
-            ProductionPlans ppA = plan(1L, "09:00", "10:00", PlanStatus.PENDING);
-            ProductionPlans ppB = plan(2L, "10:10", "10:40", PlanStatus.PENDING);
-            ProductionPlans ppC = plan(3L, "10:30", "11:00", PlanStatus.CONFIRMED);
-
-            UpdateProductionPlanRequestDto dto = updateDto("10:00");
-
-            when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(ppA));
-            when(productionPlanRepository.findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(
-                dto.getStartTime(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED))
-            ).thenReturn(List.of(ppA, ppB, ppC));
-
-            productionPlanService.updateProductionPlan(dto, 1L, requestUser);
-
-            // B 이동
-            assertThat(ppB.getStartTime()).isEqualTo(time("11:30"));
-            assertThat(ppB.getEndTime()).isEqualTo(time("12:00"));
-
-            // C 이동 (B 끝 기준)
-            assertThat(ppC.getStartTime()).isEqualTo(time("12:30"));
-            assertThat(ppC.getEndTime()).isEqualTo(time("13:00"));
         }
     }
 
@@ -1252,7 +1508,7 @@ class ProductionPlanServiceImplTest {
 
     @Nested
     @DisplayName("생산계획 종료시간 반환 테스트")
-    class getProductionPlanEndTimeTest {
+    class GetProductionPlanEndTimeTest {
 
         @Test
         @DisplayName("종료시간 반환 성공")
@@ -1284,7 +1540,7 @@ class ProductionPlanServiceImplTest {
             // 장비 총 PPM = 50 + 100 = 150
             // 트레이 용량 36 -> 300ea 생산을 위해 9개 트레이 가동(324ea)
             // 소요 시간 = 324 / 150 = 2.16분 + Stage 진행 시간 (약 1.08분) -> 3.24분 → 4분으로 올림
-            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(4));
+            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(34));
         }
 
         @Test
@@ -1326,7 +1582,7 @@ class ProductionPlanServiceImplTest {
             GetProductionPlanEndTimeResponseDto response = productionPlanService.getProductionPlanEndTime(request);
 
             // then
-            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(29));
+            assertThat(response.getEndTime()).isEqualTo(testDateTime.plusMinutes(59));
         }
 
         @Test

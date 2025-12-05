@@ -162,6 +162,14 @@ public class ProductionPlans {
         this.remark = Optional.ofNullable(dto.getRemark()).orElse(this.remark);
     }
 
+    public boolean isConfirmed() {
+        return this.status.equals(PlanStatus.CONFIRMED);
+    }
+
+    public LocalDateTime getDueDateTime() {
+        return this.dueDate.atStartOfDay().withHour(12);
+    }
+
     public enum PlanStatus {
         PENDING,
         CONFIRMED,
