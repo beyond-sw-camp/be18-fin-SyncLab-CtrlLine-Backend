@@ -21,10 +21,13 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startTime);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT pp.documentNo FROM ProductionPlans pp WHERE pp.documentNo LIKE :prefix% ORDER BY pp.createdAt DESC")
+    @Query("""
+        SELECT pp.documentNo
+        FROM ProductionPlans pp
+        WHERE pp.documentNo LIKE :prefix%
+        ORDER BY pp.createdAt
+    """)
     List<String> findByDocumentNoByPrefix(@Param("prefix") String prefix);
-
-    Optional<ProductionPlans> findByDocumentNo(String documentNo);
 
     Optional<ProductionPlans> findFirstByDocumentNoOrderByIdDesc(String documentNo);
 
@@ -43,25 +46,7 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     Optional<ProductionPlans> findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(String lineCode, List<PlanStatus> statuses,
         LocalDateTime now);
 
-    @Query("""
-        SELECT p
-        FROM ProductionPlans p
-        WHERE (p.startTime >= :startTime OR p.endTime >= :startTime)
-            AND p.status IN :statuses
-        ORDER BY p.startTime ASC
-    """)
-    List<ProductionPlans> findAllByStartTimeAndStatusAfterOrderByStartTimeAsc(@Param("startTime") LocalDateTime startTime, List<PlanStatus> statuses);
 
-    @Query("""
-    SELECT p
-    FROM ProductionPlans p
-    WHERE p.itemLine.lineId = :lineId
-      AND p.status IN :statuses
-    ORDER BY p.startTime ASC
-    """)
-    List<ProductionPlans> findAllByLineIdAndStatusInOrderByStartTimeAsc(
-        @Param("lineId") Long lineId,
-        @Param("statuses") List<PlanStatus> statuses);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE ProductionPlans p SET p.status = :status WHERE p.id IN :ids")
