@@ -8,6 +8,7 @@ import lombok.Getter;
 @Builder
 public class PlanScheduleChangeResponseDto {
     private Long planId;  // 업데이트 or 신규 삽입된 plan id
+    private String planDocumentNo;
 
     private List<AffectedPlanDto> affectedPlans;
 
