@@ -520,9 +520,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             ? LocalDateTime.now(clock).plusMinutes(BASE_BUFFER_MINUTES)
             : fullPlans.getFirst().getStartTime();
 
-        for (int i = 0; i < fullPlans.size(); i++) {
-            ProductionPlans plan = fullPlans.get(i);
-
+        for (ProductionPlans plan : fullPlans) {
             Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
 
             // MANAGER → CONFIRMED 이동 금지
@@ -535,7 +533,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             // ADMIN → 모든 계획 이동 가능
             // MANAGER → PENDING은 idle 제거 목적 이동
             LocalDateTime newStart = current;
-            LocalDateTime newEnd   = newStart.plus(duration);
+            LocalDateTime newEnd = newStart.plus(duration);
 
             plan.updateStartTime(newStart);
             plan.updateEndTime(newEnd);
