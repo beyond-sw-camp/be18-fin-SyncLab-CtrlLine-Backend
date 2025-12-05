@@ -138,7 +138,7 @@
 ## 7. 데이터베이스 설계 (ERD)
 
 ### ERD
-[ERD CLOUD](https://www.erdcloud.com/d/GZ45RSaNe7xaFb63i)
+[ERD CLOUD](https://www.erdcloud.com/d/jjkxNEWa6Ge7FTSy9)
 
 <details>
   
