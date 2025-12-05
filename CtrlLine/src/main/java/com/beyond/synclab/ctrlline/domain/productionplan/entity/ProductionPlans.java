@@ -17,6 +17,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -160,6 +161,14 @@ public class ProductionPlans {
 
         this.dueDate = Optional.ofNullable(dto.getDueDate()).orElse(this.dueDate);
         this.remark = Optional.ofNullable(dto.getRemark()).orElse(this.remark);
+    }
+
+    public boolean isConfirmed() {
+        return this.status.equals(PlanStatus.CONFIRMED);
+    }
+
+    public LocalDateTime getDueDateTime(Clock clock) {
+        return LocalDateTime.now(clock).withHour(12);
     }
 
     public enum PlanStatus {
