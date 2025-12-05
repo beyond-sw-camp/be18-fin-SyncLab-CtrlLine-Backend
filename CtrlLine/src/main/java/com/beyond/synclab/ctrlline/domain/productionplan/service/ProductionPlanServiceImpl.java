@@ -243,7 +243,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             }
 
             if (p.getDueDate() != null) {
-                LocalDateTime dueLimit = p.getDueDateTime(clock);
+                LocalDateTime dueLimit = p.getDueDateTime();
                 if (newEnd.isAfter(dueLimit)) {
                     dueExceeded.add(
                         DueDateExceededPlanDto.builder()
