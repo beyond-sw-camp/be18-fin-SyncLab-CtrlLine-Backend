@@ -176,9 +176,8 @@
 
 ## 11. 테스트 결과서
 
-<!-- [백엔드 테스트 결과서](https://www.notion.so/2775605940ec801286d6f888af3e93d2?v=2775605940ec80ba931c000c1fcfe3ed) -->
-<!-- 
-[단위 테스트 결과서](https://www.notion.so/292819b5e8c680959006d4e288e86acd?source=copy_link) -->
+[백엔드 테스트 결과서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?usp=sharing)
+[프론트 테스트 결과서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?usp=sharing)
 
 
 <br>
