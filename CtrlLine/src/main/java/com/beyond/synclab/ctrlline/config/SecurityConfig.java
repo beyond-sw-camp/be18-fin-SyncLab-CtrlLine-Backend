@@ -43,6 +43,7 @@ public class SecurityConfig {
             // Auth API
             "/api/v1/auth/login",
             "/api/v1/auth/token/**",
+
     };
 
     @Bean
