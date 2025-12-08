@@ -17,7 +17,7 @@ RUN ./gradlew clean build -x test
 # ===============================
 # Stage 2: Run
 # ===============================
-FROM eclipse-temurin:21-jre-alpine-3.22
+FROM eclipse-temurin:21-jdk
 
 WORKDIR /app
 
