@@ -67,6 +67,9 @@ dependencies {
     // Devtools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // Optimization
+    implementation 'org.optaplanner:optaplanner-core:10.1.0'
+
     // OpenApi Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
 
