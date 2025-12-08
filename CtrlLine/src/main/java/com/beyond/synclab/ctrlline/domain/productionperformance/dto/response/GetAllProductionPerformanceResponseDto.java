@@ -5,6 +5,7 @@ import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +32,13 @@ public class GetAllProductionPerformanceResponseDto {
     private final String productionManagerEmpNo;
     private final String productionManagerEmpName;
 
+    private final Long lotId;
     private final String lotNo;
+    private final Long defectiveId;
+    private final String defectiveDocumentNo;
+    private final Long productionPlanId;
+    private final String productionPlanDocumentNo;
+
     private final String itemCode;
     private final String itemName;
     private final String itemSpecification;
@@ -55,7 +62,8 @@ public class GetAllProductionPerformanceResponseDto {
     // 변환 메서드
     public static GetAllProductionPerformanceResponseDto fromEntity(
             ProductionPerformances perf,
-            Lots lot
+            Lots lot,
+            PlanDefectives planDefective
     ) {
         ProductionPlans plan = perf.getProductionPlan();
         Items item = plan.getItemLine().getItem();
@@ -78,7 +86,14 @@ public class GetAllProductionPerformanceResponseDto {
                 .productionManagerEmpNo(plan.getProductionManager().getEmpNo())
                 .productionManagerEmpName(plan.getProductionManager().getName())
 
+                .lotId(lot != null ? lot.getId() : null)
                 .lotNo(lot != null ? lot.getLotNo() : null)
+
+                .defectiveId(planDefective != null ? planDefective.getId() : null)
+                .defectiveDocumentNo(planDefective != null ? planDefective.getDefectiveDocumentNo() : null)
+
+                .productionPlanId(plan.getId())
+                .productionPlanDocumentNo(plan.getDocumentNo())
 
                 .itemCode(item.getItemCode())
                 .itemName(item.getItemName())

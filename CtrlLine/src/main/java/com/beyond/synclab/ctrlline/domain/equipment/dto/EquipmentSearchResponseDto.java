@@ -14,6 +14,8 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 
 public class EquipmentSearchResponseDto {
+        private final Long equipmentId;
+        private final Long lineId;
         private final String equipmentCode;
         private final String equipmentName;
         private final String equipmentType;
@@ -29,6 +31,8 @@ public class EquipmentSearchResponseDto {
                 EquipmentRuntimeStatusLevel runtimeStatusLevel
         ) {
             return EquipmentSearchResponseDto.builder()
+                    .equipmentId(equipment.getId())
+                    .lineId(equipment.getLineId())
                     .equipmentCode(equipment.getEquipmentCode())
                     .equipmentName(equipment.getEquipmentName())
                     .equipmentType(equipment.getEquipmentType())

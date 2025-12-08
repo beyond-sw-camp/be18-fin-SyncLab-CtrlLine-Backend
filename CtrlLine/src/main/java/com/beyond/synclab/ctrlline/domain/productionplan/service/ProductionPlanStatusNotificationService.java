@@ -101,6 +101,37 @@ public class ProductionPlanStatusNotificationService {
         sendMail(receivers, subject, body, plan);
     }
 
+    public void notifyDueDateExceeded(ProductionPlans plan) {
+        if (plan == null || plan.getDueDate() == null) {
+            return;
+        }
+
+        LocalDateTime endTime = plan.getEndTime();
+        LocalDateTime dueEnd = plan.getDueDate().atTime(23, 59, 59);
+
+        if (endTime == null || !endTime.isAfter(dueEnd)) {
+            return; // 초과하지 않았음
+        }
+
+        List<Users> receivers = resolveReceivers(plan);
+        if (receivers.isEmpty()) {
+            log.debug("납기 초과 알림 대상 없음. documentNo={}", plan.getDocumentNo());
+            return;
+        }
+
+        String subject = String.format("[CtrlLine] 생산계획 %s 납기 초과 경고", plan.getDocumentNo());
+        String body = String.format(
+            "생산계획 %s의 종료시간(%s)이 납기일(%s)을 초과했습니다.%n%n" +
+                "계획을 검토해주시기 바랍니다.",
+            plan.getDocumentNo(),
+            formatDateTime(plan.getEndTime()).orElse("미정"),
+            plan.getDueDate().toString()
+        );
+
+        log.info("납기 초과 메일 발송 준비 documentNo={}, receivers={}", plan.getDocumentNo(), receivers.size());
+        sendMail(receivers, subject, body, plan);
+    }
+
     private void sendMail(List<Users> receivers, String subject, String body, ProductionPlans plan) {
         receivers.stream()
                 .map(Users::getEmail)

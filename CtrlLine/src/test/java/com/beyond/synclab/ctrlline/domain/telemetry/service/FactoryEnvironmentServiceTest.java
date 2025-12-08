@@ -32,9 +32,9 @@ class FactoryEnvironmentServiceTest {
     @Mock
     private FactoryRepository factoryRepository;
     @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
     @Mock
-    private ValueOperations<String, String> valueOperations;
+    private ValueOperations<String, Object> valueOperations;
     @Mock
     private AppProperties appProperties;
     @Mock

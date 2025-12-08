@@ -4,37 +4,40 @@
 FROM gradle:9.1.0-jdk21-alpine AS builder
 WORKDIR /app
 
-#
-
-# 프로젝트 전체 복사
 COPY . .
-#
 RUN chmod +x gradlew
 
-# Gradle 빌드 (테스트 제외)
+# Gradle build (skip tests)
 RUN ./gradlew clean build -x test
 
 # ===============================
 # Stage 2: Run
 # ===============================
-FROM eclipse-temurin:21-jre-alpine-3.22
+FROM eclipse-temurin:21-jdk
 
 WORKDIR /app
 
 ARG BUILD_PROFILE=staging-prod
 ARG BUILD_PORT=8088
 
-# Build 단계에서 생성된 Jar 파일 복사
+# ---- tzdata 설치 (Debian) ----
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    ln -snf "/usr/share/zoneinfo/${TZ}" /etc/localtime && \
+    echo "${TZ}" > /etc/timezone && \
+    rm -rf /var/lib/apt/lists/*
+
+# Build 단계에서 생성된 Jar 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-ENV TZ=Asia/Seoul
-RUN apk add --no-cache tzdata
-
-# Spring 프로파일 설정
+# Spring Profile 설정
 ENV SPRING_PROFILES_ACTIVE=${BUILD_PROFILE}
 
-# 앱 포트
+# Expose port
 EXPOSE ${BUILD_PORT}
 
-# Spring Boot 실행
+# Entry point
 ENTRYPOINT ["sh", "-c", "java -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]

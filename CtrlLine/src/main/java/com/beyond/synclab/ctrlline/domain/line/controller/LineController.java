@@ -4,7 +4,11 @@ import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineResponseDto;
 import com.beyond.synclab.ctrlline.domain.line.dto.LineSearchCommand;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActRequestDto;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineActResponseDto;
+import com.beyond.synclab.ctrlline.domain.line.dto.UpdateLineRequestDto;
 import com.beyond.synclab.ctrlline.domain.line.service.LineService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -13,10 +17,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -43,6 +50,26 @@ public class LineController {
     ) {
         Page<LineResponseDto> users = lineService.getLineList(lineSearchCommand, pageable);
         return ResponseEntity.ok(BaseResponse.ok(PageResponse.from(users)));
+    }
+
+    @PatchMapping("/{lineCode}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<LineResponseDto>> updateLine(
+            @PathVariable String lineCode,
+            @Valid @RequestBody UpdateLineRequestDto request
+    ) {
+        LineResponseDto updated = lineService.updateLine(lineCode, request);
+        return ResponseEntity.ok(BaseResponse.ok(updated));
+    }
+
+    @PatchMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<UpdateLineActResponseDto>> updateLineAct(
+            @Valid @RequestBody UpdateLineActRequestDto request
+    ) {
+        Boolean updated = lineService.updateLineAct(request);
+        UpdateLineActResponseDto response = UpdateLineActResponseDto.of(updated);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
 }

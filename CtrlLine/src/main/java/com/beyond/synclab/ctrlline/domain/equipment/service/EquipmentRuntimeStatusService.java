@@ -39,6 +39,7 @@ public class EquipmentRuntimeStatusService {
             Set.of("WARN", "WARNING", "INFO", "MINOR");
 
     private final Clock clock;
+    private final EquipmentStatusStreamService statusStreamService;
     private final Map<String, EquipmentRuntimeStatusSnapshot> snapshotByEquipment = new ConcurrentHashMap<>();
 
     public void updateStatus(EquipmentStatusTelemetryPayload payload) {
@@ -60,6 +61,7 @@ public class EquipmentRuntimeStatusService {
         snapshotByEquipment.put(payload.equipmentCode(), snapshot);
         log.debug("Updated runtime status equipmentCode={} state={} alarmLevel={} level={}",
                 payload.equipmentCode(), payload.state(), payload.alarmLevel(), level);
+        statusStreamService.broadcast(snapshot);
     }
 
     public EquipmentRuntimeStatusLevel getLevelOrDefault(String equipmentCode) {

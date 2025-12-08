@@ -14,6 +14,7 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.exception.Produc
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.service.ProductionPerformanceServiceImpl;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class ProductionPerformanceServiceTest {
 
     @Mock
     private LotRepository lotRepository;
+
+    @Mock
+    private PlanDefectiveRepository planDefectiveRepository;
 
     @InjectMocks
     private ProductionPerformanceServiceImpl productionPerformanceService;
@@ -141,10 +145,14 @@ class ProductionPerformanceServiceTest {
                 .build();
 
         Lots lot = Lots.builder()
+                .id(99L)
                 .lotNo("LOT-001")
                 .itemId(1L)
                 .productionPlanId(plan.getId())
                 .build();
+
+        when(planDefectiveRepository.findByProductionPlanId(plan.getId()))
+                .thenReturn(Optional.empty());
 
         when(performanceRepository.findById(perfId))
                 .thenReturn(Optional.of(perf));
@@ -171,6 +179,7 @@ class ProductionPerformanceServiceTest {
 
         verify(performanceRepository, times(1)).findById(perfId);
         verify(lotRepository, times(1)).findByProductionPlanId(plan.getId());
+        verify(planDefectiveRepository, times(1)).findByProductionPlanId(plan.getId());
     }
 
     // -------------------------------------------------------------

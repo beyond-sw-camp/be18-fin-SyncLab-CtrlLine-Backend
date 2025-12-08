@@ -4,13 +4,9 @@ import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
-import com.beyond.synclab.ctrlline.domain.item.entity.Items;
-import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
@@ -21,7 +17,9 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.repository.Produ
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceAllQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyDefRateQueryRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceMonthlyQueryRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -42,13 +40,12 @@ import java.util.stream.IntStream;
 public class ProductionPerformanceServiceImpl implements ProductionPerformanceService {
 
     private final ProductionPerformanceRepository performanceRepository;
-    private final LotService lotService;
     private final LotRepository lotRepository;
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
     private final FactoryRepository factoryRepository;
     private final ProductionPerformanceMonthlyQueryRepository productionPerformanceMonthlyQueryRepository;
     private final ProductionPerformanceMonthlyDefRateQueryRepository productionPerformanceMonthlyDefectiveRateQueryRepository;
-    private final LotGeneratorService lotGeneratorService;
+    private final PlanDefectiveRepository planDefectiveRepository;
 
     // 생산실적 목록 조회
     @Override
@@ -68,48 +65,20 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         ProductionPerformances perf = performanceRepository.findById(id)
                 .orElseThrow(ProductionPerformanceNotFoundException::new);
 
-        // 생산계획
         ProductionPlans plan = perf.getProductionPlan();
-        // 품목
-        Items item = plan.getItemLine().getItem();
-        // 라인
-        Lines line = plan.getItemLine().getLine();
-        // 공장
-        Factories factory = line.getFactory();
-        // LOT
+
         Lots lot = lotRepository.findByProductionPlanId(plan.getId())
                 .orElseThrow(LotNotFoundException::new);
 
-        return GetProductionPerformanceDetailResponseDto.builder()
-                .id(perf.getId())
-                .documentNo(perf.getPerformanceDocumentNo())
+        PlanDefectives planDefective = planDefectiveRepository
+                .findByProductionPlanId(plan.getId())
+                .orElse(null);
 
-                .factoryCode(factory.getFactoryCode())
-                .lineCode(line.getLineCode())
-
-                .salesManagerNo(plan.getSalesManager().getEmpNo())
-                .productionManagerNo(plan.getProductionManager().getEmpNo())
-
-                .lotNo(lot != null ? lot.getLotNo() : null)
-
-                .itemCode(item.getItemCode())
-                .itemName(item.getItemName())
-                .itemSpecification(item.getItemSpecification())
-                .itemUnit(item.getItemUnit())
-
-                .totalQty(perf.getTotalQty())
-                .performanceQty(perf.getPerformanceQty())
-                .defectiveQty(perf.getPerformanceDefectiveQty())
-                .defectiveRate(perf.getPerformanceDefectiveRate())
-
-                .startTime(perf.getStartTime())
-                .endTime(perf.getEndTime())
-                .dueDate(plan.getDueDate())
-
-                .createdAt(perf.getCreatedAt())
-                .updatedAt(perf.getUpdatedAt())
-
-                .build();
+        return GetProductionPerformanceDetailResponseDto.fromEntity(
+                perf,
+                lot,
+                planDefective
+        );
     }
 
     // 생산실적 현황 조회
@@ -250,16 +219,27 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
         ProductionPerformances perf = performanceRepository.findById(id)
                 .orElseThrow(ProductionPerformanceNotFoundException::new);
 
-        // remark 필드가 요청에 존재하는 경우에만 수정
+        // remark 업데이트
         perf.updateRemark(remark);
 
-        // 다시 DB에서 조회해서 DTO 변환
+        // DB 다시 조회
         ProductionPerformances updated = performanceRepository.findById(id)
                 .orElseThrow(ProductionPerformanceNotFoundException::new);
 
+        // LOT 조회
         Lots lot = lotRepository.findByProductionPlanId(updated.getProductionPlan().getId())
                 .orElseThrow(LotNotFoundException::new);
 
-        return GetProductionPerformanceDetailResponseDto.fromEntity(updated, lot);
+        // 불량전표 조회
+        PlanDefectives planDefective = planDefectiveRepository
+                .findByProductionPlanId(updated.getProductionPlan().getId())
+                .orElse(null);
+
+        // DTO 조립
+        return GetProductionPerformanceDetailResponseDto.fromEntity(
+                updated,
+                lot,
+                planDefective
+        );
     }
 }

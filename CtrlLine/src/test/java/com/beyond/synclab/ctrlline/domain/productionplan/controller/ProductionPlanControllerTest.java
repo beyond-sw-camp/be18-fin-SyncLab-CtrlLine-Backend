@@ -26,9 +26,9 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDe
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
@@ -109,8 +109,10 @@ class ProductionPlanControllerTest {
             .itemCode("I001")
             .build();
 
-        GetProductionPlanResponseDto responseDto = GetProductionPlanResponseDto.builder()
-            .productionManagerNo("209910001")
+        PlanScheduleChangeResponseDto responseDto = PlanScheduleChangeResponseDto.builder()
+            .planId(1L)
+            .affectedPlans(List.of())
+            .dueDateExceededPlans(List.of())
             .build();
 
         when(productionPlanService.createProductionPlan(any(CreateProductionPlanRequestDto.class), any(Users.class))).thenReturn(responseDto);
@@ -124,8 +126,7 @@ class ProductionPlanControllerTest {
         // then
         resultActions
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.code").value(201))
-            .andExpect(jsonPath("$.data.productionManagerNo").value("209910001"));
+            .andExpect(jsonPath("$.code").value(201));
     }
 
     @Test
@@ -278,21 +279,11 @@ class ProductionPlanControllerTest {
 
         Long planId = 1L;
 
-        GetProductionPlanResponseDto responseDto = GetProductionPlanResponseDto.builder()
-                .id(planId)
-                .lineCode("L001")
-                .salesManagerNo("209901001")
-                .productionManagerNo("209901002")
-                .documentNo("2099/01/01-1")
-                .status(PlanStatus.PENDING)
-                .dueDate(LocalDate.now(testClock))
-                .plannedQty(new BigDecimal("100"))
-                .startTime(LocalDateTime.now(testClock))
-                .endTime(LocalDateTime.now(testClock))
-                .remark("new remark")
-                .factoryCode("F001")
-                .itemCode("I001")
-                .build();
+        PlanScheduleChangeResponseDto responseDto = PlanScheduleChangeResponseDto.builder()
+            .planId(planId)
+            .dueDateExceededPlans(List.of())
+            .affectedPlans(List.of())
+            .build();
 
         when(productionPlanService.updateProductionPlan(any(UpdateProductionPlanRequestDto.class), eq(planId), any(Users.class)))
             .thenReturn(responseDto);
@@ -305,12 +296,7 @@ class ProductionPlanControllerTest {
         resultActions
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.code").value(200))
-            .andExpect(jsonPath("$.data.id").value(planId))
-            .andExpect(jsonPath("$.data.lineCode").value("L001"))
-            .andExpect(jsonPath("$.data.factoryCode").value("F001"))
-            .andExpect(jsonPath("$.data.dueDate").value(LocalDate.now(testClock).toString()))
-            .andExpect(jsonPath("$.data.startTime").value(startsWith("2099-01-01T09:00")))
-            .andExpect(jsonPath("$.data.endTime").value(startsWith("2099-01-01T09:00")));
+            .andExpect(jsonPath("$.data.planId").value(planId));
     }
 
     @Test

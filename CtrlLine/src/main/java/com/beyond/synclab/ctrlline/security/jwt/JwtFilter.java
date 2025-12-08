@@ -16,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -44,14 +45,22 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String authorization = request.getHeader("Authorization");
+        String bearerToken = null;
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            bearerToken = authorization.substring(7);
+        }
+        if (!StringUtils.hasText(bearerToken)) {
+            bearerToken = request.getParameter("access_token");
+        }
+
         log.debug(">>> JwtFilter 진입: path={}, Authorization={}", request.getRequestURI(), authorization);
 
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
+        if (!StringUtils.hasText(bearerToken)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authorization.substring(7);
+        String token = bearerToken;
 
         try {
             //  만료 여부 검증

@@ -5,9 +5,12 @@ import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.process.dto.ProcessResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.SearchProcessResponseDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessActRequestDto;
+import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessActResponseDto;
 import com.beyond.synclab.ctrlline.domain.process.dto.UpdateProcessRequestDto;
 import com.beyond.synclab.ctrlline.domain.process.service.ProcessService;
 import com.beyond.synclab.ctrlline.domain.user.service.CustomUserDetails;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -68,6 +71,16 @@ public class ProcessController {
                 = processService.getProcessList(user.getUser(), searchDto, pageable);
         BaseResponse<PageResponse<SearchProcessResponseDto>> baseResponse = BaseResponse.of(HttpStatus.OK.value(), responseDto);
         return ResponseEntity.ok(baseResponse);
+    }
+
+    @PatchMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<UpdateProcessActResponseDto>> updateProcessesAct(
+            @Valid @RequestBody UpdateProcessActRequestDto request
+    ) {
+        Boolean updated = processService.updateProcessAct(request);
+        UpdateProcessActResponseDto response = UpdateProcessActResponseDto.of(updated);
+        return ResponseEntity.ok(BaseResponse.ok(response));
     }
 
 }

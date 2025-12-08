@@ -25,8 +25,10 @@
 9. [테이블 명세서](#9-테이블-명세서)  
 10. [API 명세서](#10-api-명세서)  
 11. [테스트 결과서](#11-테스트-결과서)
-12. [향후 개선 계획](#12-향후-개선-계획)  
-13. [회고록](#13-회고록)
+12. [CI/CD 계획서](#12-CI/CD-계획서)
+13. [통합 테스트 결과서](#13-통합-테스트-결과서)
+14. [향후 개선 계획](#14-향후-개선-계획)
+15. [회고록](#15-회고록)
 
 <br/>
 
@@ -130,7 +132,7 @@
 
 ## 6. 시스템 아키텍처
 
-![시스템 아키텍쳐](docs/images/Ctrlline_SystemArchitecture_v3.png)
+![시스템 아키텍쳐](docs/images/Ctrlline_SystemArchitecture_v4.png)
 
 <br/>
 
@@ -138,7 +140,7 @@
 ## 7. 데이터베이스 설계 (ERD)
 
 ### ERD
-[ERD CLOUD](https://www.erdcloud.com/d/GZ45RSaNe7xaFb63i)
+[ERD CLOUD](https://www.erdcloud.com/d/jjkxNEWa6Ge7FTSy9)
 
 <details>
   
@@ -176,19 +178,27 @@
 
 ## 11. 테스트 결과서
 
-<!-- [백엔드 테스트 결과서](https://www.notion.so/2775605940ec801286d6f888af3e93d2?v=2775605940ec80ba931c000c1fcfe3ed) -->
-<!-- 
-[단위 테스트 결과서](https://www.notion.so/292819b5e8c680959006d4e288e86acd?source=copy_link) -->
+[백엔드 테스트 결과서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?usp=sharing)
 
+[프론트 테스트 결과서](https://docs.google.com/spreadsheets/d/1FZtJ2QuIRHb-DirqNDacerHLNJYG-vcQQdDNvqwoJXA/edit?usp=sharing)
+
+[UI/UX 테스트 결과서](https://www.notion.so/playdatacademy/UIUX-2c0d943bcac280b99964e270a5747064?source=copy_link)
+
+## 12. CI/CD 계획서
+
+[CI/CD 게획서](https://docs.google.com/document/d/1J5w3Ei0vdwRu0VdYofbyL0PSQd5Ah8_nmmL5zY21Vjg/edit?usp=sharing)
 
 <br>
 
+## 13. 통합 테스트 결과서
 
-## 12. 향후 개선 계획
+[통합 테스트 결과서](https://docs.google.com/document/d/1qCEU1HjPOlPEmBDz3j91pEp5Na_bk_UE3_EV9LL-5FQ/edit?usp=sharing)
+
+<br>
+
+## 14. 향후 개선 계획
 
 
+<br/>g
 
-
-<br/>
-
-## 13. 회고록
+## 15. 회고록

@@ -4,15 +4,16 @@ import com.beyond.synclab.ctrlline.common.dto.BaseResponse;
 import com.beyond.synclab.ctrlline.common.dto.PageResponse;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanBoundaryResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -49,14 +51,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductionPlanController {
     private final ProductionPlanService productionPlanService;
 
+
     @PostMapping
-    public ResponseEntity<BaseResponse<GetProductionPlanResponseDto>> createProductionPlan(
+    public ResponseEntity<BaseResponse<PlanScheduleChangeResponseDto>> createProductionPlan(
         @RequestBody @Valid CreateProductionPlanRequestDto requestDto,
         @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Users user = userDetails.getUser();
 
-        GetProductionPlanResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, user);
+        PlanScheduleChangeResponseDto responseDto = productionPlanService.createProductionPlan(requestDto, user);
 
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -86,13 +89,13 @@ public class ProductionPlanController {
 
     @PatchMapping("/{planId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<BaseResponse<GetProductionPlanResponseDto>> updateProductionPlan(
+    public ResponseEntity<BaseResponse<PlanScheduleChangeResponseDto>> updateProductionPlan(
         @RequestBody UpdateProductionPlanRequestDto requestDto,
         @PathVariable Long planId,
         @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Users user = userDetails.getUser();
-        GetProductionPlanResponseDto responseDto = productionPlanService.updateProductionPlan(requestDto, planId, user);
+        PlanScheduleChangeResponseDto responseDto = productionPlanService.updateProductionPlan(requestDto, planId, user);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
@@ -116,7 +119,6 @@ public class ProductionPlanController {
     }
 
     @PostMapping("/endtime")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<BaseResponse<GetProductionPlanEndTimeResponseDto>> getEndTime(
         @RequestBody GetProductionPlanEndTimeRequestDto requestDto
     ) {
@@ -156,4 +158,16 @@ public class ProductionPlanController {
         productionPlanService.deleteProductionPlans(requestDto, user);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/boundary")
+    public ResponseEntity<BaseResponse<GetProductionPlanBoundaryResponseDto>> getPlanBoundaries(
+        @RequestParam String factoryCode,
+        @RequestParam String lineCode
+    ) {
+        GetProductionPlanBoundaryResponseDto response =
+            productionPlanService.getPlanBoundaries(factoryCode, lineCode);
+
+        return ResponseEntity.ok(BaseResponse.ok(response));
+    }
+
 }

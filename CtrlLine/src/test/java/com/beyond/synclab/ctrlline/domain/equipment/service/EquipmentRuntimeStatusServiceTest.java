@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
 
 class EquipmentRuntimeStatusServiceTest {
 
@@ -16,7 +17,11 @@ class EquipmentRuntimeStatusServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new EquipmentRuntimeStatusService(Clock.fixed(Instant.parse("2025-05-05T00:00:00Z"), ZoneOffset.UTC));
+        EquipmentStatusStreamService streamService = mock(EquipmentStatusStreamService.class);
+        service = new EquipmentRuntimeStatusService(
+                Clock.fixed(Instant.parse("2025-05-05T00:00:00Z"), ZoneOffset.UTC),
+                streamService
+        );
     }
 
     @Test

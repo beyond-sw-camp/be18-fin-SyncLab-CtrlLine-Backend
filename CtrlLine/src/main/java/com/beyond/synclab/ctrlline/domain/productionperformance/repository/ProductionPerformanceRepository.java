@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.domain.productionperformance.entity.Productio
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceQueryRepository;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -28,4 +29,15 @@ public interface ProductionPerformanceRepository
     Optional<ProductionPerformances> findByProductionPlanId(Long productionPlanId);
 
     Optional<ProductionPerformances> findById(Long id);
+
+    @Query("""
+        SELECT pp
+        FROM ProductionPerformances pp
+        JOIN pp.productionPlan plan
+        JOIN plan.itemLine itemLine
+        JOIN itemLine.line line
+        WHERE line.id = :lineId
+        ORDER BY pp.endTime DESC
+    """)
+    List<ProductionPerformances> findRecentByLineId(@Param("lineId") Long lineId, Pageable pageable);
 }
