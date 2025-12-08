@@ -109,7 +109,13 @@ public class EquipmentStatusStreamService {
 
         private boolean matchesFactory(Long eventFactoryId, String eventFactoryCode) {
             if (factoryId != null) {
-                return eventFactoryId != null && factoryId.equals(eventFactoryId);
+                if (eventFactoryId != null && factoryId.equals(eventFactoryId)) {
+                    return true;
+                }
+                if (StringUtils.hasText(factoryCode) && StringUtils.hasText(eventFactoryCode)) {
+                    return factoryCode.equalsIgnoreCase(eventFactoryCode.trim());
+                }
+                return false;
             }
             if (!StringUtils.hasText(factoryCode)) {
                 return true;
