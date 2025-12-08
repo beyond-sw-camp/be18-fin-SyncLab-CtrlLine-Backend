@@ -51,6 +51,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductionPlanController {
     private final ProductionPlanService productionPlanService;
 
+
     @PostMapping
     public ResponseEntity<BaseResponse<PlanScheduleChangeResponseDto>> createProductionPlan(
         @RequestBody @Valid CreateProductionPlanRequestDto requestDto,
@@ -118,7 +119,6 @@ public class ProductionPlanController {
     }
 
     @PostMapping("/endtime")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<BaseResponse<GetProductionPlanEndTimeResponseDto>> getEndTime(
         @RequestBody GetProductionPlanEndTimeRequestDto requestDto
     ) {
@@ -169,4 +169,5 @@ public class ProductionPlanController {
 
         return ResponseEntity.ok(BaseResponse.ok(response));
     }
+
 }

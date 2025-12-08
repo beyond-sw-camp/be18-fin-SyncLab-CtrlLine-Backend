@@ -26,7 +26,7 @@ import org.springframework.util.StringUtils;
 public class FactoryEnvironmentService {
 
     private final FactoryRepository factoryRepository;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final AppProperties appProperties;
 
@@ -70,7 +70,7 @@ public class FactoryEnvironmentService {
     }
 
     private FactoryEnvironmentResponse readSnapshot(Factories factory) {
-        String raw = redisTemplate.opsForValue().get(redisKey(factory.getFactoryCode()));
+        String raw = (String) redisTemplate.opsForValue().get(redisKey(factory.getFactoryCode()));
         if (!StringUtils.hasText(raw)) {
             throw new AppException(TelemetryErrorCode.ENVIRONMENT_DATA_NOT_FOUND);
         }

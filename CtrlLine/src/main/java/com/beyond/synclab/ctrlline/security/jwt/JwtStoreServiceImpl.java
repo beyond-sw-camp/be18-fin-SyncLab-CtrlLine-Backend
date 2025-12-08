@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class JwtStoreServiceImpl implements JwtStoreService {
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final AppProperties appProperties;
     private final CustomUserDetailsService customUserDetailsService;
 
@@ -32,7 +32,7 @@ public class JwtStoreServiceImpl implements JwtStoreService {
     // 조회
     @Override
     public String getRefreshToken(String username) {
-        return redisTemplate.opsForValue().get(
+        return (String) redisTemplate.opsForValue().get(
                 appProperties.getRedis().prefix().refresh() + username
         );
     }
