@@ -8,7 +8,9 @@ public record EquipmentStatusEvent(
         String equipmentCode,
         EquipmentRuntimeStatusLevel runtimeStatusLevel,
         LocalDateTime updatedAt,
+        Long factoryId,
         String factoryCode,
+        Long lineId,
         String lineCode
 ) {
 
@@ -20,7 +22,9 @@ public record EquipmentStatusEvent(
                 snapshot.equipmentCode(),
                 snapshot.statusLevel(),
                 snapshot.updatedAt(),
+                location != null ? location.factoryId() : null,
                 location != null ? location.factoryCode() : null,
+                location != null ? location.lineId() : null,
                 location != null ? location.lineCode() : null
         );
     }

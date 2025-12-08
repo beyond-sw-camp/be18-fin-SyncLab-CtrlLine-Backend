@@ -28,13 +28,15 @@ public class EquipmentStatusStreamService {
     private final Map<String, EquipmentLocation> locationCache = new ConcurrentHashMap<>();
     private final AtomicLong sequence = new AtomicLong();
 
-    public SseEmitter registerEmitter(String factoryCode, String lineCode) {
+    public SseEmitter registerEmitter(Long factoryId, String factoryCode, Long lineId, String lineCode) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MILLIS);
         long id = sequence.incrementAndGet();
         Subscription subscription = new Subscription(
                 id,
                 emitter,
+                factoryId,
                 normalize(factoryCode),
+                lineId,
                 normalize(lineCode)
         );
         subscriptions.put(id, subscription);
@@ -55,7 +57,7 @@ public class EquipmentStatusStreamService {
     }
 
     private void sendIfMatch(Subscription subscription, EquipmentStatusEvent event) {
-        if (!subscription.matches(event.factoryCode(), event.lineCode())) {
+        if (!subscription.matches(event.factoryId(), event.factoryCode(), event.lineId(), event.lineCode())) {
             return;
         }
         try {
@@ -100,19 +102,25 @@ public class EquipmentStatusStreamService {
         return StringUtils.hasText(value) ? value.trim() : null;
     }
 
-    private record Subscription(long id, SseEmitter emitter, String factoryCode, String lineCode) {
-        private boolean matches(String eventFactoryCode, String eventLineCode) {
-            return matchesFactory(eventFactoryCode) && matchesLine(eventLineCode);
+    private record Subscription(long id, SseEmitter emitter, Long factoryId, String factoryCode, Long lineId, String lineCode) {
+        private boolean matches(Long eventFactoryId, String eventFactoryCode, Long eventLineId, String eventLineCode) {
+            return matchesFactory(eventFactoryId, eventFactoryCode) && matchesLine(eventLineId, eventLineCode);
         }
 
-        private boolean matchesFactory(String eventFactoryCode) {
+        private boolean matchesFactory(Long eventFactoryId, String eventFactoryCode) {
+            if (factoryId != null) {
+                return eventFactoryId != null && factoryId.equals(eventFactoryId);
+            }
             if (!StringUtils.hasText(factoryCode)) {
                 return true;
             }
             return StringUtils.hasText(eventFactoryCode) && factoryCode.equalsIgnoreCase(eventFactoryCode.trim());
         }
 
-        private boolean matchesLine(String eventLineCode) {
+        private boolean matchesLine(Long eventLineId, String eventLineCode) {
+            if (lineId != null) {
+                return eventLineId != null && lineId.equals(eventLineId);
+            }
             if (!StringUtils.hasText(lineCode)) {
                 return true;
             }
