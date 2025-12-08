@@ -9,25 +9,21 @@ import com.beyond.synclab.ctrlline.domain.serial.dto.response.GetLotSerialListRe
 import com.beyond.synclab.ctrlline.domain.serial.entity.ItemSerials;
 import com.beyond.synclab.ctrlline.domain.serial.repository.ItemSerialRepository;
 import com.beyond.synclab.ctrlline.domain.serial.service.SerialServiceImpl;
+import com.beyond.synclab.ctrlline.domain.serial.storage.SerialStorageService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.http.AbortableInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
-import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SerialServiceTest {
@@ -41,6 +37,9 @@ class SerialServiceTest {
     @Mock
     private S3Client s3Client;
 
+    @Mock
+    private SerialStorageService storageService;
+
     @InjectMocks
     private SerialServiceImpl serialServiceImpl;
 
@@ -49,7 +48,7 @@ class SerialServiceTest {
     // -------------------------------------------------------------
     @Test
     @DisplayName("시리얼 리스트 조회 성공")
-    void getSerialList_success() throws Exception {
+    void getSerialList_success() {
 
         Long lotId = 1L;
 
@@ -69,16 +68,9 @@ class SerialServiceTest {
         when(lotRepository.findById(lotId)).thenReturn(Optional.of(lot));
         when(itemSerialRepository.findByLotId(lotId)).thenReturn(Optional.of(serial));
 
-        // gzip 압축된 "[\"S001\",\"S002\"]"
-        byte[] gzipBytes = TestGzipUtil.gzip("S001\nS002\n");
-
-        ResponseInputStream<GetObjectResponse> mockStream =
-                new ResponseInputStream<>(
-                        GetObjectResponse.builder().build(),
-                        AbortableInputStream.create(new ByteArrayInputStream(gzipBytes))
-                );
-
-        when(s3Client.getObject(any(GetObjectRequest.class))).thenReturn(mockStream);
+        // torageService.read() mocking — gzip mocking 제거
+        when(storageService.read("s3://ctrlline-bucket/serials/test/serials.gz"))
+                .thenReturn(List.of("S001", "S002"));
 
         // when
         GetLotSerialListResponseDto dto = serialServiceImpl.getSerialListByLotId(lotId);
@@ -86,6 +78,8 @@ class SerialServiceTest {
         // then
         assertThat(dto.getLotNo()).isEqualTo("2025/11/26-7");
         assertThat(dto.getSerialList()).containsExactly("S001", "S002");
+
+        verify(storageService, times(1)).read("s3://ctrlline-bucket/serials/test/serials.gz"); // 추가 검증
     }
 
     // -------------------------------------------------------------
