@@ -57,7 +57,14 @@ public class EquipmentStatusStreamService {
     }
 
     private void sendIfMatch(Subscription subscription, EquipmentStatusEvent event) {
-        if (!subscription.matches(event.factoryId(), event.factoryCode(), event.lineId(), event.lineCode())) {
+        boolean matches = subscription.matches(event.factoryId(), event.factoryCode(), event.lineId(), event.lineCode());
+        if (!matches) {
+            log.debug("SSE 필터 미스. emitterId={} subFactory=[{}, {}] subLine=[{}, {}] eventFactory=[{}, {}] eventLine=[{}, {}]",
+                    subscription.id,
+                    subscription.factoryId, subscription.factoryCode,
+                    subscription.lineId, subscription.lineCode,
+                    event.factoryId(), event.factoryCode(),
+                    event.lineId(), event.lineCode());
             return;
         }
         try {
