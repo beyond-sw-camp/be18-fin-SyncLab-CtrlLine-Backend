@@ -44,8 +44,6 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/api/v1/auth/token/**",
 
-            // SSE stream endpoint (temporary whitelist)
-            "/api/v1/equipments/status-stream",
     };
 
     @Bean
