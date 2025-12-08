@@ -25,7 +25,7 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
         SELECT pp.documentNo
         FROM ProductionPlans pp
         WHERE pp.documentNo LIKE :prefix%
-        ORDER BY pp.createdAt
+        ORDER BY pp.createdAt DESC
     """)
     List<String> findByDocumentNoByPrefix(@Param("prefix") String prefix);
 
@@ -66,4 +66,13 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     );
 
     List<ProductionPlans> findAllByIdIn(List<Long> ids);
+
+    @Query("""
+    SELECT p
+    FROM ProductionPlans p
+    WHERE p.itemLine.line.lineCode = :lineCode
+      AND (:statuses IS NULL OR p.status IN :statuses)
+    ORDER BY p.startTime ASC
+    """)
+    List<ProductionPlans> findAllByLineCodeAndStatusInOrderByStartTimeAsc(String lineCode, List<PlanStatus> statuses);
 }
