@@ -571,7 +571,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
         // 조회된게 없을때, confirmed 면 10분뒤로 pending 이면 30분 뒤로 설정
         return latestProdPlan.map(
-                productionPlans -> productionPlans.getEndTime().plusMinutes(30))
+                ProductionPlans::getEndTime)
             .orElseGet(() -> requestedStatus.equals(PlanStatus.PENDING)
                 ? LocalDateTime.now(clock).plusMinutes(30)
                 : LocalDateTime.now(clock).plusMinutes(10)
