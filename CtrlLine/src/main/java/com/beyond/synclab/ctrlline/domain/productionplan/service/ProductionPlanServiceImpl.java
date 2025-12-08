@@ -571,7 +571,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
         // 조회된게 없을때, confirmed 면 10분뒤로 pending 이면 30분 뒤로 설정
         return latestProdPlan.map(
-                productionPlans -> productionPlans.getEndTime().plusMinutes(30))
+                ProductionPlans::getEndTime)
             .orElseGet(() -> requestedStatus.equals(PlanStatus.PENDING)
                 ? LocalDateTime.now(clock).plusMinutes(30)
                 : LocalDateTime.now(clock).plusMinutes(10)
@@ -613,7 +613,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return ppm.multiply(BigDecimal.ONE.subtract(defectiveRate));
     }
 
-    private LocalDateTime calculateEndTime(Long lineId, List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
+    public LocalDateTime calculateEndTime(Long lineId, List<Equipments> equipments, BigDecimal plannedQty, LocalDateTime startTime) {
         if (equipments == null || equipments.isEmpty()) {
             throw new AppException(LineErrorCode.NO_EQUIPMENT_FOUND);
         }
@@ -942,16 +942,12 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         // 2. 라인 전체 계획 조회
-        List<ProductionPlans> plans =
-            productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-                line.getId(),
-                List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
-                );
+        List<ProductionPlans> plans = findAllActivePlans(line.getId());
 
         if (plans.isEmpty()) {
             return GetProductionPlanBoundaryResponseDto.builder()
-                .earliestStartTime(null)
-                .latestEndTime(null)
+                .earliestStartTime(LocalDateTime.now(clock))
+                .latestEndTime(LocalDateTime.now(clock))
                 .build();
         }
 

@@ -105,6 +105,9 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .select(pd.count())
             .from(pd)
             .leftJoin(pd.productionPlan, pp)
+            .leftJoin(pp.itemLine, il)
+            .leftJoin(il.item, item)
+            .leftJoin(il.line, line)
             .leftJoin(perf).on(perf.productionPlan.id.eq(pp.id))
             .where(
                 createdAtTo(request.toDate()),
