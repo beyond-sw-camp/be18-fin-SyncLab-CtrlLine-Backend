@@ -94,6 +94,7 @@ dependencies {
     testAnnotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 
     // Test
+    testImplementation 'org.optaplanner:optaplanner-test:10.1.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.boot:spring-boot-test-autoconfigure'
