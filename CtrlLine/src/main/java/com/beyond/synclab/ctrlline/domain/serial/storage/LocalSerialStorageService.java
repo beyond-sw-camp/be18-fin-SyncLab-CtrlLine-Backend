@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
@@ -61,5 +63,14 @@ public class LocalSerialStorageService implements SerialStorageService {
             return "order";
         }
         return orderNo.replaceAll("[^A-Za-z0-9_-]", "_");
+    }
+
+    @Override
+    public List<String> read(String path) {
+        try {
+            return Files.readAllLines(Path.of(path));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to read local serial file: " + path, ex);
+        }
     }
 }

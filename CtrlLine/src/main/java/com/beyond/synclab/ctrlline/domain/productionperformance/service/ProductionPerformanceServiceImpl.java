@@ -7,7 +7,6 @@ import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
 import com.beyond.synclab.ctrlline.domain.lot.exception.LotNotFoundException;
 import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotService;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchAllProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.request.SearchProductionPerformanceRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionperformance.dto.response.*;
@@ -41,7 +40,6 @@ import java.util.stream.IntStream;
 public class ProductionPerformanceServiceImpl implements ProductionPerformanceService {
 
     private final ProductionPerformanceRepository performanceRepository;
-    private final LotService lotService;
     private final LotRepository lotRepository;
     private final ProductionPerformanceAllQueryRepository productionPerformanceAllQueryRepository;
     private final FactoryRepository factoryRepository;

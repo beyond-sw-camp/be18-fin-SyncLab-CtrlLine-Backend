@@ -8,12 +8,12 @@ import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
 import com.beyond.synclab.ctrlline.domain.serial.dto.response.GetLotSerialListResponseDto;
 import com.beyond.synclab.ctrlline.domain.serial.entity.ItemSerials;
 import com.beyond.synclab.ctrlline.domain.serial.repository.ItemSerialRepository;
+import com.beyond.synclab.ctrlline.domain.serial.storage.SerialStorageService;
 import com.beyond.synclab.ctrlline.domain.serial.util.SerialFileReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.List;
 
@@ -24,7 +24,7 @@ public class SerialServiceImpl implements SerialService {
 
     private final ItemSerialRepository itemSerialRepository;
     private final LotRepository lotRepository;
-    private final S3Client s3Client;
+    private final SerialStorageService serialStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,7 +38,7 @@ public class SerialServiceImpl implements SerialService {
 
         List<String> serialList = SerialFileReader.readSerialFile(
                 serial.getSerialFilePath(),
-                s3Client
+                serialStorageService
         );
 
         return GetLotSerialListResponseDto.of(
