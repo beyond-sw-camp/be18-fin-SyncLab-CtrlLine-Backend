@@ -18,9 +18,11 @@ public class EquipmentStatusStreamController {
 
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(
+            @RequestParam(required = false) Long factoryId,
             @RequestParam(required = false) String factoryCode,
+            @RequestParam(required = false) Long lineId,
             @RequestParam(required = false) String lineCode
     ) {
-        return statusStreamService.registerEmitter(factoryCode, lineCode);
+        return statusStreamService.registerEmitter(factoryId, factoryCode, lineId, lineCode);
     }
 }
