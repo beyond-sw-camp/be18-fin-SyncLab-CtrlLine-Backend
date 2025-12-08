@@ -31,6 +31,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import java.util.List;
 
 @Service
@@ -129,8 +130,12 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EquipmentStatusResponseDto> getAllEquipmentStatuses() {
-        return equipmentRepository.findAll().stream()
+    public List<EquipmentStatusResponseDto> getEquipmentStatuses(Long factoryId, String factoryCode) {
+        String normalizedCode = normalizeFactoryCode(factoryCode);
+        List<Equipments> equipments = (factoryId == null && normalizedCode == null)
+                ? equipmentRepository.findAll()
+                : equipmentRepository.findAllByFactory(factoryId, normalizedCode);
+        return equipments.stream()
                 .map(equipment -> {
                     EquipmentRuntimeStatusLevel runtimeStatusLevel =
                             equipmentRuntimeStatusService.getLevelOrDefault(equipment.getEquipmentCode());
@@ -156,6 +161,13 @@ public class EquipmentServiceImpl implements EquipmentService {
         });
 
         return request.getIsActive();
+    }
+
+    private String normalizeFactoryCode(String factoryCode) {
+        if (!StringUtils.hasText(factoryCode)) {
+            return null;
+        }
+        return factoryCode.trim().toUpperCase();
     }
 
 }

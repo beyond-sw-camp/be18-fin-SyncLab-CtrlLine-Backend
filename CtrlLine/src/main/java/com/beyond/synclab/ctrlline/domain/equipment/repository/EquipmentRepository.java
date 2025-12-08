@@ -25,6 +25,15 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
     List<Equipments> findAllByLineId(Long lineId);
 
     @Query("""
+            select e from Equipments e
+            join e.line l
+            join l.factory f
+            where (:factoryId is null or f.id = :factoryId)
+              and (:factoryCode is null or upper(f.factoryCode) = :factoryCode)
+            """)
+    List<Equipments> findAllByFactory(Long factoryId, String factoryCode);
+
+    @Query("""
             select new com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentLocation(
                 e.id,
                 e.equipmentCode,

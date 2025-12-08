@@ -29,7 +29,7 @@ public interface EquipmentService {
     CreateEquipmentResponseDto updateEquipment(Users users, UpdateEquipmentRequestDto request, String equipmentCode);
 
     // 설비 상태 전체 조회
-    List<EquipmentStatusResponseDto> getAllEquipmentStatuses();
+    List<EquipmentStatusResponseDto> getEquipmentStatuses(Long factoryId, String factoryCode);
 
     Boolean updateEquipmentAct(UpdateEquipmentActRequestDto request);
 }
