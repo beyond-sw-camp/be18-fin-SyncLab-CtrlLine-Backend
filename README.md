@@ -25,8 +25,10 @@
 9. [테이블 명세서](#9-테이블-명세서)  
 10. [API 명세서](#10-api-명세서)  
 11. [테스트 결과서](#11-테스트-결과서)
-12. [향후 개선 계획](#12-향후-개선-계획)  
-13. [회고록](#13-회고록)
+12. [CI/CD 계획서](#12-CI/CD-계획서)
+13. [통합 테스트 결과서](#13-통합-테스트-결과서)
+14. [향후 개선 계획](#14-향후-개선-계획)
+15. [회고록](#15-회고록)
 
 <br/>
 
@@ -182,15 +184,21 @@
 
 [UI/UX 테스트 결과서](https://www.notion.so/playdatacademy/UIUX-2c0d943bcac280b99964e270a5747064?source=copy_link)
 
+## 12. CI/CD 계획서
+
+[CI/CD 게획서](https://docs.google.com/document/d/1J5w3Ei0vdwRu0VdYofbyL0PSQd5Ah8_nmmL5zY21Vjg/edit?usp=sharing)
 
 <br>
 
+## 13. 통합 테스트 결과서
 
-## 12. 향후 개선 계획
+[통합 테스트 결과서](https://docs.google.com/document/d/1qCEU1HjPOlPEmBDz3j91pEp5Na_bk_UE3_EV9LL-5FQ/edit?usp=sharing)
+
+<br>
+
+## 14. 향후 개선 계획
 
 
+<br/>g
 
-
-<br/>
-
-## 13. 회고록
+## 15. 회고록
