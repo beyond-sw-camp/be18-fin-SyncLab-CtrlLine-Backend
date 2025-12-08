@@ -17,7 +17,7 @@ public class PlanDefectiveLastReportedCache {
 
     private static final Duration TTL = Duration.ofDays(2);
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final AppProperties appProperties;
 
     public Optional<BigDecimal> get(Long planDefectiveId, Long defectiveId, String equipmentKey) {
@@ -26,7 +26,7 @@ public class PlanDefectiveLastReportedCache {
             return Optional.empty();
         }
         try {
-            String value = redisTemplate.opsForValue().get(key);
+            String value = (String) redisTemplate.opsForValue().get(key);
             if (!StringUtils.hasText(value)) {
                 return Optional.empty();
             }

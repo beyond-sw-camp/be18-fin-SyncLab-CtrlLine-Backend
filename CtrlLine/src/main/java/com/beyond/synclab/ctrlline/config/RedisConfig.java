@@ -19,14 +19,24 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableCaching
 public class RedisConfig {
     @Bean
-    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, String> template = new RedisTemplate<>();
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
         // Key, Value 모두 String 직렬화
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
 
+        // Value 직렬화 → JSON 직렬화 가능하게
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(
+            new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        );
+        template.setValueSerializer(serializer);
+        template.setHashValueSerializer(serializer);
+
+        template.afterPropertiesSet();
         return template;
     }
 
