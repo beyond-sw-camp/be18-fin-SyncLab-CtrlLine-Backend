@@ -108,29 +108,49 @@ public class EquipmentStatusStreamService {
         }
 
         private boolean matchesFactory(Long eventFactoryId, String eventFactoryCode) {
-            if (factoryId != null) {
-                if (eventFactoryId != null && factoryId.equals(eventFactoryId)) {
+            if (eventFactoryId != null && factoryId != null) {
+                if (factoryId.equals(eventFactoryId)) {
                     return true;
                 }
-                if (StringUtils.hasText(factoryCode) && StringUtils.hasText(eventFactoryCode)) {
-                    return factoryCode.equalsIgnoreCase(eventFactoryCode.trim());
-                }
-                return false;
             }
-            if (!StringUtils.hasText(factoryCode)) {
+            if (StringUtils.hasText(factoryCode) && StringUtils.hasText(eventFactoryCode)) {
+                if (factoryCode.equalsIgnoreCase(eventFactoryCode.trim())) {
+                    return true;
+                }
+            }
+            if (factoryId == null && !StringUtils.hasText(factoryCode)) {
                 return true;
             }
-            return StringUtils.hasText(eventFactoryCode) && factoryCode.equalsIgnoreCase(eventFactoryCode.trim());
+            if (factoryId != null) {
+                return eventFactoryId != null && factoryId.equals(eventFactoryId);
+            }
+            if (StringUtils.hasText(factoryCode)) {
+                return StringUtils.hasText(eventFactoryCode) && factoryCode.equalsIgnoreCase(eventFactoryCode.trim());
+            }
+            return false;
         }
 
         private boolean matchesLine(Long eventLineId, String eventLineCode) {
+            if (eventLineId != null && lineId != null) {
+                if (lineId.equals(eventLineId)) {
+                    return true;
+                }
+            }
+            if (StringUtils.hasText(lineCode) && StringUtils.hasText(eventLineCode)) {
+                if (lineCode.equalsIgnoreCase(eventLineCode.trim())) {
+                    return true;
+                }
+            }
+            if (lineId == null && !StringUtils.hasText(lineCode)) {
+                return true;
+            }
             if (lineId != null) {
                 return eventLineId != null && lineId.equals(eventLineId);
             }
-            if (!StringUtils.hasText(lineCode)) {
-                return true;
+            if (StringUtils.hasText(lineCode)) {
+                return StringUtils.hasText(eventLineCode) && lineCode.equalsIgnoreCase(eventLineCode.trim());
             }
-            return StringUtils.hasText(eventLineCode) && lineCode.equalsIgnoreCase(eventLineCode.trim());
+            return false;
         }
     }
 }
