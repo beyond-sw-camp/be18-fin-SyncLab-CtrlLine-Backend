@@ -55,6 +55,8 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
 
+import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
+import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
@@ -105,10 +107,13 @@ public class MesTelemetryListener {
     private static final String NG_TYPES_FIELD = "types";
 
     private static final String STATE_FIELD = "state";
+    private static final String MACHINE_FIELD = "machine";
+    private static final String MACHINE_ID_FIELD = "machineId";
     private static final String TEMPERATURE_FIELD = "temperature";
     private static final String HUMIDITY_FIELD = "humidity";
 
     private final FactoryRepository factoryRepository;
+    private final EquipmentRepository equipmentRepository;
     private final MesPowerConsumptionService mesPowerConsumptionService;
     private final MesDefectiveService mesDefectiveService;
     private final MesAlarmService mesAlarmService;
@@ -192,8 +197,8 @@ public class MesTelemetryListener {
             accumulateEnergyUsage(timestamp, energyUsage, factoryId);
             return;
         }
-        if (isEquipmentStateRecord(valueNode)) {
-            persistEquipmentState(valueNode);
+        if (isEquipmentStateRecord(valueNode, recordKey)) {
+            persistEquipmentState(valueNode, recordKey);
         }
         if (isNgDefectiveRecord(valueNode)) {
             persistDefectiveRecord(valueNode, recordKey);
@@ -298,14 +303,18 @@ public class MesTelemetryListener {
         return extractEnvironmentPayload(valueNode) != null;
     }
 
-    private boolean isEquipmentStateRecord(JsonNode valueNode) {
+    private boolean isEquipmentStateRecord(JsonNode valueNode, String recordKey) {
         JsonNode statePayload = extractEquipmentStatePayload(valueNode);
-        if (statePayload == null || !statePayload.isObject()) {
+        if (!isEquipmentStatePayload(statePayload)) {
             return false;
         }
-        String equipmentCode = firstNonEmptyValue(statePayload, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
-        String state = firstNonEmptyValue(statePayload, STATE_FIELD);
-        return StringUtils.hasText(equipmentCode) && StringUtils.hasText(state);
+        if (hasAnyNonNull(statePayload, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE)) {
+            return true;
+        }
+        if (hasMachineReference(statePayload) || hasMachineReference(valueNode)) {
+            return true;
+        }
+        return StringUtils.hasText(recordKey);
     }
 
     private void persistDefectiveRecord(JsonNode valueNode, String recordKey) {
@@ -359,12 +368,12 @@ public class MesTelemetryListener {
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
     }
 
-    private void persistEquipmentState(JsonNode valueNode) {
+    private void persistEquipmentState(JsonNode valueNode, String recordKey) {
         JsonNode statePayload = extractEquipmentStatePayload(valueNode);
-        if (statePayload == null) {
+        if (!isEquipmentStatePayload(statePayload)) {
             return;
         }
-        EquipmentStatusTelemetryPayload payload = buildEquipmentStatePayload(statePayload);
+        EquipmentStatusTelemetryPayload payload = buildEquipmentStatePayload(statePayload, valueNode, recordKey);
         if (payload != null) {
             equipmentRuntimeStatusService.updateStatus(payload);
         }
@@ -506,18 +515,22 @@ public class MesTelemetryListener {
                 .build();
     }
 
-    private EquipmentStatusTelemetryPayload buildEquipmentStatePayload(JsonNode valueNode) {
-        if (valueNode == null || !valueNode.isObject()) {
+    private EquipmentStatusTelemetryPayload buildEquipmentStatePayload(JsonNode statePayload, JsonNode containerNode, String recordKey) {
+        if (statePayload == null || !statePayload.isObject()) {
             return null;
         }
-        String equipmentCode = firstNonEmptyValue(valueNode, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
-        String state = firstNonEmptyValue(valueNode, STATE_FIELD);
-        if (!StringUtils.hasText(equipmentCode) || !StringUtils.hasText(state)) {
+        String state = resolveStateFromPayload(statePayload);
+        if (!StringUtils.hasText(state)) {
             return null;
         }
-        String alarmLevel = firstNonEmptyValue(valueNode, ALARM_LEVEL_FIELD_CAMEL, ALARM_LEVEL_FIELD);
-        boolean alarmActive = firstBooleanValue(valueNode, "alarm_active", "alarmActive");
-        LocalDateTime eventTime = resolveEventTime(valueNode);
+        Optional<String> equipmentCodeOptional = resolveEquipmentCode(statePayload, containerNode, recordKey);
+        if (equipmentCodeOptional.isEmpty()) {
+            return null;
+        }
+        String equipmentCode = equipmentCodeOptional.get();
+        String alarmLevel = firstNonEmptyValue(statePayload, ALARM_LEVEL_FIELD_CAMEL, ALARM_LEVEL_FIELD);
+        boolean alarmActive = firstBooleanValue(statePayload, "alarm_active", "alarmActive");
+        LocalDateTime eventTime = resolveEventTime(statePayload);
         return new EquipmentStatusTelemetryPayload(
                 equipmentCode,
                 state,
@@ -525,6 +538,130 @@ public class MesTelemetryListener {
                 alarmActive,
                 eventTime
         );
+    }
+
+    private Optional<String> resolveEquipmentCode(JsonNode statePayload, JsonNode containerNode, String recordKey) {
+        String equipmentCode = firstNonEmptyValue(statePayload, EQUIPMENT_CODE_FIELD, EQUIPMENT_CODE_FIELD_SNAKE);
+        if (StringUtils.hasText(equipmentCode)) {
+            return Optional.of(equipmentCode);
+        }
+        Optional<String> machineDerived = resolveEquipmentCodeFromMachineReference(statePayload);
+        if (machineDerived.isPresent()) {
+            populateEquipmentCodeOnPayload(statePayload, machineDerived.get());
+            return machineDerived;
+        }
+        if (containerNode != null && containerNode != statePayload) {
+            machineDerived = resolveEquipmentCodeFromMachineReference(containerNode);
+            if (machineDerived.isPresent()) {
+                return machineDerived;
+            }
+        }
+        if (StringUtils.hasText(recordKey)) {
+            String derived = deriveEquipmentCode(containerNode, recordKey);
+            if (StringUtils.hasText(derived)) {
+                return Optional.of(derived);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> resolveEquipmentCodeFromMachineReference(JsonNode node) {
+        String machineReference = firstNonEmptyValue(node, MACHINE_FIELD, MACHINE_ID_FIELD);
+        if (!StringUtils.hasText(machineReference)) {
+            return Optional.empty();
+        }
+        return resolveEquipmentCodeFromMachine(machineReference);
+    }
+
+    private void populateEquipmentCodeOnPayload(JsonNode payload, String equipmentCode) {
+        if (!(payload instanceof ObjectNode) || !StringUtils.hasText(equipmentCode)) {
+            return;
+        }
+        ObjectNode objectNode = (ObjectNode) payload;
+        if (objectNode.hasNonNull(EQUIPMENT_CODE_FIELD) || objectNode.hasNonNull(EQUIPMENT_CODE_FIELD_SNAKE)) {
+            return;
+        }
+        objectNode.put(EQUIPMENT_CODE_FIELD, equipmentCode);
+    }
+
+    private Optional<String> resolveEquipmentCodeFromMachine(String machineReference) {
+        if (!StringUtils.hasText(machineReference)) {
+            return Optional.empty();
+        }
+        String[] rawSegments = machineReference.split("\\.");
+        List<String> segments = new ArrayList<>();
+        for (String raw : rawSegments) {
+            String trimmed = raw.trim();
+            if (StringUtils.hasText(trimmed)) {
+                segments.add(trimmed);
+            }
+        }
+        if (segments.size() < 3) {
+            return Optional.empty();
+        }
+        String lineCode = segments.get(1);
+        String equipmentName = segments.get(segments.size() - 1);
+        if (!StringUtils.hasText(lineCode) || !StringUtils.hasText(equipmentName)) {
+            return Optional.empty();
+        }
+        return equipmentRepository
+                .findFirstByLine_LineCodeIgnoreCaseAndEquipmentNameIgnoreCase(lineCode, equipmentName)
+                .map(Equipments::getEquipmentCode);
+    }
+
+    private String resolveStateFromPayload(JsonNode payload) {
+        if (payload == null) {
+            return null;
+        }
+        String state = firstNonEmptyValue(payload, STATE_FIELD);
+        if (StringUtils.hasText(state)) {
+            return state;
+        }
+        JsonNode valueNode = payload.get(VALUE_FIELD);
+        if (valueNode != null) {
+            if (valueNode.isValueNode()) {
+                String candidate = valueNode.asText().trim();
+                if (StringUtils.hasText(candidate)) {
+                    return candidate;
+                }
+            } else {
+                String nested = resolveStateFromPayload(valueNode);
+                if (StringUtils.hasText(nested)) {
+                    return nested;
+                }
+            }
+        }
+        return resolveStateFromTag(payload.path("tag").asText(null));
+    }
+
+    private String resolveStateFromTag(String tag) {
+        if (!StringUtils.hasText(tag)) {
+            return null;
+        }
+        if (!tag.toLowerCase().contains(STATE_FIELD)) {
+            return null;
+        }
+        int lastDot = tag.lastIndexOf('.');
+        if (lastDot < 0 || lastDot == tag.length() - 1) {
+            return null;
+        }
+        String candidate = tag.substring(lastDot + 1).trim();
+        if (!StringUtils.hasText(candidate) || STATE_FIELD.equalsIgnoreCase(candidate)) {
+            return null;
+        }
+        return candidate;
+    }
+
+    private boolean hasMachineReference(JsonNode node) {
+        return node != null && StringUtils.hasText(firstNonEmptyValue(node, MACHINE_FIELD, MACHINE_ID_FIELD));
+    }
+
+    private boolean isEquipmentStatePayload(JsonNode payload) {
+        if (payload == null || !payload.isObject()) {
+            return false;
+        }
+        // state can live in the state field itself or be embedded inside value/tag wrappers
+        return StringUtils.hasText(resolveStateFromPayload(payload));
     }
 
     private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode, String fallbackEquipmentCode) {
