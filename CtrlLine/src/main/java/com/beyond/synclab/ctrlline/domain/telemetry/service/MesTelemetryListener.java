@@ -55,6 +55,8 @@ import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryCon
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.TIMESTAMP_FIELD;
 import static com.beyond.synclab.ctrlline.domain.telemetry.constant.TelemetryConstants.VALUE_FIELD;
 
+import static java.util.Map.entry;
+
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
@@ -84,11 +86,14 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,6 +116,31 @@ public class MesTelemetryListener {
     private static final String MACHINE_ID_FIELD = "machineId";
     private static final String TEMPERATURE_FIELD = "temperature";
     private static final String HUMIDITY_FIELD = "humidity";
+    private static final Pattern ALPHA_NUMERIC_SEGMENT_PATTERN = Pattern.compile("^(?<prefix>[A-Za-z]+)(?<digits>\\d+)$");
+    private static final Pattern MACHINE_NAME_SEGMENT_PATTERN = Pattern.compile("^(?<name>[A-Za-z]+)(?<number>\\d+)$");
+    private static final Map<String, String> MACHINE_NAME_TO_PREFIX = initializeMachinePrefixMap();
+
+    private static Map<String, String> initializeMachinePrefixMap() {
+        return Map.ofEntries(
+                entry("TrayCleaner", "TCP"),
+                entry("TrayCleaning", "TCP"),
+                entry("FinalInspection", "FIP"),
+                entry("FormationUnit", "FAU"),
+                entry("ActivationUnit", "FAU"),
+                entry("AssemblyUnit", "AU"),
+                entry("Assembly", "AU"),
+                entry("ElectrodeUnit", "EU"),
+                entry("Electrode", "EU"),
+                entry("ModuleAssembly", "MAP"),
+                entry("ModuleAssemblyUnit", "MAP"),
+                entry("ModuleAndPack", "MAP"),
+                entry("ModuleAndPackUnit", "MAP"),
+                entry("CellCleaner", "CCP"),
+                entry("CellCleaning", "CCP"),
+                entry("Formation", "FAU"),
+                entry("Activation", "FAU")
+        );
+    }
 
     private final FactoryRepository factoryRepository;
     private final EquipmentRepository equipmentRepository;
@@ -588,14 +618,7 @@ public class MesTelemetryListener {
         if (!StringUtils.hasText(machineReference)) {
             return Optional.empty();
         }
-        String[] rawSegments = machineReference.split("\\.");
-        List<String> segments = new ArrayList<>();
-        for (String raw : rawSegments) {
-            String trimmed = raw.trim();
-            if (StringUtils.hasText(trimmed)) {
-                segments.add(trimmed);
-            }
-        }
+        List<String> segments = splitMachineReference(machineReference);
         if (segments.size() < 3) {
             return Optional.empty();
         }
@@ -604,9 +627,88 @@ public class MesTelemetryListener {
         if (!StringUtils.hasText(lineCode) || !StringUtils.hasText(equipmentName)) {
             return Optional.empty();
         }
-        return equipmentRepository
+        Optional<String> resolved = equipmentRepository
                 .findFirstByLine_LineCodeIgnoreCaseAndEquipmentNameIgnoreCase(lineCode, equipmentName)
                 .map(Equipments::getEquipmentCode);
+        if (resolved.isPresent()) {
+            return resolved;
+        }
+        return deriveEquipmentCodeFromMachinePattern(segments.get(0), lineCode, equipmentName);
+    }
+
+    private List<String> splitMachineReference(String machineReference) {
+        String[] rawSegments = machineReference.split("\\.");
+        List<String> segments = new ArrayList<>();
+        for (String raw : rawSegments) {
+            String trimmed = raw.trim();
+            if (StringUtils.hasText(trimmed)) {
+                segments.add(trimmed);
+            }
+        }
+        return segments;
+    }
+
+    private Optional<String> deriveEquipmentCodeFromMachinePattern(String factorySegment,
+                                                                   String lineSegment,
+                                                                   String machineSegment) {
+        String normalizedFactory = normalizeAlphaNumericSegment(factorySegment);
+        String normalizedLine = normalizeAlphaNumericSegment(lineSegment);
+        Optional<String> equipmentSuffix = convertMachineSegment(machineSegment);
+        if (!StringUtils.hasText(normalizedFactory) || !StringUtils.hasText(normalizedLine) || equipmentSuffix.isEmpty()) {
+            return Optional.empty();
+        }
+        String candidate = normalizedFactory + "-" + normalizedLine + "-" + equipmentSuffix.get();
+        return equipmentRepository.findByEquipmentCode(candidate)
+                .map(Equipments::getEquipmentCode);
+    }
+
+    private String normalizeAlphaNumericSegment(String segment) {
+        if (!StringUtils.hasText(segment)) {
+            return null;
+        }
+        Matcher matcher = ALPHA_NUMERIC_SEGMENT_PATTERN.matcher(segment.trim());
+        if (!matcher.matches()) {
+            return segment.trim().toUpperCase();
+        }
+        String prefix = matcher.group("prefix").toUpperCase();
+        String digits = matcher.group("digits");
+        int numeric = Integer.parseInt(digits);
+        return prefix + numeric;
+    }
+
+    private Optional<String> convertMachineSegment(String segment) {
+        if (!StringUtils.hasText(segment)) {
+            return Optional.empty();
+        }
+        Matcher matcher = MACHINE_NAME_SEGMENT_PATTERN.matcher(segment.trim());
+        if (!matcher.matches()) {
+            return Optional.empty();
+        }
+        String baseName = matcher.group("name");
+        String numberPart = matcher.group("number");
+        String prefix = MACHINE_NAME_TO_PREFIX.getOrDefault(baseName, derivePrefixFromName(baseName));
+        if (!StringUtils.hasText(prefix)) {
+            return Optional.empty();
+        }
+        String normalizedNumber = normalizeNumericSuffix(numberPart);
+        return Optional.of(prefix + normalizedNumber);
+    }
+
+    private String derivePrefixFromName(String baseName) {
+        if (!StringUtils.hasText(baseName)) {
+            return null;
+        }
+        String upper = baseName.toUpperCase(Locale.ROOT);
+        return upper.length() <= 3 ? upper : upper.substring(0, 3);
+    }
+
+    private String normalizeNumericSuffix(String numberPart) {
+        if (!StringUtils.hasText(numberPart)) {
+            return "";
+        }
+        int numeric = Integer.parseInt(numberPart);
+        int width = Math.max(3, numberPart.length());
+        return String.format("%0" + width + "d", numeric);
     }
 
     private String resolveStateFromPayload(JsonNode payload) {
