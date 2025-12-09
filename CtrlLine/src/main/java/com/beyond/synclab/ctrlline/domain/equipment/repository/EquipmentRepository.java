@@ -50,4 +50,7 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
             where e.equipmentCode = :equipmentCode
             """)
     Optional<EquipmentLocation> findLocationByEquipmentCode(String equipmentCode);
+
+    @Query("select e from Equipments e where upper(e.equipmentCode) like upper(concat(:codePrefix, '%')) order by e.equipmentCode")
+    List<Equipments> findAllByEquipmentCodePrefix(String codePrefix);
 }

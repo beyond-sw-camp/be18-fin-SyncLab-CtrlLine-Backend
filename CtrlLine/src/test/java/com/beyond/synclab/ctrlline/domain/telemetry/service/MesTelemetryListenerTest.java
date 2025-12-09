@@ -26,17 +26,25 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import java.util.stream.Stream;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -85,6 +93,7 @@ class MesTelemetryListenerTest {
         when(equipmentRepository.findFirstByLine_LineCodeIgnoreCaseAndEquipmentNameIgnoreCase(anyString(), anyString()))
                 .thenReturn(Optional.empty());
         when(equipmentRepository.findByEquipmentCode(anyString())).thenReturn(Optional.empty());
+        when(equipmentRepository.findAllByEquipmentCodePrefix(anyString())).thenReturn(Collections.emptyList());
     }
 
     @Test
@@ -213,6 +222,84 @@ class MesTelemetryListenerTest {
         ArgumentCaptor<EquipmentStatusTelemetryPayload> captor = ArgumentCaptor.forClass(EquipmentStatusTelemetryPayload.class);
         verify(equipmentRuntimeStatusService).updateStatus(captor.capture());
         assertThat(captor.getValue().equipmentCode()).isEqualTo("F2-CL2-FIP001");
+    }
+
+    @Test
+    void onTelemetry_mapsMachineNotationUsingOrderFallback() {
+        Equipments first = Equipments.builder().equipmentCode("F2-CL2-CCP007").build();
+        Equipments second = Equipments.builder().equipmentCode("F2-CL2-CCP008").build();
+        when(equipmentRepository.findAllByEquipmentCodePrefix("F2-CL2-CCP"))
+                .thenReturn(List.of(first, second));
+
+        String payload = """
+                {
+                  "records": [
+                    {
+                      "value": {
+                        "machine": "F0002.CL0002.CellCleaner01",
+                        "tag": "state",
+                        "value": {
+                          "state": "EXECUTE"
+                        }
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<EquipmentStatusTelemetryPayload> captor = ArgumentCaptor.forClass(EquipmentStatusTelemetryPayload.class);
+        verify(equipmentRuntimeStatusService).updateStatus(captor.capture());
+        assertThat(captor.getValue().equipmentCode()).isEqualTo("F2-CL2-CCP007");
+    }
+
+    @ParameterizedTest
+    @MethodSource("machineMappingCases")
+    void machineTelemetriesMapToRegisteredCodes(String machineReference, String prefix, List<String> registeredCodes, String expectedCode) {
+        List<Equipments> equipments = registeredCodes.stream()
+                .map(code -> Equipments.builder().equipmentCode(code).build())
+                .toList();
+        when(equipmentRepository.findAllByEquipmentCodePrefix(prefix)).thenReturn(equipments);
+        Set<String> codeSet = new HashSet<>(registeredCodes);
+        when(equipmentRepository.findByEquipmentCode(anyString())).thenAnswer(invocation -> {
+            String code = invocation.getArgument(0, String.class);
+            if (codeSet.contains(code)) {
+                return Optional.of(Equipments.builder().equipmentCode(code).build());
+            }
+            return Optional.empty();
+        });
+
+        String payload = String.format("{\"records\":[{\"value\":{\"machine\":\"%s\",\"tag\":\"state\",\"value\":{\"state\":\"EXECUTE\"}}}]}", machineReference);
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<EquipmentStatusTelemetryPayload> captor = ArgumentCaptor.forClass(EquipmentStatusTelemetryPayload.class);
+        verify(equipmentRuntimeStatusService).updateStatus(captor.capture());
+        assertThat(captor.getValue().equipmentCode()).isEqualTo(expectedCode);
+    }
+
+    private static Stream<Arguments> machineMappingCases() {
+        return Stream.of(
+                Arguments.of(
+                        "F0001.CL0001.CellCleaner01",
+                        "F1-CL1-CCP",
+                        List.of("F1-CL1-CCP001", "F1-CL1-CCP002"),
+                        "F1-CL1-CCP001"
+                ),
+                Arguments.of(
+                        "F0002.CL0002.CellCleaner01",
+                        "F2-CL2-CCP",
+                        List.of("F2-CL2-CCP007", "F2-CL2-CCP008"),
+                        "F2-CL2-CCP007"
+                ),
+                Arguments.of(
+                        "F0002.PL0002.FinalInspection01",
+                        "F2-PL2-FIP",
+                        List.of("F2-PL2-FIP009", "F2-PL2-FIP010"),
+                        "F2-PL2-FIP009"
+                )
+        );
     }
 
     @Test

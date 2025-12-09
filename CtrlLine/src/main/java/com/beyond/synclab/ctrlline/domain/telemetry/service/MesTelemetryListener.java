@@ -653,13 +653,24 @@ public class MesTelemetryListener {
                                                                    String machineSegment) {
         String normalizedFactory = normalizeAlphaNumericSegment(factorySegment);
         String normalizedLine = normalizeAlphaNumericSegment(lineSegment);
-        Optional<String> equipmentSuffix = convertMachineSegment(machineSegment);
-        if (!StringUtils.hasText(normalizedFactory) || !StringUtils.hasText(normalizedLine) || equipmentSuffix.isEmpty()) {
+        Optional<MachineSegmentMapping> segmentMapping = parseMachineSegment(machineSegment);
+        if (!StringUtils.hasText(normalizedFactory) || !StringUtils.hasText(normalizedLine) || segmentMapping.isEmpty()) {
             return Optional.empty();
         }
-        String candidate = normalizedFactory + "-" + normalizedLine + "-" + equipmentSuffix.get();
-        return equipmentRepository.findByEquipmentCode(candidate)
+        MachineSegmentMapping mapping = segmentMapping.get();
+        String candidate = normalizedFactory + "-" + normalizedLine + "-" + mapping.fullSuffix();
+        Optional<String> directMatch = equipmentRepository.findByEquipmentCode(candidate)
                 .map(Equipments::getEquipmentCode);
+        if (directMatch.isPresent()) {
+            return directMatch;
+        }
+        String codePrefix = normalizedFactory + "-" + normalizedLine + "-" + mapping.prefix();
+        List<Equipments> candidates = equipmentRepository.findAllByEquipmentCodePrefix(codePrefix);
+        int ordinal = mapping.ordinal() <= 0 ? 1 : mapping.ordinal();
+        if (!candidates.isEmpty() && ordinal <= candidates.size()) {
+            return Optional.ofNullable(candidates.get(ordinal - 1).getEquipmentCode());
+        }
+        return Optional.empty();
     }
 
     private String normalizeAlphaNumericSegment(String segment) {
@@ -676,7 +687,7 @@ public class MesTelemetryListener {
         return prefix + numeric;
     }
 
-    private Optional<String> convertMachineSegment(String segment) {
+    private Optional<MachineSegmentMapping> parseMachineSegment(String segment) {
         if (!StringUtils.hasText(segment)) {
             return Optional.empty();
         }
@@ -690,8 +701,9 @@ public class MesTelemetryListener {
         if (!StringUtils.hasText(prefix)) {
             return Optional.empty();
         }
+        int ordinal = toOrdinal(numberPart);
         String normalizedNumber = normalizeNumericSuffix(numberPart);
-        return Optional.of(prefix + normalizedNumber);
+        return Optional.of(new MachineSegmentMapping(prefix, normalizedNumber, ordinal));
     }
 
     private String derivePrefixFromName(String baseName) {
@@ -702,6 +714,17 @@ public class MesTelemetryListener {
         return upper.length() <= 3 ? upper : upper.substring(0, 3);
     }
 
+    private int toOrdinal(String numberPart) {
+        if (!StringUtils.hasText(numberPart)) {
+            return 1;
+        }
+        try {
+            return Integer.parseInt(numberPart);
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
     private String normalizeNumericSuffix(String numberPart) {
         if (!StringUtils.hasText(numberPart)) {
             return "";
@@ -709,6 +732,12 @@ public class MesTelemetryListener {
         int numeric = Integer.parseInt(numberPart);
         int width = Math.max(3, numberPart.length());
         return String.format("%0" + width + "d", numeric);
+    }
+
+    private record MachineSegmentMapping(String prefix, String normalizedNumber, int ordinal) {
+        private String fullSuffix() {
+            return prefix + normalizedNumber;
+        }
     }
 
     private String resolveStateFromPayload(JsonNode payload) {
