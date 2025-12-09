@@ -388,7 +388,8 @@ public class MesTelemetryListener {
 
     private void persistOrderSummary(JsonNode summaryNode, JsonNode containerNode, String recordKey) {
         String fallbackEquipmentCode = deriveEquipmentCode(containerNode, recordKey);
-        OrderSummaryTelemetryPayload payload = buildOrderSummaryPayload(summaryNode, fallbackEquipmentCode);
+        String machineIdentifier = deriveMachineIdentifier(containerNode, recordKey);
+        OrderSummaryTelemetryPayload payload = buildOrderSummaryPayload(summaryNode, fallbackEquipmentCode, machineIdentifier);
         if (payload == null) {
             log.warn("Order summary payload가 유효하지 않아 저장하지 않습니다. payload={}", summaryNode);
             return;
@@ -803,7 +804,7 @@ public class MesTelemetryListener {
         return StringUtils.hasText(resolveStateFromPayload(payload));
     }
 
-    private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode, String fallbackEquipmentCode) {
+    private OrderSummaryTelemetryPayload buildOrderSummaryPayload(JsonNode summaryNode, String fallbackEquipmentCode, String machineIdentifier) {
         String equipmentCode = firstNonEmptyValue(summaryNode,
                 ORDER_SUMMARY_EQUIPMENT_CODE_FIELD,
                 EQUIPMENT_CODE_FIELD,
@@ -831,9 +832,26 @@ public class MesTelemetryListener {
                 .defectiveQuantity(defectiveQuantity)
                 .orderNo(orderNo)
                 .status(status)
+                .machine(machineIdentifier)
                 .goodSerials(goodSerials)
                 .goodSerialsGzip(compressedSerials)
                 .build();
+    }
+
+    private String deriveMachineIdentifier(JsonNode containerNode, String recordKey) {
+        if (containerNode != null) {
+            JsonNode machineNode = containerNode.get(MACHINE_FIELD);
+            if (machineNode != null && machineNode.isTextual() && StringUtils.hasText(machineNode.asText())) {
+                return machineNode.asText();
+            }
+        }
+        if (StringUtils.hasText(recordKey)) {
+            int suffixIndex = recordKey.lastIndexOf('.');
+            if (suffixIndex > 0) {
+                return recordKey.substring(0, suffixIndex);
+            }
+        }
+        return null;
     }
 
     private String deriveEquipmentCode(JsonNode containerNode, String recordKey) {
