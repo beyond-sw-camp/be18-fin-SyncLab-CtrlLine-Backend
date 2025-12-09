@@ -1,12 +1,11 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.production.service.ProductionOrderService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanResolver;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -28,6 +27,7 @@ public class MesProductionPerformanceService {
     private final ProductionPlanRepository productionPlanRepository;
     private final ProductionPerformanceRepository productionPerformanceRepository;
     private final ProductionOrderService productionOrderService;
+    private final ProductionPlanResolver productionPlanResolver;
     private final Clock clock;
 
     @Transactional
@@ -49,11 +49,12 @@ public class MesProductionPerformanceService {
             return;
         }
 
-        ProductionPlans productionPlan = resolveProductionPlan(payload.orderNo());
-        if (productionPlan == null) {
+        Optional<ProductionPlans> planOptional = productionPlanResolver.resolveLatestPlan(payload.orderNo());
+        if (planOptional.isEmpty()) {
             log.warn("전표번호에 해당하는 생산계획을 찾을 수 없어 생산실적을 저장하지 않습니다. orderNo={}", payload.orderNo());
             return;
         }
+        ProductionPlans productionPlan = planOptional.get();
         BigDecimal producedQty = normalizeQuantity(payload.orderProducedQty());
         BigDecimal ngQty = normalizeQuantity(Optional.ofNullable(payload.ngCount()).orElse(BigDecimal.ZERO));
         BigDecimal totalQty = producedQty.add(ngQty);
@@ -94,11 +95,12 @@ public class MesProductionPerformanceService {
             return;
         }
 
-        ProductionPlans productionPlan = resolveProductionPlan(orderNo);
-        if (productionPlan == null) {
+        Optional<ProductionPlans> planOptional = productionPlanResolver.resolveLatestPlan(orderNo);
+        if (planOptional.isEmpty()) {
             log.warn("전표번호에 해당하는 생산계획을 찾을 수 없어 진행중 생산실적을 갱신하지 않습니다. orderNo={}", orderNo);
             return;
         }
+        ProductionPlans productionPlan = planOptional.get();
 
         BigDecimal normalizedProduced = normalizeQuantity(producedQty);
         BigDecimal normalizedNg = normalizeQuantity(Optional.ofNullable(ngQty).orElse(BigDecimal.ZERO));
@@ -179,15 +181,4 @@ public class MesProductionPerformanceService {
         return prefix + String.format("-%d", nextSeq);
     }
 
-    private ProductionPlans resolveProductionPlan(String orderNo) {
-        if (!StringUtils.hasText(orderNo)) {
-            return null;
-        }
-        Optional<ProductionPlans> runningPlan =
-                productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, PlanStatus.RUNNING);
-        if (runningPlan.isPresent()) {
-            return runningPlan.get();
-        }
-        return productionPlanRepository.findFirstByDocumentNoOrderByIdDesc(orderNo).orElse(null);
-    }
 }

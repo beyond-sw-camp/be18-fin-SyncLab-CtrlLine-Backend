@@ -60,6 +60,7 @@ import static java.util.Map.entry;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
+import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
@@ -148,6 +149,7 @@ public class MesTelemetryListener {
     private final MesDefectiveService mesDefectiveService;
     private final MesAlarmService mesAlarmService;
     private final MesProductionPerformanceService mesProductionPerformanceService;
+    private final LineFinalInspectionProgressService lineFinalInspectionProgressService;
     private final EquipmentRuntimeStatusService equipmentRuntimeStatusService;
     private final FactoryEnvironmentService factoryEnvironmentService;
 
@@ -396,6 +398,7 @@ public class MesTelemetryListener {
                 payload.producedQuantity(),
                 payload.defectiveQuantity());
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
+        lineFinalInspectionProgressService.updateFromSummary(payload);
         mesProductionPerformanceService.updateRunningProgress(
                 payload.orderNo(),
                 payload.producedQuantity(),
