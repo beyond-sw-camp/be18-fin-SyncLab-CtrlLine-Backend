@@ -106,7 +106,7 @@ class MesProductionPerformanceServiceTest {
 
         mesProductionPerformanceService.saveProductionPerformance(payload);
 
-        verify(productionPlanRepository, never()).findFirstByDocumentNoAndStatusOrderByIdDesc(any(), any());
+        verify(productionPlanResolver, never()).resolveLatestPlan(any());
         verify(productionPerformanceRepository, never()).save(any());
         verify(productionOrderService, never()).sendLineAck(any());
     }
