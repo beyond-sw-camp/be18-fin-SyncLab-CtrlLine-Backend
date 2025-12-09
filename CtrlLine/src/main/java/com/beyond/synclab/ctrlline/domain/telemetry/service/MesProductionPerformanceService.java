@@ -23,8 +23,6 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class MesProductionPerformanceService {
-
-    private final ProductionPlanRepository productionPlanRepository;
     private final ProductionPerformanceRepository productionPerformanceRepository;
     private final ProductionOrderService productionOrderService;
     private final ProductionPlanResolver productionPlanResolver;
