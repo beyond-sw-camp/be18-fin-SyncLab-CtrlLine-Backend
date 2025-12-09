@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
@@ -60,11 +61,15 @@ class MesTelemetryListenerTest {
     @Mock
     private FactoryRepository factoryRepository;
 
+    @Mock
+    private EquipmentRepository equipmentRepository;
+
     @BeforeEach
     void setUp() {
         listener = new MesTelemetryListener(
                 new ObjectMapper(),
                 factoryRepository,
+                equipmentRepository,
                 mesPowerConsumptionService,
                 mesDefectiveService,
                 mesAlarmService,
