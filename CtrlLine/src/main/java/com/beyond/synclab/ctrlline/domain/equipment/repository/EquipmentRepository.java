@@ -15,6 +15,8 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
 
     Optional<Equipments> findByEquipmentCode(String equipmentCode);
 
+    Optional<Equipments> findFirstByLine_LineCodeIgnoreCaseAndEquipmentNameIgnoreCase(String lineCode, String equipmentName);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Equipments e where e.equipmentCode = :equipmentCode")
     Optional<Equipments> findByEquipmentCodeForUpdate(String equipmentCode);
