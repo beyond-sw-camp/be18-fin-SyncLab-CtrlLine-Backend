@@ -19,6 +19,7 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
+import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
@@ -64,6 +65,9 @@ class MesTelemetryListenerTest {
     private MesProductionPerformanceService mesProductionPerformanceService;
 
     @Mock
+    private LineFinalInspectionProgressService lineFinalInspectionProgressService;
+
+    @Mock
     private EquipmentRuntimeStatusService equipmentRuntimeStatusService;
 
     @Mock
@@ -87,6 +91,7 @@ class MesTelemetryListenerTest {
                 mesDefectiveService,
                 mesAlarmService,
                 mesProductionPerformanceService,
+                lineFinalInspectionProgressService,
                 equipmentRuntimeStatusService,
                 factoryEnvironmentService
         );
