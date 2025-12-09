@@ -396,6 +396,10 @@ public class MesTelemetryListener {
                 payload.producedQuantity(),
                 payload.defectiveQuantity());
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
+        mesProductionPerformanceService.updateRunningProgress(
+                payload.orderNo(),
+                payload.producedQuantity(),
+                payload.defectiveQuantity());
     }
 
     private void persistEquipmentState(JsonNode valueNode, String recordKey) {
