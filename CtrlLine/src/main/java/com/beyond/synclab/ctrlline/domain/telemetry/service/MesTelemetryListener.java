@@ -436,6 +436,7 @@ public class MesTelemetryListener {
                 payload.occurredAt(),
                 payload.clearedAt());
         mesAlarmService.saveAlarmTelemetry(payload);
+        equipmentRuntimeStatusService.applyAlarm(payload);
     }
 
     private AlarmTelemetryPayload buildAlarmPayload(JsonNode valueNode) {
