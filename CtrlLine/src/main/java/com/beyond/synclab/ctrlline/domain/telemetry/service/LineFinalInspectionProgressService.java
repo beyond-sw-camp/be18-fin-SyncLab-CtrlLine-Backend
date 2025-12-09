@@ -30,38 +30,37 @@ public class LineFinalInspectionProgressService {
     private final Map<String, LineProgressSnapshot> snapshots = new ConcurrentHashMap<>();
 
     public void updateFromSummary(OrderSummaryTelemetryPayload payload) {
-        if (payload == null) return;
-        String equipmentCode = payload.equipmentCode();
-        if (!StringUtils.hasText(equipmentCode)) {
+        if (payload == null) {
             return;
         }
-        Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode).orElse(null);
-        if (!isFinalInspection(equipment)) {
-            return;
-        }
-        EquipmentLocation location = equipmentRepository.findLocationByEquipmentCode(equipmentCode).orElse(null);
-        if (location == null || !StringUtils.hasText(location.lineCode())) {
-            return;
-        }
-        String lineCode = location.lineCode();
         String orderNo = payload.orderNo();
         if (!StringUtils.hasText(orderNo)) {
             return;
         }
-        BigDecimal producedQty = Optional.ofNullable(payload.producedQuantity()).orElse(BigDecimal.ZERO);
 
-        machineProgress.compute(lineCode, (key, existing) -> {
+        Optional<MachineIdentity> identity = resolveMachineIdentity(payload);
+        if (identity.isEmpty()) {
+            return;
+        }
+        MachineIdentity machineId = identity.get();
+        if (!isFinalInspectionMachine(machineId)) {
+            return;
+        }
+
+        BigDecimal producedQty = Optional.ofNullable(payload.producedQuantity()).orElse(BigDecimal.ZERO);
+        String lineKey = buildLineKey(machineId.factoryCode(), machineId.lineCode());
+        machineProgress.compute(lineKey, (key, existing) -> {
             Map<String, BigDecimal> machines;
             if (existing == null || !Objects.equals(existing.orderNo, orderNo)) {
                 machines = new HashMap<>();
             } else {
                 machines = new HashMap<>(existing.machineProduced);
             }
-            machines.put(equipmentCode, producedQty);
+            machines.put(machineId.equipmentCode(), producedQty);
             return new LineMachineProgress(orderNo, machines);
         });
 
-        LineMachineProgress updatedProgress = machineProgress.get(lineCode);
+        LineMachineProgress updatedProgress = machineProgress.get(lineKey);
         BigDecimal lineProduced = updatedProgress.machineProduced.values().stream()
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -70,9 +69,10 @@ public class LineFinalInspectionProgressService {
                 .map(ProductionPlans::getPlannedQty)
                 .orElse(BigDecimal.ZERO);
 
-        snapshots.put(lineCode, new LineProgressSnapshot(
-                location.factoryCode(),
-                lineCode,
+        snapshots.put(lineKey, new LineProgressSnapshot(
+                machineId.factoryCode(),
+                machineId.lineCode(),
+                machineId.equipmentCode(),
                 orderNo,
                 lineProduced,
                 targetQty,
@@ -107,9 +107,61 @@ public class LineFinalInspectionProgressService {
         return StringUtils.hasText(name) && name.toLowerCase().contains("finalinspection");
     }
 
+    private Optional<MachineIdentity> resolveMachineIdentity(OrderSummaryTelemetryPayload payload) {
+        String machine = payload.machine();
+        MachineIdentity identity = parseMachine(machine);
+        if (identity != null) {
+            return Optional.of(identity);
+        }
+        String equipmentCode = payload.equipmentCode();
+        if (!StringUtils.hasText(equipmentCode)) {
+            return Optional.empty();
+        }
+        Equipments equipment = equipmentRepository.findByEquipmentCode(equipmentCode).orElse(null);
+        if (equipment == null || !isFinalInspection(equipment)) {
+            return Optional.empty();
+        }
+        EquipmentLocation location = equipmentRepository.findLocationByEquipmentCode(equipmentCode).orElse(null);
+        if (location == null || !StringUtils.hasText(location.lineCode())) {
+            return Optional.empty();
+        }
+        return Optional.of(new MachineIdentity(
+                location.factoryCode(),
+                location.lineCode(),
+                equipmentCode
+        ));
+    }
+
+    private MachineIdentity parseMachine(String machine) {
+        if (!StringUtils.hasText(machine)) {
+            return null;
+        }
+        String[] parts = machine.split("\\.");
+
+        if (parts.length < 3) {
+            return null;
+        }
+        return new MachineIdentity(parts[0], parts[1], parts[2]);
+    }
+
+    private boolean isFinalInspectionMachine(MachineIdentity identity) {
+        if (identity == null) {
+            return false;
+        }
+        String equipmentPart = identity.equipmentCode();
+        return StringUtils.hasText(equipmentPart) && equipmentPart.toLowerCase().contains("finalinspection");
+    }
+
+    private String buildLineKey(String factoryCode, String lineCode) {
+        return StringUtils.hasText(factoryCode)
+                ? factoryCode + ":" + lineCode
+                : ":" + lineCode;
+    }
+
     private record LineProgressSnapshot(
             String factoryCode,
             String lineCode,
+            String equipmentCode,
             String orderNo,
             BigDecimal producedQty,
             BigDecimal targetQty,
@@ -125,4 +177,10 @@ public class LineFinalInspectionProgressService {
             this.machineProduced = machineProduced;
         }
     }
+
+    private record MachineIdentity(
+            String factoryCode,
+            String lineCode,
+            String equipmentCode
+    ) {}
 }
