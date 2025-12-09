@@ -1,5 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.serial.storage;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -77,7 +79,16 @@ public class LocalSerialStorageService implements SerialStorageService {
             InputStreamReader reader = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8);
             BufferedReader bufferedReader = new BufferedReader(reader)) {
 
-            return bufferedReader.lines().toList();
+            String content = bufferedReader.lines().reduce("", (a, b) -> a + b).trim();
+
+            // JSON 배열이면 Jackson으로 파싱
+            if (content.startsWith("[") && content.endsWith("]")) {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.readValue(content, new TypeReference<List<String>>() {});
+            }
+
+            // 만약 JSON array가 아니면, 줄 단위 split
+            return List.of(content.split("\\R"));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to read gzip serial file: " + path, ex);
         }
