@@ -105,11 +105,16 @@ public class LotQueryRepositoryImpl implements LotQueryRepository {
                 .where(
                         lotNoContains(condition.getLotNo()),
                         itemCodeContains(condition.getItemCode()),
+                        itemNameContains(condition.getItemName()),
                         factoryCodeEq(condition.getFactoryCode()),
+                        factoryNameContains(condition.getFactoryName()),
                         lineCodeEq(condition.getLineCode()),
+                        lineNameContains(condition.getLineName()),
                         productionManagerNoEq(condition.getProductionManagerNo()),
+                        productionManagerNameContains(condition.getProductionManagerName()),
                         isDeletedEq(condition.getIsDeleted()),
                         performanceDocumentNoContains(condition.getPerformanceDocumentNo()),
+                        defectiveDocumentNoContains(condition.getDefectiveDocumentNo()),
                         createdAtBetween(condition.getCreatedAtFrom(), condition.getCreatedAtTo()),
                         updatedAtBetween(condition.getUpdatedAtFrom(), condition.getUpdatedAtTo())
                 )
@@ -132,11 +137,16 @@ public class LotQueryRepositoryImpl implements LotQueryRepository {
                 .where(
                         lotNoContains(condition.getLotNo()),
                         itemCodeContains(condition.getItemCode()),
+                        itemNameContains(condition.getItemName()),
                         factoryCodeEq(condition.getFactoryCode()),
+                        factoryNameContains(condition.getFactoryName()),
                         lineCodeEq(condition.getLineCode()),
+                        lineNameContains(condition.getLineName()),
                         productionManagerNoEq(condition.getProductionManagerNo()),
+                        productionManagerNameContains(condition.getProductionManagerName()),
                         isDeletedEq(condition.getIsDeleted()),
                         performanceDocumentNoContains(condition.getPerformanceDocumentNo()),
+                        defectiveDocumentNoContains(condition.getDefectiveDocumentNo()),
                         createdAtBetween(condition.getCreatedAtFrom(), condition.getCreatedAtTo()),
                         updatedAtBetween(condition.getUpdatedAtFrom(), condition.getUpdatedAtTo())
                 );
@@ -153,9 +163,19 @@ public class LotQueryRepositoryImpl implements LotQueryRepository {
         return (itemCode == null || itemCode.isEmpty()) ? null : QItems.items.itemCode.contains(itemCode);
     }
 
+    private BooleanExpression itemNameContains(String itemName) {
+        return (itemName == null || itemName.isEmpty())
+                ? null : QItems.items.itemName.contains(itemName);
+    }
+
     private BooleanExpression factoryCodeEq(String factoryCode) {
         return (factoryCode == null || factoryCode.isEmpty())
                 ? null : QFactories.factories.factoryCode.eq(factoryCode);
+    }
+
+    private BooleanExpression factoryNameContains(String factoryName) {
+        return (factoryName == null || factoryName.isEmpty())
+                ? null : QFactories.factories.factoryName.contains(factoryName);
     }
 
     private BooleanExpression lineCodeEq(String lineCode) {
@@ -163,9 +183,20 @@ public class LotQueryRepositoryImpl implements LotQueryRepository {
                 ? null : QLines.lines.lineCode.eq(lineCode);
     }
 
+    private BooleanExpression lineNameContains(String lineName) {
+        return (lineName == null || lineName.isEmpty())
+                ? null : QLines.lines.lineName.contains(lineName);
+    }
+
     private BooleanExpression productionManagerNoEq(String managerNo) {
         return (managerNo == null || managerNo.isEmpty())
                 ? null : QUsers.users.empNo.eq(managerNo);
+    }
+
+    private BooleanExpression productionManagerNameContains(String name) {
+        return (name == null || name.isEmpty())
+                ? null
+                : new QUsers("prodManager").name.contains(name);
     }
 
     private BooleanExpression isDeletedEq(Boolean isDeleted) {
@@ -212,5 +243,11 @@ public class LotQueryRepositoryImpl implements LotQueryRepository {
         return (docNo == null || docNo.isBlank())
                 ? null
                 : QProductionPerformances.productionPerformances.performanceDocumentNo.contains(docNo);
+    }
+
+    private BooleanExpression defectiveDocumentNoContains(String defectiveDocumentNo) {
+        return (defectiveDocumentNo == null || defectiveDocumentNo.isEmpty())
+                ? null
+                : QProductionPerformances.productionPerformances.performanceDocumentNo.contains(defectiveDocumentNo);
     }
 }

@@ -37,6 +37,7 @@ import java.util.Map;
 public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerformanceQueryRepository {
 
     private final JPAQueryFactory queryFactory;
+    private static final String PROD_MANAGER_ALIAS = "prodManager";
 
     @Override
     public Page<GetProductionPerformanceListResponseDto> searchProductionPerformanceList(
@@ -50,7 +51,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
         QItemsLines itemLine = QItemsLines.itemsLines;
         QItems item = QItems.items;
         QUsers salesManager = QUsers.users;
-        QUsers prodManager = new QUsers("prodManager");
+        QUsers prodManager = new QUsers(PROD_MANAGER_ALIAS);
         QLots lot = QLots.lots;
 
         // 정렬 매핑
@@ -111,10 +112,15 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         documentDateBetween(condition.getDocumentDateFrom(), condition.getDocumentDateTo()),
                         planDocumentNoContains(condition.getProductionPlanDocumentNo()),
                         itemCodeContains(condition.getItemCode()),
+                        itemNameContains(condition.getItemName()),
                         factoryCodeEq(condition.getFactoryCode()),
+                        factoryNameContains(condition.getFactoryName()),
                         lineCodeEq(condition.getLineCode()),
+                        lineNameContains(condition.getLineName()),
                         salesManagerEmpNoEq(condition.getSalesManagerNo()),
+                        salesManagerNameContains(condition.getSalesManagerName()),
                         producerManagerEmpNoEq(condition.getProducerManagerNo()),
+                        producerManagerNameContains(condition.getProducerManagerName()),
                         remarkContains(condition.getRemark()),
                         startTimeBetween(condition.getStartTimeFrom(), condition.getStartTimeTo()),
                         endTimeBetween(condition.getEndTimeFrom(), condition.getEndTimeTo()),
@@ -145,10 +151,15 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         documentDateBetween(condition.getDocumentDateFrom(), condition.getDocumentDateTo()),
                         planDocumentNoContains(condition.getProductionPlanDocumentNo()),
                         itemCodeContains(condition.getItemCode()),
+                        itemNameContains(condition.getItemName()),
                         factoryCodeEq(condition.getFactoryCode()),
+                        factoryNameContains(condition.getFactoryName()),
                         lineCodeEq(condition.getLineCode()),
+                        lineNameContains(condition.getLineName()),
                         salesManagerEmpNoEq(condition.getSalesManagerNo()),
+                        salesManagerNameContains(condition.getSalesManagerName()),
                         producerManagerEmpNoEq(condition.getProducerManagerNo()),
+                        producerManagerNameContains(condition.getProducerManagerName()),
                         remarkContains(condition.getRemark()),
                         startTimeBetween(condition.getStartTimeFrom(), condition.getStartTimeTo()),
                         endTimeBetween(condition.getEndTimeFrom(), condition.getEndTimeTo()),
@@ -198,9 +209,19 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 ? null : QItems.items.itemCode.contains(itemCode);
     }
 
+    private BooleanExpression itemNameContains(String itemName) {
+        return (itemName == null || itemName.isEmpty())
+                ? null : QItems.items.itemName.contains(itemName);
+    }
+
     private BooleanExpression factoryCodeEq(String factoryCode) {
         return (factoryCode == null || factoryCode.isEmpty())
                 ? null : QFactories.factories.factoryCode.eq(factoryCode);
+    }
+
+    private BooleanExpression factoryNameContains(String factoryName) {
+        return (factoryName == null || factoryName.isEmpty())
+                ? null : QFactories.factories.factoryName.contains(factoryName);
     }
 
     private BooleanExpression lineCodeEq(String lineCode) {
@@ -208,14 +229,30 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 ? null : QLines.lines.lineCode.eq(lineCode);
     }
 
+    private BooleanExpression lineNameContains(String lineName) {
+        return (lineName == null || lineName.isEmpty())
+                ? null : QLines.lines.lineName.contains(lineName);
+    }
+
     private BooleanExpression salesManagerEmpNoEq(String empNo) {
         return (empNo == null || empNo.isEmpty())
                 ? null : QUsers.users.empNo.eq(empNo);
     }
 
+    private BooleanExpression salesManagerNameContains(String name) {
+        return (name == null || name.isEmpty())
+                ? null : QUsers.users.name.contains(name);
+    }
+
     private BooleanExpression producerManagerEmpNoEq(String empNo) {
         return (empNo == null || empNo.isEmpty())
-                ? null : new QUsers("prodManager").empNo.eq(empNo);
+                ? null : new QUsers(PROD_MANAGER_ALIAS).empNo.eq(empNo);
+    }
+
+    private BooleanExpression producerManagerNameContains(String name) {
+        QUsers prod = new QUsers(PROD_MANAGER_ALIAS);
+        return (name == null || name.isEmpty())
+                ? null : prod.name.contains(name);
     }
 
     private BooleanExpression lotNoContains(String lotNo) {

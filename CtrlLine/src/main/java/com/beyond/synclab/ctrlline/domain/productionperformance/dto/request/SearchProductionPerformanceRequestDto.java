@@ -15,8 +15,11 @@ public class SearchProductionPerformanceRequestDto {
     private String documentDateFrom;
     private String documentDateTo;
     private String factoryCode;
+    private String factoryName;
     private String lineCode;
+    private String lineName;
     private String itemCode;
+    private String itemName;
     private String productionPlanDocumentNo;
     private String defectiveDocumentNo;
     private String lotNo;
@@ -27,7 +30,9 @@ public class SearchProductionPerformanceRequestDto {
     private BigDecimal minDefectRate;
     private BigDecimal maxDefectRate;
     private String salesManagerNo;
+    private String salesManagerName;
     private String producerManagerNo;
+    private String producerManagerName;
     private String startTimeFrom;
     private String startTimeTo;
     private String endTimeFrom;
