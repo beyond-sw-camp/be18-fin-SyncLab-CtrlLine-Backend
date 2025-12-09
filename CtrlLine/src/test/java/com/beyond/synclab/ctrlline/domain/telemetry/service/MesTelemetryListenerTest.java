@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
@@ -77,6 +79,9 @@ class MesTelemetryListenerTest {
                 equipmentRuntimeStatusService,
                 factoryEnvironmentService
         );
+        when(equipmentRepository.findFirstByLine_LineCodeIgnoreCaseAndEquipmentNameIgnoreCase(anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        when(equipmentRepository.findByEquipmentCode(anyString())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -175,6 +180,36 @@ class MesTelemetryListenerTest {
         assertThat(saved.state()).isEqualTo("STARTING");
         assertThat(saved.alarmLevel()).isEqualTo("CRITICAL");
         assertThat(saved.alarmActive()).isTrue();
+    }
+
+    @Test
+    void onTelemetry_mapsMachineNotationToRegisteredEquipmentCode() {
+        Equipments equipment = Equipments.builder()
+                .equipmentCode("F2-CL2-FIP001")
+                .build();
+        when(equipmentRepository.findByEquipmentCode("F2-CL2-FIP001")).thenReturn(Optional.of(equipment));
+
+        String payload = """
+                {
+                  "records": [
+                    {
+                      "value": {
+                        "machine": "F0002.CL0002.FinalInspection01",
+                        "tag": "state",
+                        "value": {
+                          "state": "EXECUTE"
+                        }
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        listener.onTelemetry(consumerRecord(payload));
+
+        ArgumentCaptor<EquipmentStatusTelemetryPayload> captor = ArgumentCaptor.forClass(EquipmentStatusTelemetryPayload.class);
+        verify(equipmentRuntimeStatusService).updateStatus(captor.capture());
+        assertThat(captor.getValue().equipmentCode()).isEqualTo("F2-CL2-FIP001");
     }
 
     @Test
