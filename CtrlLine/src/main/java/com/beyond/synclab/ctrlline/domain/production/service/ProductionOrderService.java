@@ -1,23 +1,23 @@
 package com.beyond.synclab.ctrlline.domain.production.service;
 
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
-import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
-import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanDelayService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
-import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +35,7 @@ public class ProductionOrderService {
     private final LotGeneratorService lotGeneratorService;
     private final Clock clock;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
+    private final ProductionPlanDelayService productionPlanDelayService;
 
     @Transactional(readOnly = true)
     public ProductionOrderCommandResponse dispatchOrder(String factoryCode, String lineCode, ProductionOrderCommandRequest request) {
@@ -120,7 +121,7 @@ public class ProductionOrderService {
     }
 
     @Transactional
-    public void sendLineAck(ProductionPlans plan) {
+    public void sendLineAck(ProductionPlans plan, LocalDateTime performanceEndTime) {
         if (plan == null) {
             return;
         }
@@ -142,6 +143,9 @@ public class ProductionOrderService {
                     context.lineCode(),
                     request
             );
+
+            productionPlanDelayService.applyRealPerformanceDelay(plan, performanceEndTime);
+
             ProductionPlans.PlanStatus previousStatus = plan.getStatus();
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
             productionPlanRepository.save(plan);
