@@ -44,6 +44,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import jakarta.persistence.Tuple;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -88,6 +89,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final ProductionPerformanceRepository productionPerformanceRepository;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
     private final Clock clock;
+    private final ProductionPlanReconciliationService reconciliationService;
 
 
     private List<ProductionPlans> findAllActivePlans(Long lineId) {
@@ -138,8 +140,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
     }
 
-
-
     private void validateEndAndStartTime(LocalDateTime startTime) {
         if (startTime == null) return;
 
@@ -148,7 +148,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             throw new AppException(CommonErrorCode.INVALID_REQUEST);
         }
     }
-
 
     private void validateUpdatable(ProductionPlans plan) {
         if (plan == null) return;
@@ -314,18 +313,31 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             return insertEmergentPlan(productionPlan, line, processingEquips, user);
         }
 
+
+        // ------------------------------------------------------------
+        // 0. 기존 계획들 실적 기반 Reconcile 수행
+        // ------------------------------------------------------------
+        List<ProductionPlans> activePlans = findAllActivePlans(line.getId());
+        reconciliationService.reconcileWithActualEndTimes(activePlans);
+        // ------------------------------------------------------------
+
         // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
         // 종료 시각이 현재 이후 중에 최근
-        Optional<ProductionPlans> latestProdPlan = productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED, PlanStatus.RUNNING), LocalDateTime.now(clock)
-        );
+        Optional<ProductionPlans> latestProdPlan =
+            activePlans.isEmpty()
+                ? Optional.empty()
+                : Optional.of(activePlans.getLast());
 
         PlanStatus requestedStatus = user.isAdminRole() ? PlanStatus.CONFIRMED : PlanStatus.PENDING;
 
         productionPlan.updateStatus(requestedStatus);
 
         // 4. 시작 시간 계산
-        LocalDateTime startTime = calculateStartTime(latestProdPlan, requestedStatus);
+        LocalDateTime startTime = latestProdPlan
+            .map(ProductionPlans::getEndTime)
+            .orElse(LocalDateTime.now(clock).plusMinutes(
+                requestedStatus == PlanStatus.PENDING ? 30 : 10
+            ));
 
         // 5. 종료시간 설정
         LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
@@ -355,12 +367,16 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 0) 기존 계획 전체 조회
         List<ProductionPlans> dbPlans = findAllActivePlans(lineId);
 
+        reconciliationService.reconcileWithActualEndTimes(dbPlans);
+
         // Snapshot (Before)
         Map<Long, LocalDateTime> beforeStart = snapshotStart(dbPlans);
         Map<Long, LocalDateTime> beforeEnd   = snapshotEnd(dbPlans);
 
         // 1) 긴급계획 start/end 설정
         setEmergentPlanTime(newPlan, lineId, equipments);
+
+        newPlan.updateStatus(PlanStatus.CONFIRMED);
 
         // 2) fullPlans 구성
         List<ProductionPlans> fullPlans = buildFullPlanList(newPlan, dbPlans);
@@ -437,6 +453,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // BEFORE SNAPSHOT
         List<ProductionPlans> beforePlans = findAllActivePlans(line.getId());
+
+        reconciliationService.reconcileWithActualEndTimes(beforePlans);
+
         Map<Long, LocalDateTime> beforeStart = snapshotStart(beforePlans);
         Map<Long, LocalDateTime> beforeEnd   = snapshotEnd(beforePlans);
 
@@ -567,16 +586,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         List<Equipments> equips = equipmentRepository.findAllByLineId(lineId);
 
         return calculateEndTime(lineId, equips, dto.getPlannedQty(), newStart);
-    }
-
-    private LocalDateTime calculateStartTime(Optional<ProductionPlans> latestProdPlan, PlanStatus requestedStatus) {
-        // 조회된게 없을때, confirmed 면 10분뒤로 pending 이면 30분 뒤로 설정
-        return latestProdPlan.map(
-                ProductionPlans::getEndTime)
-            .orElseGet(() -> requestedStatus.equals(PlanStatus.PENDING)
-                ? LocalDateTime.now(clock).plusMinutes(30)
-                : LocalDateTime.now(clock).plusMinutes(10)
-            );
     }
 
     String createDocumentNo() {
@@ -828,7 +837,26 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.ASC, "startTime"));
 
-        return result.stream().map(GetProductionPlanScheduleResponseDto::fromEntity).toList();
+        // 1) 모든 planIds → 실제 종료시간 map 조회
+        List<Tuple> tuples =
+            productionPerformanceRepository.findLatestActualEndTimeTuples(
+                result.stream().map(ProductionPlans::getId).toList()
+            );
+
+        Map<Long, LocalDateTime> actualEndMap = tuples.stream()
+            .collect(Collectors.toMap(
+                t -> t.get("planId", Long.class),
+                t -> t.get("actualEnd", LocalDateTime.class)
+            ));
+
+        return result.stream()
+            .map(p -> {
+                    LocalDateTime actual = actualEndMap.get(p.getId());
+
+                    return GetProductionPlanScheduleResponseDto.fromEntity(p, actual);
+                }
+            )
+            .toList();
     }
 
     @Override
