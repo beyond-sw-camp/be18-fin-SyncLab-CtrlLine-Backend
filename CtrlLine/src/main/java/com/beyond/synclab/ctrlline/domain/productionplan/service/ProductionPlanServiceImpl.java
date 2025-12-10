@@ -891,6 +891,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 영속성 컨텍스트 초기화 후, 업데이트된 엔티티를 다시 조회
         List<ProductionPlans> updatedPlans = productionPlanRepository.findAllByIdIn(requestDto.getPlanIds());
 
+        for (ProductionPlans plan : updatedPlans) {
+            planStatusNotificationService.notifyStatusChange(plan, requestDto.getPlanStatus());
+        }
+
         return UpdateProductionPlanStatusResponseDto.builder()
             .planIds(updatedPlans.stream().map(ProductionPlans::getId).toList())
             .planStatus(requestDto.getPlanStatus())
