@@ -29,6 +29,7 @@ public class GetProductionPerformanceListResponseDto {
 
     private final String itemCode;
     private final String itemName;
+    private final String itemUnit;
 
     private final BigDecimal totalQty;
     private final BigDecimal performanceQty;
