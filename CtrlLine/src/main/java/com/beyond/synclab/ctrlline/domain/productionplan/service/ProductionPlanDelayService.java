@@ -32,8 +32,7 @@ public class ProductionPlanDelayService {
                 List.of(
                     ProductionPlans.PlanStatus.PENDING,
                     ProductionPlans.PlanStatus.CONFIRMED,
-                    ProductionPlans.PlanStatus.RUNNING,
-                    ProductionPlans.PlanStatus.COMPLETED
+                    ProductionPlans.PlanStatus.RUNNING
                 )
             );
 
