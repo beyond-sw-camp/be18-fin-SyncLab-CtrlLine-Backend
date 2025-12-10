@@ -190,6 +190,8 @@ class ProductionOrderServiceTest {
         verify(planDefectiveService).createPlanDefective(plan);
         verify(lotGeneratorService).createLot(plan);
         verify(productionPlanRepository).save(plan);
+        verify(lineFinalInspectionProgressService)
+                .initializeProgress(plan, "FC-001", "PS-001");
     }
 
     @Test
@@ -256,5 +258,47 @@ class ProductionOrderServiceTest {
         verify(productionPlanRepository).save(pendingPlan);
         verify(planStatusNotificationService).notifyStatusChange(pendingPlan, PlanStatus.PENDING);
         Mockito.verifyNoInteractions(miloProductionOrderClient);
+    }
+
+    @Test
+    @DisplayName("sendLineAck는 Milo에 ACK를 전송하고 진행률을 초기화한다")
+    void sendLineAck_clearsProgress() {
+        LocalDateTime now = LocalDateTime.now(fixedClock);
+        Lines line = Lines.builder().id(1L).lineCode("PS-001").factoryId(10L).build();
+        Items item = Items.builder()
+                .id(5L)
+                .itemCode("PRD-7782")
+                .itemName("Cell")
+                .itemUnit("EA")
+                .itemStatus(ItemStatus.FINISHED_PRODUCT)
+                .isActive(true)
+                .build();
+        ProductionPlans plan = ProductionPlans.builder()
+                .documentNo("2025-10-24-3")
+                .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(line).itemId(5L).item(item).build())
+                .startTime(now.minusMinutes(5))
+                .plannedQty(new java.math.BigDecimal("5000"))
+                .status(PlanStatus.RUNNING)
+                .build();
+
+        when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
+        when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
+        when(miloProductionOrderClient.dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class)))
+                .thenReturn(new MiloProductionOrderResponse(
+                        plan.getDocumentNo(),
+                        "PS-001",
+                        "PRD-7782",
+                        5_000,
+                        "2025-10-30T02:45:12Z"
+                ));
+
+        productionOrderService.sendLineAck(plan, now);
+
+        verify(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
+        verify(productionPlanDelayService).applyRealPerformanceDelay(plan, now);
+        verify(productionPlanRepository).save(plan);
+        verify(planStatusNotificationService).notifyStatusChange(plan, PlanStatus.RUNNING);
+        verify(lineFinalInspectionProgressService).clearProgress("FC-001", "PS-001");
+        assertThat(plan.getStatus()).isEqualTo(PlanStatus.COMPLETED);
     }
 }

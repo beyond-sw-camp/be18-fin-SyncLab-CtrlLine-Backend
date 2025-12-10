@@ -35,17 +35,10 @@ public class LineFinalInspectionProgressService {
     private final Map<String, LineMachineProgress> machineProgress = new ConcurrentHashMap<>();
     private final Map<String, LineProgressSnapshot> snapshots = new ConcurrentHashMap<>();
 
-    public void initializeProgress(ProductionPlans plan) {
-        if (plan == null || !StringUtils.hasText(plan.getDocumentNo())) {
+    public void initializeProgress(ProductionPlans plan, String factoryCode, String lineCode) {
+        if (plan == null || !StringUtils.hasText(plan.getDocumentNo()) || !StringUtils.hasText(lineCode)) {
             return;
         }
-        ItemsLines itemLine = plan.getItemLine();
-        Lines line = itemLine != null ? itemLine.getLine() : null;
-        if (line == null || !StringUtils.hasText(line.getLineCode())) {
-            return;
-        }
-        String factoryCode = line.getFactory() != null ? line.getFactory().getFactoryCode() : null;
-        String lineCode = line.getLineCode();
         String lineKey = buildLineKey(factoryCode, lineCode);
         machineProgress.put(lineKey, new LineMachineProgress(plan.getDocumentNo(), new HashMap<>()));
         snapshots.put(lineKey, new LineProgressSnapshot(
@@ -59,17 +52,11 @@ public class LineFinalInspectionProgressService {
         ));
     }
 
-    public void clearProgress(ProductionPlans plan) {
-        if (plan == null) {
+    public void clearProgress(String factoryCode, String lineCode) {
+        if (!StringUtils.hasText(lineCode)) {
             return;
         }
-        ItemsLines itemLine = plan.getItemLine();
-        Lines line = itemLine != null ? itemLine.getLine() : null;
-        if (line == null || !StringUtils.hasText(line.getLineCode())) {
-            return;
-        }
-        String factoryCode = line.getFactory() != null ? line.getFactory().getFactoryCode() : null;
-        String lineKey = buildLineKey(factoryCode, line.getLineCode());
+        String lineKey = buildLineKey(factoryCode, lineCode);
         machineProgress.remove(lineKey);
         snapshots.remove(lineKey);
     }
