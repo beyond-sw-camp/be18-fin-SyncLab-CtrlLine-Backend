@@ -151,8 +151,6 @@ public class ProductionOrderService {
                     request
             );
 
-            productionPlanDelayService.applyRealPerformanceDelay(plan, performanceEndTime);
-
             ProductionPlans.PlanStatus previousStatus = plan.getStatus();
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
             productionPlanRepository.save(plan);
@@ -161,6 +159,9 @@ public class ProductionOrderService {
                     context.factoryCode(),
                     context.lineCode()
             );
+
+            productionPlanDelayService.applyRealPerformanceDelay(plan, performanceEndTime);
+
         } catch (Exception ex) {
             log.error("Failed to send ACK for production plan documentNo={}", plan.getDocumentNo(), ex);
         }
