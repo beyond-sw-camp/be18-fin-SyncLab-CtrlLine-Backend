@@ -64,7 +64,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 "performanceDefectiveRate", perf.performanceDefectiveRate,
                 "factoryName", factory.factoryName,
                 "lineName", line.lineName,
-                "itemName", item.itemName
+                "itemName", item.itemName,
+                "createdAt",perf.createdAt
         );
 
         List<OrderSpecifier<?>> orders =
@@ -98,7 +99,8 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         defectiveQtyExpr,
                         perf.performanceDefectiveRate,
                         perf.remark,
-                        perf.isDeleted
+                        perf.isDeleted,
+                        perf.createdAt
                 ))
                 .from(perf)
                 .leftJoin(perf.productionPlan, plan)
