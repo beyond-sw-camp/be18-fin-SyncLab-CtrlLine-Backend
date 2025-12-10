@@ -139,21 +139,14 @@
 
 ## 7. 데이터베이스 설계 (ERD)
 
-### ERD
+
 [ERD CLOUD](https://www.erdcloud.com/d/jjkxNEWa6Ge7FTSy9)
 
-<details>
-  
-<!-- ![erd](docs/images/ERD2.png) -->
 
-</details>
 <br>
-
-<br/>
 
 
 ## 8. 화면 기능 설계서
-
 
 [화면 기능 설계서](https://www.figma.com/design/jo6faqqTZK320fXP527dob/CtrlLine?node-id=0-1&t=8yKKimKnYCLoXNiW-1)
 
