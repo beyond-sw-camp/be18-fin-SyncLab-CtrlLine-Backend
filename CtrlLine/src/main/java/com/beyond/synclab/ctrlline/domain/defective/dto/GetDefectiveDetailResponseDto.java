@@ -35,15 +35,20 @@ public class GetDefectiveDetailResponseDto {
     @JsonProperty("defectives")
     private List<DefectiveItem> defectiveItems;
 
-    public static GetDefectiveDetailResponseDto fromEntity(PlanDefectives planDefectives, List<PlanDefectiveXrefs> planDefectiveXrefs) {
+    public static GetDefectiveDetailResponseDto fromEntity(
+            PlanDefectives planDefectives,
+            List<PlanDefectiveXrefs> planDefectiveXrefs,
+            String performanceDocNo,
+            String lotNo
+    ) {
         BigDecimal totalDefectiveQty = planDefectiveXrefs.stream().map(
-            PlanDefectiveXrefs::getDefectiveQty).reduce(BigDecimal.ZERO, BigDecimal::add);
+        PlanDefectiveXrefs::getDefectiveQty).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return GetDefectiveDetailResponseDto.builder()
             .id(planDefectives.getId())
             .defectiveDocNo(planDefectives.getDefectiveDocumentNo())
-            .performanceDocNo(planDefectives.getProductionPlan().getProductionPerformance().getPerformanceDocumentNo())
-            .lotNo(planDefectives.getProductionPlan().getLot().getLotNo())
+            .performanceDocNo(performanceDocNo)
+            .lotNo(lotNo)
             .factoryCode(planDefectives.getProductionPlan().getItemLine().getLine().getFactory().getFactoryCode())
             .factoryName(planDefectives.getProductionPlan().getItemLine().getLine().getFactory().getFactoryName())
             .lineCode(planDefectives.getProductionPlan().getItemLine().getLine().getLineCode())

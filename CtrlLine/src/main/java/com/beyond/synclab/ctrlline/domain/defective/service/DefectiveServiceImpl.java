@@ -1,25 +1,24 @@
 package com.beyond.synclab.ctrlline.domain.defective.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveAllResponseDto;
-import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveListResponseDto;
-import com.beyond.synclab.ctrlline.domain.defective.dto.GetDefectiveTypesResponseDto;
-import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveAllRequestDto;
-import com.beyond.synclab.ctrlline.domain.defective.dto.SearchDefectiveListRequestDto;
+import com.beyond.synclab.ctrlline.domain.defective.dto.*;
 import com.beyond.synclab.ctrlline.domain.defective.errorcode.DefectiveErrorCode;
+import com.beyond.synclab.ctrlline.domain.lot.entity.Lots;
+import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.PlanDefectiveXrefRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -29,6 +28,7 @@ public class DefectiveServiceImpl implements DefectiveService {
     private final PlanDefectiveXrefRepository planDefectiveXrefRepository;
     private final PlanDefectiveRepository planDefectiveRepository;
     private final ProductionPerformanceRepository productionPerformanceRepository;
+    private final LotRepository lotRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,7 +38,27 @@ public class DefectiveServiceImpl implements DefectiveService {
 
         List<PlanDefectiveXrefs> planDefectiveXrefList = planDefectiveXrefRepository.findAllByPlanDefectiveId(planDefectives.getId());
 
-        return GetDefectiveDetailResponseDto.fromEntity(planDefectives, planDefectiveXrefList);
+        Long planId = planDefectives.getProductionPlan().getId();
+
+        ProductionPerformances performance =
+                productionPerformanceRepository.findByProductionPlanId(planId)
+                        .orElse(null);
+
+        String performanceDocNo =
+                (performance != null) ? performance.getPerformanceDocumentNo() : null;
+
+        Lots lot =
+                lotRepository.findByProductionPlanId(planId)
+                        .orElse(null);
+
+        String lotNo = (lot != null) ? lot.getLotNo() : null;
+
+        return GetDefectiveDetailResponseDto.fromEntity(
+                planDefectives,
+                planDefectiveXrefList,
+                performanceDocNo,
+                lotNo
+        );
     }
 
     @Override
