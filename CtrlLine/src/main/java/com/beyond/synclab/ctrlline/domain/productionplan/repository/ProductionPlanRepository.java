@@ -75,4 +75,14 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     ORDER BY p.startTime ASC
     """)
     List<ProductionPlans> findAllByLineCodeAndStatusInOrderByStartTimeAsc(String lineCode, List<PlanStatus> statuses);
+
+    @Query("""
+    select p
+    from ProductionPlans p
+    join ItemsLines il on p.itemLineId = il.id
+    where il.lineId = :lineId
+    and p.startTime >= :startTime
+    order by p.startTime asc
+""")
+    List<ProductionPlans> findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(Long lineId, @Param("startTime") LocalDateTime scheduledEnd);
 }

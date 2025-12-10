@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -56,12 +57,13 @@ public class MesProductionPerformanceService {
         BigDecimal ngQty = normalizeQuantity(Optional.ofNullable(payload.ngCount()).orElse(BigDecimal.ZERO));
         BigDecimal totalQty = producedQty.add(ngQty);
         BigDecimal defectiveRate = calculateDefectiveRate(totalQty, ngQty);
+        LocalDateTime endTime = payload.waitingAckAt();
 
         ProductionPerformances performance = productionPerformanceRepository
                 .findByProductionPlanId(productionPlan.getId())
                 .map(existing -> {
                     existing.updatePerformance(totalQty, producedQty, defectiveRate,
-                            payload.executeAt(), payload.waitingAckAt());
+                            payload.executeAt(), endTime);
                     return existing;
                 })
                 .orElseGet(() -> ProductionPerformances.builder()
@@ -72,7 +74,7 @@ public class MesProductionPerformanceService {
                         .performanceQty(producedQty)
                         .performanceDefectiveRate(defectiveRate)
                         .startTime(payload.executeAt())
-                        .endTime(payload.waitingAckAt())
+                        .endTime(endTime)
                         .remark(null)
                         .isDeleted(Boolean.FALSE)
                         .build());
@@ -82,7 +84,7 @@ public class MesProductionPerformanceService {
                 performance.getPerformanceDocumentNo(),
                 productionPlan.getDocumentNo());
 
-        productionOrderService.sendLineAck(productionPlan);
+        productionOrderService.sendLineAck(productionPlan, endTime);
     }
 
     private BigDecimal normalizeQuantity(BigDecimal quantity) {

@@ -91,7 +91,7 @@ class MesProductionPerformanceServiceTest {
         assertThat(saved.getEndTime()).isEqualTo(payload.waitingAckAt());
         assertThat(saved.getProductionPlan()).isSameAs(plan);
 
-        verify(productionOrderService).sendLineAck(plan);
+        verify(productionOrderService).sendLineAck(plan, LocalDateTime.of(2025, 11, 19, 10, 15));
     }
 
     @Test
@@ -108,6 +108,6 @@ class MesProductionPerformanceServiceTest {
 
         verify(productionPlanResolver, never()).resolveLatestPlan(any());
         verify(productionPerformanceRepository, never()).save(any());
-        verify(productionOrderService, never()).sendLineAck(any());
+        verify(productionOrderService, never()).sendLineAck(any(), any());
     }
 }

@@ -18,6 +18,7 @@ import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandR
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanDelayService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -61,6 +62,9 @@ class ProductionOrderServiceTest {
     @Mock
     private ProductionPlanStatusNotificationService planStatusNotificationService;
 
+    @Mock
+    private ProductionPlanDelayService productionPlanDelayService;
+
     private Clock fixedClock;
 
     @InjectMocks
@@ -76,7 +80,8 @@ class ProductionOrderServiceTest {
                 planDefectiveService,
                 lotGeneratorService,
                 fixedClock,
-                planStatusNotificationService
+                planStatusNotificationService,
+                productionPlanDelayService
         );
     }
 
@@ -244,7 +249,7 @@ class ProductionOrderServiceTest {
 
         assertThat(pendingPlan.getStatus()).isEqualTo(PlanStatus.RETURNED);
         verify(productionPlanRepository).save(pendingPlan);
-        verify(planStatusNotificationService).notifyStatusChange(eq(pendingPlan), eq(PlanStatus.PENDING));
+        verify(planStatusNotificationService).notifyStatusChange(pendingPlan, PlanStatus.PENDING);
         Mockito.verifyNoInteractions(miloProductionOrderClient);
     }
 }
