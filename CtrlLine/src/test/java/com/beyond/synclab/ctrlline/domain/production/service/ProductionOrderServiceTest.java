@@ -296,7 +296,7 @@ class ProductionOrderServiceTest {
 
         verify(miloProductionOrderClient).dispatchOrder(eq("FC-001"), eq("PS-001"), any(MiloProductionOrderRequest.class));
         verify(productionPlanDelayService).applyRealPerformanceDelay(plan, now);
-        verify(productionPlanRepository).save(plan);
+        verify(productionPlanRepository).saveAndFlush(plan);
         verify(planStatusNotificationService).notifyStatusChange(plan, PlanStatus.RUNNING);
         verify(lineFinalInspectionProgressService).clearProgress("FC-001", "PS-001");
         assertThat(plan.getStatus()).isEqualTo(PlanStatus.COMPLETED);
