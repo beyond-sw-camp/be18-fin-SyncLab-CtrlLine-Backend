@@ -170,6 +170,10 @@ public class ProductionPlans {
         return this.dueDate.atStartOfDay().withHour(12);
     }
 
+    public boolean isRunning() {
+        return this.status.equals(PlanStatus.RUNNING);
+    }
+
     public enum PlanStatus {
         PENDING,
         CONFIRMED,

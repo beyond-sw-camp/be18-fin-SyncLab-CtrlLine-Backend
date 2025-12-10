@@ -43,6 +43,16 @@ public class UserAuthServiceImpl implements UserAuthService {
             throw new AppException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
+        // 내선번호 중복 체크
+        if (userRepository.existsByExtension(request.getExtension())) {
+            throw new AppException(AuthErrorCode.DUPLICATE_EXTENSION);
+        }
+
+        // 전화번호 중복 체크
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new AppException(AuthErrorCode.DUPLICATE_PHONE_NUMBER);
+        }
+
         Users user = request.toEntity(generateEmpNo(request.getHiredDate()), passwordEncoder.encode(request.getPassword()));
 
         userRepository.save(user);

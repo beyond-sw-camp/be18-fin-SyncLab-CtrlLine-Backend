@@ -31,7 +31,9 @@ public enum AuthErrorCode implements ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."),
 
     // 409
-    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "DUPLICATE_EMAIL", "이미 등록된 이메일입니다.");
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "DUPLICATE_EMAIL", "이미 등록된 이메일입니다."),
+    DUPLICATE_PHONE_NUMBER(HttpStatus.CONFLICT, "DUPLICATE_PHONE_NUMBER", "이미 등록된 전화번호 입니다."),
+    DUPLICATE_EXTENSION(HttpStatus.CONFLICT,"DUPLICATE_EXTENSION" , "이미 등록된 내선번호 입니다.");
 
 
     private final HttpStatus status;

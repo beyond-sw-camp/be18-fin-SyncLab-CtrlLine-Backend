@@ -60,7 +60,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -93,7 +92,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     private List<ProductionPlans> findAllActivePlans(Long lineId) {
         return productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-            lineId, List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+            lineId, List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED, PlanStatus.RUNNING)
         );
     }
 
@@ -318,7 +317,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
         // 종료 시각이 현재 이후 중에 최근
         Optional<ProductionPlans> latestProdPlan = productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-            line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDateTime.now(clock)
+            line.getLineCode(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED, PlanStatus.RUNNING), LocalDateTime.now(clock)
         );
 
         PlanStatus requestedStatus = user.isAdminRole() ? PlanStatus.CONFIRMED : PlanStatus.PENDING;
@@ -338,7 +337,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 6. 납기일 체크
         checkDueDate(productionPlan, endTime);
-
 
         return PlanScheduleChangeResponseDto.builder()
             .planId(productionPlan.getId())
@@ -488,6 +486,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
                     baseEnd = plan.getEndTime();
                 }
             }
+            else if (plan.isRunning()) {
+                baseEnd = plan.getEndTime();
+            }
             else {
                 // 밀어야 하는 경우 → updatedPlan 뒤로 위치 조정
                 LocalDateTime newStart = baseEnd;
@@ -524,8 +525,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
 
             // MANAGER → CONFIRMED 이동 금지
-            if (!isAdmin && plan.isConfirmed()) {
-                // CONFIRMED는 기존 시간 고정
+            // RUNNING 이동 금지
+            if ((!isAdmin && plan.isConfirmed()) || plan.isRunning()) {
                 current = plan.getEndTime();
                 continue;
             }
@@ -806,10 +807,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(
-        value = "productionPlanSchedule",
-        key = "T(com.beyond.synclab.ctrlline.common.util.CacheKeyUtil).getProductionPlanScheduleKey(#requestDto)"
-    )
     public List<GetProductionPlanScheduleResponseDto> getProductionPlanSchedule(
         GetProductionPlanScheduleRequestDto requestDto
     ) {

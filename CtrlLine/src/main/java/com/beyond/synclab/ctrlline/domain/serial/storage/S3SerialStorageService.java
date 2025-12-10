@@ -1,7 +1,10 @@
 package com.beyond.synclab.ctrlline.domain.serial.storage;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -83,9 +86,18 @@ public class S3SerialStorageService implements SerialStorageService {
                 .build()
         );
             GZIPInputStream gzipInputStream = new GZIPInputStream(s3Stream);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream))
+            BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8))
         ) {
-            return reader.lines().toList();
+            String content = reader.lines().reduce("", (a, b) -> a + b).trim();
+
+            // JSON 배열이면 Jackson 파싱
+            if (content.startsWith("[") && content.endsWith("]")) {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.readValue(content, new TypeReference<List<String>>() {});
+            }
+
+            // 아니면 줄 단위 split
+            return List.of(content.split("\\R"));
         } catch (Exception ex) {
             throw new IllegalStateException("S3 시리얼 파일 읽기 실패: " + path, ex);
         }
