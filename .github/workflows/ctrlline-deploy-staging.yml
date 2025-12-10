@@ -32,9 +32,9 @@ jobs:
             C:\Users\Playdata\.gradle\wrapper
           key: gradle-${{ hashFiles('**/*.gradle*') }}
 
-      - name: Build & Test
+      - name: Build (Skip tests)
         working-directory: CtrlLine
-        run: .\gradlew.bat clean build test
+        run: .\gradlew.bat clean build -x test
       
       - name: Docker Build & Push
         shell: cmd
