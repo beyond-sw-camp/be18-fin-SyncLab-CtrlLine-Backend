@@ -5,10 +5,13 @@ import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentReposito
 import com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentLocation;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanResolver;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.FactoryProgressDto;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.LineProgressDto;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -95,6 +99,42 @@ public class LineFinalInspectionProgressService {
                 .toList();
     }
 
+    public List<FactoryProgressDto> listFactoryProgress(String factoryCode) {
+        Map<String, List<LineProgressDto>> grouped = listProgress(null).stream()
+                .collect(Collectors.groupingBy(LineProgressDto::factoryCode));
+
+        return grouped.entrySet().stream()
+                .filter(entry -> factoryCode == null
+                        || factoryCode.equalsIgnoreCase(entry.getKey()))
+                .map(entry -> {
+                    List<LineProgressDto> lines = entry.getValue();
+                    BigDecimal totalProduced = lines.stream()
+                            .map(LineProgressDto::producedQty)
+                            .filter(Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    BigDecimal totalTarget = lines.stream()
+                            .map(LineProgressDto::targetQty)
+                            .filter(Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    long updatedAt = lines.stream()
+                            .mapToLong(LineProgressDto::updatedAt)
+                            .max()
+                            .orElse(0L);
+                    BigDecimal progressRate = calculateProgressRate(totalProduced, totalTarget);
+                    return FactoryProgressDto.of(
+                            entry.getKey(),
+                            totalProduced,
+                            totalTarget,
+                            progressRate,
+                            updatedAt,
+                            lines
+                    );
+                })
+                .sorted(Comparator.comparing(FactoryProgressDto::factoryCode,
+                        Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+    }
+
     private boolean isFinalInspection(Equipments equipment) {
         if (equipment == null) {
             return false;
@@ -150,6 +190,19 @@ public class LineFinalInspectionProgressService {
         }
         String equipmentPart = identity.equipmentCode();
         return StringUtils.hasText(equipmentPart) && equipmentPart.toLowerCase().contains("finalinspection");
+    }
+
+    private BigDecimal calculateProgressRate(BigDecimal produced, BigDecimal target) {
+        if (target == null || target.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal sanitizedProduced = (produced == null)
+                ? BigDecimal.ZERO
+                : produced.max(BigDecimal.ZERO);
+        return sanitizedProduced
+                .divide(target, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private String buildLineKey(String factoryCode, String lineCode) {
