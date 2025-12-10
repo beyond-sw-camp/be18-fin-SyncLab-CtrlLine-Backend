@@ -95,7 +95,11 @@ public class ProductionOrderService {
                 ProductionPlans.PlanStatus previousStatus = plan.getStatus();
                 plan.markDispatched();
                 planStatusNotificationService.notifyStatusChange(plan, previousStatus);
-                lineFinalInspectionProgressService.initializeProgress(plan);
+                lineFinalInspectionProgressService.initializeProgress(
+                        plan,
+                        context.factoryCode(),
+                        context.lineCode()
+                );
                 log.info("Production plan documentNo={} marked as RUNNING", plan.getDocumentNo());
                 planDefectiveService.createPlanDefective(plan);
                 lotGeneratorService.createLot(plan);
@@ -153,7 +157,10 @@ public class ProductionOrderService {
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
             productionPlanRepository.save(plan);
             planStatusNotificationService.notifyStatusChange(plan, previousStatus);
-            lineFinalInspectionProgressService.clearProgress(plan);
+            lineFinalInspectionProgressService.clearProgress(
+                    context.factoryCode(),
+                    context.lineCode()
+            );
         } catch (Exception ex) {
             log.error("Failed to send ACK for production plan documentNo={}", plan.getDocumentNo(), ex);
         }
