@@ -400,10 +400,6 @@ public class MesTelemetryListener {
                 payload.defectiveQuantity());
         mesDefectiveService.saveOrderSummaryTelemetry(payload);
         lineFinalInspectionProgressService.updateFromSummary(payload);
-        mesProductionPerformanceService.updateRunningProgress(
-                payload.orderNo(),
-                payload.producedQuantity(),
-                payload.defectiveQuantity());
     }
 
     private void persistEquipmentState(JsonNode valueNode, String recordKey) {
