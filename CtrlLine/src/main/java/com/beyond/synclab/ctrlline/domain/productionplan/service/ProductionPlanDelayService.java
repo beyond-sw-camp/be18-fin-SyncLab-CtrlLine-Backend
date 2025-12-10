@@ -19,36 +19,65 @@ public class ProductionPlanDelayService {
     @Transactional
     public void applyRealPerformanceDelay(ProductionPlans completedPlan, LocalDateTime actualEndTime) {
 
-        LocalDateTime scheduledEnd = completedPlan.getEndTime();
-        if (actualEndTime.isBefore(scheduledEnd)) {
-            return; // 지연 없음
-        }
 
-        long delayMinutes = Duration.between(scheduledEnd, actualEndTime).toMinutes();
-        if (delayMinutes <= 0) return;
+        if (completedPlan == null || actualEndTime == null) return;
 
         Long lineId = completedPlan.getItemLine().getLineId();
+        LocalDateTime scheduledEnd = completedPlan.getEndTime();
 
-        // 지연 영향을 받을 뒤 계획들 조회
-        List<ProductionPlans> futurePlans = productionPlanRepository
-            .findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(
-                lineId, scheduledEnd
+        // 해당 라인의 활성 계획 전체 조회 (뒤로 미루거나 당기려면 전체가 필요)
+        List<ProductionPlans> plans =
+            productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                lineId,
+                List.of(
+                    ProductionPlans.PlanStatus.PENDING,
+                    ProductionPlans.PlanStatus.CONFIRMED,
+                    ProductionPlans.PlanStatus.RUNNING,
+                    ProductionPlans.PlanStatus.COMPLETED
+                )
             );
 
-        LocalDateTime cursor = actualEndTime;
+        if (plans.isEmpty()) return;
 
-        for (ProductionPlans plan : futurePlans) {
-            Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
+        LocalDateTime cursor = null;
 
-            LocalDateTime newStart = cursor;
-            LocalDateTime newEnd = newStart.plus(duration);
+        for (ProductionPlans plan : plans) {
 
-            plan.updateStartTime(newStart);
-            plan.updateEndTime(newEnd);
+            // 1) COMPLETED → cursor 를 실제 또는 예정 종료시간 중 더 큰 값으로
+            if (plan.getId().equals(completedPlan.getId())) {
 
-            cursor = newEnd;
+                // 실제시간이 예정보다 늦음 → cursor = actualEnd
+                // 실제시간이 예정보다 빠름 → cursor = scheduledEnd
+                cursor = actualEndTime.isAfter(scheduledEnd)
+                    ? actualEndTime
+                    : scheduledEnd;
+
+                continue; // 본인 계획은 이동시키지 않음
+            }
+
+            if (cursor == null) {
+                // 아직 completedPlan 이전의 계획들 → 건드리지 않음
+                cursor = plan.getEndTime();
+            }
+
+            // 2) cursor 이후 계획들은 이동 대상
+            else if (plan.getStartTime().isBefore(cursor)) {
+
+                Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
+
+                LocalDateTime newStart = cursor;
+                LocalDateTime newEnd = newStart.plus(duration);
+
+                plan.updateStartTime(newStart);
+                plan.updateEndTime(newEnd);
+
+                cursor = newEnd;
+
+            } else {
+                cursor = plan.getEndTime();
+            }
         }
 
-        productionPlanRepository.saveAll(futurePlans);
+        productionPlanRepository.saveAll(plans);
     }
 }
