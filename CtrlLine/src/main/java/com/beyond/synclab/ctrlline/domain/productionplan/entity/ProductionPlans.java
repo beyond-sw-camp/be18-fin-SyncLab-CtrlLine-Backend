@@ -174,6 +174,10 @@ public class ProductionPlans {
         return this.status.equals(PlanStatus.RUNNING);
     }
 
+    public boolean isCompleted() {
+        return this.status.equals(PlanStatus.COMPLETED);
+    }
+
     public enum PlanStatus {
         PENDING,
         CONFIRMED,
