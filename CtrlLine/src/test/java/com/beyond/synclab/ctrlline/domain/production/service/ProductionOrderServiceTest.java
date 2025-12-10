@@ -31,6 +31,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.
 import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
 import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
+import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,9 @@ class ProductionOrderServiceTest {
     @Mock
     private ProductionPlanDelayService productionPlanDelayService;
 
+    @Mock
+    private LineFinalInspectionProgressService lineFinalInspectionProgressService;
+
     private Clock fixedClock;
 
     @InjectMocks
@@ -81,7 +85,8 @@ class ProductionOrderServiceTest {
                 lotGeneratorService,
                 fixedClock,
                 planStatusNotificationService,
-                productionPlanDelayService
+                productionPlanDelayService,
+                lineFinalInspectionProgressService
         );
     }
 

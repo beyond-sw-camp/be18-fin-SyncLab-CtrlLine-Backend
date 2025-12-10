@@ -14,6 +14,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPl
 import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanDelayService;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
+import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +37,7 @@ public class ProductionOrderService {
     private final Clock clock;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
     private final ProductionPlanDelayService productionPlanDelayService;
+    private final LineFinalInspectionProgressService lineFinalInspectionProgressService;
 
     @Transactional(readOnly = true)
     public ProductionOrderCommandResponse dispatchOrder(String factoryCode, String lineCode, ProductionOrderCommandRequest request) {
@@ -93,6 +95,7 @@ public class ProductionOrderService {
                 ProductionPlans.PlanStatus previousStatus = plan.getStatus();
                 plan.markDispatched();
                 planStatusNotificationService.notifyStatusChange(plan, previousStatus);
+                lineFinalInspectionProgressService.initializeProgress(plan);
                 log.info("Production plan documentNo={} marked as RUNNING", plan.getDocumentNo());
                 planDefectiveService.createPlanDefective(plan);
                 lotGeneratorService.createLot(plan);
@@ -150,6 +153,7 @@ public class ProductionOrderService {
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
             productionPlanRepository.save(plan);
             planStatusNotificationService.notifyStatusChange(plan, previousStatus);
+            lineFinalInspectionProgressService.clearProgress(plan);
         } catch (Exception ex) {
             log.error("Failed to send ACK for production plan documentNo={}", plan.getDocumentNo(), ex);
         }
