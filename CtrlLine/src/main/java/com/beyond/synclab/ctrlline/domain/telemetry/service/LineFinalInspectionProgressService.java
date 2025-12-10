@@ -3,6 +3,8 @@ package com.beyond.synclab.ctrlline.domain.telemetry.service;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentLocation;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanResolver;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.FactoryProgressDto;
@@ -32,6 +34,45 @@ public class LineFinalInspectionProgressService {
 
     private final Map<String, LineMachineProgress> machineProgress = new ConcurrentHashMap<>();
     private final Map<String, LineProgressSnapshot> snapshots = new ConcurrentHashMap<>();
+
+    public void initializeProgress(ProductionPlans plan) {
+        if (plan == null || !StringUtils.hasText(plan.getDocumentNo())) {
+            return;
+        }
+        ItemsLines itemLine = plan.getItemLine();
+        Lines line = itemLine != null ? itemLine.getLine() : null;
+        if (line == null || !StringUtils.hasText(line.getLineCode())) {
+            return;
+        }
+        String factoryCode = line.getFactory() != null ? line.getFactory().getFactoryCode() : null;
+        String lineCode = line.getLineCode();
+        String lineKey = buildLineKey(factoryCode, lineCode);
+        machineProgress.put(lineKey, new LineMachineProgress(plan.getDocumentNo(), new HashMap<>()));
+        snapshots.put(lineKey, new LineProgressSnapshot(
+                factoryCode,
+                lineCode,
+                null,
+                plan.getDocumentNo(),
+                BigDecimal.ZERO,
+                Optional.ofNullable(plan.getPlannedQty()).orElse(BigDecimal.ZERO),
+                Instant.now()
+        ));
+    }
+
+    public void clearProgress(ProductionPlans plan) {
+        if (plan == null) {
+            return;
+        }
+        ItemsLines itemLine = plan.getItemLine();
+        Lines line = itemLine != null ? itemLine.getLine() : null;
+        if (line == null || !StringUtils.hasText(line.getLineCode())) {
+            return;
+        }
+        String factoryCode = line.getFactory() != null ? line.getFactory().getFactoryCode() : null;
+        String lineKey = buildLineKey(factoryCode, line.getLineCode());
+        machineProgress.remove(lineKey);
+        snapshots.remove(lineKey);
+    }
 
     public void updateFromSummary(OrderSummaryTelemetryPayload payload) {
         if (payload == null) {
