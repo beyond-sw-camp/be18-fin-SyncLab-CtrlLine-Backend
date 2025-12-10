@@ -35,12 +35,12 @@ public class UserServiceImpl implements UserService {
             UserSpecification.userStatusEquals(command.userStatus()),
             UserSpecification.userNameContains(command.userName()),
             UserSpecification.userEmpNoContains(command.userEmpNo()),
-            UserSpecification.userRoleEquals(command.userRole()),
             UserSpecification.userPositionEquals(command.userPosition()),
             UserSpecification.userPhoneNumberContains(command.userPhoneNumber()),
             UserSpecification.userEmailContains(command.userEmail()),
             UserSpecification.userHiredDateAfter(command.hiredDate()),
-            UserSpecification.userTerminationDateBefore(command.terminationDate())
+            UserSpecification.userTerminationDateBefore(command.terminationDate()),
+            UserSpecification.userRoleIn(command.userRole())
         );
 
         return userRepository.findAll(spec, pageable)
