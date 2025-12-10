@@ -19,48 +19,28 @@ public class ProductionPlanDelayService {
     @Transactional
     public void applyRealPerformanceDelay(ProductionPlans completedPlan, LocalDateTime actualEndTime) {
 
-
         if (completedPlan == null || actualEndTime == null) return;
 
         Long lineId = completedPlan.getItemLine().getLineId();
+
         LocalDateTime scheduledEnd = completedPlan.getEndTime();
 
-        // 해당 라인의 활성 계획 전체 조회 (뒤로 미루거나 당기려면 전체가 필요)
-        List<ProductionPlans> plans =
-            productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+        // "뒤" 계획들만 조회
+        List<ProductionPlans> futurePlans = productionPlanRepository
+            .findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(
                 lineId,
-                List.of(
-                    ProductionPlans.PlanStatus.PENDING,
-                    ProductionPlans.PlanStatus.CONFIRMED,
-                    ProductionPlans.PlanStatus.RUNNING
-                )
+                scheduledEnd
             );
 
-        if (plans.isEmpty()) return;
+        if (futurePlans.isEmpty()) return;
 
-        LocalDateTime cursor = null;
+        // cursor = 실적 종료시간 (가장 최신 종료 기준)
+        LocalDateTime cursor = actualEndTime;
 
-        for (ProductionPlans plan : plans) {
+        for (ProductionPlans plan : futurePlans) {
 
-            // 1) COMPLETED → cursor 를 실제 또는 예정 종료시간 중 더 큰 값으로
-            if (plan.getId().equals(completedPlan.getId())) {
-
-                // 실제시간이 예정보다 늦음 → cursor = actualEnd
-                // 실제시간이 예정보다 빠름 → cursor = scheduledEnd
-                cursor = actualEndTime.isAfter(scheduledEnd)
-                    ? actualEndTime
-                    : scheduledEnd;
-
-                continue; // 본인 계획은 이동시키지 않음
-            }
-
-            if (cursor == null) {
-                // 아직 completedPlan 이전의 계획들 → 건드리지 않음
-                cursor = plan.getEndTime();
-            }
-
-            // 2) cursor 이후 계획들은 이동 대상
-            else if (plan.getStartTime().isBefore(cursor)) {
+            // 시작시간이 cursor보다 앞서면 밀어야 함
+            if (plan.getStartTime().isBefore(cursor)) {
 
                 Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
 
@@ -71,12 +51,12 @@ public class ProductionPlanDelayService {
                 plan.updateEndTime(newEnd);
 
                 cursor = newEnd;
-
             } else {
+                // 안 겹치면 그대로 cursor 이동
                 cursor = plan.getEndTime();
             }
         }
 
-        productionPlanRepository.saveAll(plans);
+        productionPlanRepository.saveAll(futurePlans);
     }
 }
