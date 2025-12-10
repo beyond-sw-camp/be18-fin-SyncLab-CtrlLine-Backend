@@ -189,7 +189,6 @@ public class MesTelemetryListener {
         JsonNode summaryPayload = extractOrderSummaryPayload(valueNode);
         if (summaryPayload != null) {
             persistOrderSummary(summaryPayload, valueNode, recordKey);
-            return;
         }
         JsonNode ngTypePayload = extractNgTypeCountersPayload(valueNode);
         if (ngTypePayload != null) {
@@ -1499,7 +1498,9 @@ public class MesTelemetryListener {
             return false;
         }
         boolean hasOrderNo = node.hasNonNull(PRODUCTION_PERFORMANCE_ORDER_NO_FIELD);
-        boolean hasQuantities = node.hasNonNull("order_produced_qty") && node.hasNonNull("order_ng_qty");
-        return hasOrderNo && hasQuantities;
+        boolean hasQuantities = node.hasNonNull(ORDER_PRODUCED_QTY_FIELD) && node.hasNonNull(ORDER_NG_QTY_FIELD);
+        boolean hasTimestamps = node.hasNonNull(PRODUCTION_PERFORMANCE_EXECUTE_AT_FIELD)
+                && node.hasNonNull(PRODUCTION_PERFORMANCE_WAITING_ACK_AT_FIELD);
+        return hasOrderNo && hasQuantities && hasTimestamps;
     }
 }
