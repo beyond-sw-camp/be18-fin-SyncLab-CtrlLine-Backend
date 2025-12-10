@@ -92,6 +92,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                         line.lineName,
                         item.itemCode,
                         item.itemName,
+                        item.itemUnit,
                         perf.totalQty,
                         perf.performanceQty,
                         defectiveQtyExpr,

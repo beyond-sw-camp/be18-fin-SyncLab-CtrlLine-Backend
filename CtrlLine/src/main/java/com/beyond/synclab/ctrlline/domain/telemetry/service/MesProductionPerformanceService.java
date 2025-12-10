@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -85,55 +84,6 @@ public class MesProductionPerformanceService {
                 productionPlan.getDocumentNo());
 
         productionOrderService.sendLineAck(productionPlan, endTime);
-    }
-
-    @Transactional
-    public void updateRunningProgress(String orderNo, BigDecimal producedQty, BigDecimal ngQty) {
-        if (!StringUtils.hasText(orderNo)) {
-            log.warn("orderNo가 없어 진행중 생산실적을 갱신하지 않습니다.");
-            return;
-        }
-
-        Optional<ProductionPlans> planOptional = productionPlanResolver.resolveLatestPlan(orderNo);
-        if (planOptional.isEmpty()) {
-            log.warn("전표번호에 해당하는 생산계획을 찾을 수 없어 진행중 생산실적을 갱신하지 않습니다. orderNo={}", orderNo);
-            return;
-        }
-        ProductionPlans productionPlan = planOptional.get();
-
-        BigDecimal normalizedProduced = normalizeQuantity(producedQty);
-        BigDecimal normalizedNg = normalizeQuantity(Optional.ofNullable(ngQty).orElse(BigDecimal.ZERO));
-        BigDecimal totalQty = normalizeQuantity(productionPlan.getPlannedQty());
-        BigDecimal defectiveRate = calculateDefectiveRate(totalQty, normalizedNg);
-        LocalDateTime now = LocalDateTime.now(clock);
-        LocalDateTime startTime = Optional.ofNullable(productionPlan.getStartTime()).orElse(now);
-
-        ProductionPerformances performance = productionPerformanceRepository
-                .findByProductionPlanId(productionPlan.getId())
-                .map(existing -> {
-                    existing.updatePerformance(
-                            totalQty,
-                            normalizedProduced,
-                            defectiveRate,
-                            startTime,
-                            now
-                    );
-                    return existing;
-                })
-                .orElseGet(() -> ProductionPerformances.builder()
-                        .productionPlan(productionPlan)
-                        .productionPlanId(productionPlan.getId())
-                        .performanceDocumentNo(createDocumentNo())
-                        .totalQty(totalQty)
-                        .performanceQty(normalizedProduced)
-                        .performanceDefectiveRate(defectiveRate)
-                        .startTime(startTime)
-                        .endTime(now)
-                        .remark(null)
-                        .isDeleted(Boolean.FALSE)
-                        .build());
-
-        productionPerformanceRepository.save(performance);
     }
 
     private BigDecimal normalizeQuantity(BigDecimal quantity) {

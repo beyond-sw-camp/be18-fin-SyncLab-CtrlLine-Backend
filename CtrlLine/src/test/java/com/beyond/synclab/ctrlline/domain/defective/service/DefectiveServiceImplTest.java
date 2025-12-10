@@ -16,6 +16,8 @@ import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.lot.repository.LotRepository;
+import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectiveXrefs;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.PlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
@@ -41,6 +43,12 @@ class DefectiveServiceImplTest {
 
     @Mock
     private PlanDefectiveXrefRepository planDefectiveXrefRepository;
+
+    @Mock
+    private ProductionPerformanceRepository productionPerformanceRepository;
+
+    @Mock
+    private LotRepository lotRepository;
 
     @InjectMocks
     private DefectiveServiceImpl defectiveService;
