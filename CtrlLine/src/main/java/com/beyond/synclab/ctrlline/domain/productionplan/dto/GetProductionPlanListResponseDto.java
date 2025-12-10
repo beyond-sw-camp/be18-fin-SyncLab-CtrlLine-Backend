@@ -3,6 +3,8 @@ package com.beyond.synclab.ctrlline.domain.productionplan.dto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +26,7 @@ public class GetProductionPlanListResponseDto {
     private BigDecimal plannedQty;
     private LocalDate dueDate;
     private String remark;
+    private LocalDateTime createdAt;
 
     public static GetProductionPlanListResponseDto fromEntity(ProductionPlans productionPlans) {
         return GetProductionPlanListResponseDto.builder()
@@ -37,6 +40,8 @@ public class GetProductionPlanListResponseDto {
             .plannedQty(productionPlans.getPlannedQty())
             .dueDate(productionPlans.getDueDate())
             .remark(productionPlans.getRemark())
+                .createdAt(productionPlans.getCreatedAt())
+
             .build();
     }
 }
