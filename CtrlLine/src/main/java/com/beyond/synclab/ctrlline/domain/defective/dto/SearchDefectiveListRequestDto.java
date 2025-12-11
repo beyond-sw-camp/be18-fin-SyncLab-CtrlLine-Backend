@@ -14,6 +14,8 @@ public record SearchDefectiveListRequestDto(
     String itemName,
     String lineCode,
     String lineName,
+    String factoryName,
+    String factoryCode,
     BigDecimal defectiveQty,
     BigDecimal defectiveRate
 ) {

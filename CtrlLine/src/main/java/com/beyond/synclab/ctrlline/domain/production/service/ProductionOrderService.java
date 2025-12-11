@@ -55,10 +55,15 @@ public class ProductionOrderService {
     @Transactional
     public void dispatchDuePlans() {
         LocalDateTime now = LocalDateTime.now(clock);
+
+        // Only expire PENDING plans
         expirePendingPlans(now);
+
+        // CONFIRMED but not expired (MES standard)
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
                 ProductionPlans.PlanStatus.CONFIRMED, now
         );
+
         log.debug("Found {} production plans to dispatch at {}", plans.size(), now);
 
         for (ProductionPlans plan : plans) {
@@ -112,16 +117,19 @@ public class ProductionOrderService {
     }
 
     private void expirePendingPlans(LocalDateTime now) {
-        List<ProductionPlans> pendingPlans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
-            ProductionPlans.PlanStatus.PENDING, now
-        );
+        List<ProductionPlans> pendingPlans =
+            productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
+                ProductionPlans.PlanStatus.PENDING, now
+            );
+
         if (pendingPlans.isEmpty()) {
             return;
         }
+
         for (ProductionPlans pendingPlan : pendingPlans) {
-            log.info("Pending production plan documentNo={} expired at {} and will be marked RETURNED", pendingPlan.getDocumentNo(), now);
+            log.info("PENDING 계획 documentNo={} 만료되어 RETURNED 처리", pendingPlan.getDocumentNo());
             ProductionPlans.PlanStatus previousStatus = pendingPlan.getStatus();
-            pendingPlan.markDispatchFailed();
+            pendingPlan.markDispatchFailed();  // RETURNED
             productionPlanRepository.save(pendingPlan);
             planStatusNotificationService.notifyStatusChange(pendingPlan, previousStatus);
         }
@@ -153,7 +161,8 @@ public class ProductionOrderService {
 
             ProductionPlans.PlanStatus previousStatus = plan.getStatus();
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
-            productionPlanRepository.save(plan);
+            productionPlanRepository.saveAndFlush(plan);
+
             planStatusNotificationService.notifyStatusChange(plan, previousStatus);
             lineFinalInspectionProgressService.clearProgress(
                     context.factoryCode(),

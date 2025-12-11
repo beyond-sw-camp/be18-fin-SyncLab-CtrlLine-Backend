@@ -19,64 +19,40 @@ public class ProductionPlanDelayService {
     @Transactional
     public void applyRealPerformanceDelay(ProductionPlans completedPlan, LocalDateTime actualEndTime) {
 
-
         if (completedPlan == null || actualEndTime == null) return;
 
         Long lineId = completedPlan.getItemLine().getLineId();
         LocalDateTime scheduledEnd = completedPlan.getEndTime();
 
-        // 해당 라인의 활성 계획 전체 조회 (뒤로 미루거나 당기려면 전체가 필요)
-        List<ProductionPlans> plans =
-            productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+        // completedPlan 이후 계획들만 조회
+        List<ProductionPlans> futurePlans =
+            productionPlanRepository.findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(
                 lineId,
-                List.of(
-                    ProductionPlans.PlanStatus.PENDING,
-                    ProductionPlans.PlanStatus.CONFIRMED,
-                    ProductionPlans.PlanStatus.RUNNING
-                )
+                scheduledEnd
             );
 
-        if (plans.isEmpty()) return;
+        log.debug("futurePlans : {}", futurePlans);
 
-        LocalDateTime cursor = null;
+        if (futurePlans.isEmpty()) return;
 
-        for (ProductionPlans plan : plans) {
+        // cursor = 실제 종료시간
+        LocalDateTime cursor = actualEndTime;
 
-            // 1) COMPLETED → cursor 를 실제 또는 예정 종료시간 중 더 큰 값으로
-            if (plan.getId().equals(completedPlan.getId())) {
+        for (ProductionPlans plan : futurePlans) {
 
-                // 실제시간이 예정보다 늦음 → cursor = actualEnd
-                // 실제시간이 예정보다 빠름 → cursor = scheduledEnd
-                cursor = actualEndTime.isAfter(scheduledEnd)
-                    ? actualEndTime
-                    : scheduledEnd;
+            Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
 
-                continue; // 본인 계획은 이동시키지 않음
-            }
+            // --- 1) 밀기: 계획 시작이 cursor보다 앞이면 뒤로 미룬다 ---
+            // --- 2) 당기기: 계획 시작이 cursor보다 충분히 뒤에 있으면 당겨온다 ---
+            LocalDateTime newStart = cursor;
+            LocalDateTime newEnd = newStart.plus(duration);
 
-            if (cursor == null) {
-                // 아직 completedPlan 이전의 계획들 → 건드리지 않음
-                cursor = plan.getEndTime();
-            }
+            plan.updateStartTime(newStart);
+            plan.updateEndTime(newEnd);
 
-            // 2) cursor 이후 계획들은 이동 대상
-            else if (plan.getStartTime().isBefore(cursor)) {
-
-                Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
-
-                LocalDateTime newStart = cursor;
-                LocalDateTime newEnd = newStart.plus(duration);
-
-                plan.updateStartTime(newStart);
-                plan.updateEndTime(newEnd);
-
-                cursor = newEnd;
-
-            } else {
-                cursor = plan.getEndTime();
-            }
+            cursor = newEnd;
         }
 
-        productionPlanRepository.saveAll(plans);
+        productionPlanRepository.saveAll(futurePlans);
     }
 }
