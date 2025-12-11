@@ -10,6 +10,8 @@ public record LogSearchDto(
     String entityName,
     ActionType actionType,
     LocalDate fromDate,
-    LocalDate toDate
+    LocalDate toDate,
+    String empNo,
+    String userName
 ) {
 }

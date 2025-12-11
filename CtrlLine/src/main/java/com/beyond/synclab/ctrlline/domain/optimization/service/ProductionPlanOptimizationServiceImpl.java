@@ -105,6 +105,13 @@ public class ProductionPlanOptimizationServiceImpl implements ProductionPlanOpti
             .map(a -> PreviewPlanDto.builder()
                 .planId(a.getPlanId())
                 .documentNo(a.getDocumentNo())
+
+                .itemId(a.getItemId())
+                .itemName(a.getItemName())
+                .itemCode(a.getItemCode())
+                .plannedQty(a.getPlannedQty())
+                .planStatus(a.getPlanStatus())
+
                 .originalStartTime(a.getOriginalStartTime())
                 .optimizedStartTime(a.getStartTime())
                 .optimizedEndTime(a.getEndTime())
@@ -192,7 +199,7 @@ public class ProductionPlanOptimizationServiceImpl implements ProductionPlanOpti
             plan.updateEndTime(planSnap.getEndTime());
         }
 
-        // 4. 커밋 완료 후 Redis 키 삭제(선택)
+        // 4. 커밋 완료 후 Redis 키 삭제
         redisTemplate.delete(previewKey);
 
         return OptimizeCommitResponseDto.builder()

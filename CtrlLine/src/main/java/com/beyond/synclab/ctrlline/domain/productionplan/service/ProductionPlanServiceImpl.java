@@ -774,12 +774,17 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         );
 
         Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planStatusEquals(command.status()),
+            PlanSpecification.planStatusIn(command.status()),
             PlanSpecification.planFactoryNameContains(command.factoryName()),
             PlanSpecification.planSalesManagerNameContains(command.salesManagerName()),
             PlanSpecification.planProductionManagerNameContains(command.productionManagerName()),
+            PlanSpecification.planSalesManagerNoContains(command.salesManagerNo()),
+            PlanSpecification.planProductionManagerNoContains(command.productionManagerNo()),
             PlanSpecification.planItemNameContains(command.itemName()),
-            PlanSpecification.planDueDateBefore(command.dueDate()),
+            PlanSpecification.planItemCodeContains(command.itemCode()),
+            PlanSpecification.planFactoryCodeContains(command.factoryCode()),
+            PlanSpecification.planDueDateFromAfter(command.dueDateFrom()),
+            PlanSpecification.planDueDateToBefore(command.dueDateTo()),
             PlanSpecification.planStartTimeAfter(command.startTime()),
             PlanSpecification.planEndTimeBefore(command.endTime())
         );
@@ -801,10 +806,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
             PlanSpecification.planLineNameContains(requestDto.lineName()),
             PlanSpecification.planItemNameContains(requestDto.itemName()),
-            PlanSpecification.planItemCodeEquals(requestDto.itemCode()),
+            PlanSpecification.planItemCodeContains(requestDto.itemCode()),
             PlanSpecification.planSalesManagerNameContains(requestDto.salesManagerName()),
             PlanSpecification.planProductionManagerNameContains(requestDto.productionManagerName()),
-            PlanSpecification.planDueDateBefore(requestDto.dueDate()),
+            PlanSpecification.planDueDateFromAfter(requestDto.dueDate()),
             PlanSpecification.planStartTimeAfter(requestDto.startTime()),
             PlanSpecification.planEndTimeBefore(requestDto.endTime())
         );
@@ -826,8 +831,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planFactoryCodeEquals(requestDto.factoryCode()),
-            PlanSpecification.planLineCodeEquals(requestDto.lineCode()),
+            PlanSpecification.planFactoryCodeContains(requestDto.factoryCode()),
+            PlanSpecification.planLineCodeContains(requestDto.lineCode()),
             PlanSpecification.planStatusNotEquals(PlanStatus.RETURNED), // 반려 조건 제외해서 조회
             PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
             PlanSpecification.planLineNameContains(requestDto.lineName()),

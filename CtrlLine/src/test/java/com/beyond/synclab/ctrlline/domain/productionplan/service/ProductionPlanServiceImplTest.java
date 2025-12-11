@@ -1243,12 +1243,13 @@ class ProductionPlanServiceImplTest {
         void getProductionPlanList_success() {
             // given
             SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
-                .status(PlanStatus.PENDING)
+                .status(List.of(PlanStatus.PENDING))
                 .factoryName(factory.getFactoryName())
                 .salesManagerName(salesManager.getName())
                 .productionManagerName(productionManager.getName())
                 .itemName(item.getItemName())
-                .dueDate(testDate)
+                .dueDateFrom(testDate)
+                .dueDateTo(testDate.plusDays(1))
                 .startTime(testDateTime.minusDays(1))
                 .endTime(testDateTime.plusDays(1))
                 .build();
@@ -1289,7 +1290,7 @@ class ProductionPlanServiceImplTest {
         void getProductionPlanList_clientSortMerged() {
             // given
             SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
-                .status(PlanStatus.PENDING)
+                .status(List.of(PlanStatus.PENDING))
                 .build();
 
             // 클라이언트가 name ASC 정렬 요청

@@ -62,7 +62,7 @@ public class ProductionOrderService {
 
         // CONFIRMED but not expired (MES standard)
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
-                ProductionPlans.PlanStatus.CONFIRMED, now.plusMinutes(30)
+                ProductionPlans.PlanStatus.CONFIRMED, now
         );
 
         log.debug("Found {} production plans to dispatch at {}", plans.size(), now);

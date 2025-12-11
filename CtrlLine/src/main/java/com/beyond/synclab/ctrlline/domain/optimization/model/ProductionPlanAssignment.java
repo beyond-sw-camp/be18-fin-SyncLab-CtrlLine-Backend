@@ -1,6 +1,8 @@
 package com.beyond.synclab.ctrlline.domain.optimization.model;
 
 import com.beyond.synclab.ctrlline.domain.optimization.listener.EndTimeUpdatingListener;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,6 +28,12 @@ public class ProductionPlanAssignment {
 
     /** Document No */
     private String documentNo;
+
+    private PlanStatus planStatus;
+    private BigDecimal plannedQty;
+    private Long itemId;
+    private String itemName;
+    private String itemCode;
 
     /** 작업의 예상 소요시간(분 단위). ShadowVariable 로 end 계산에 사용 */
     private long durationMinutes;
