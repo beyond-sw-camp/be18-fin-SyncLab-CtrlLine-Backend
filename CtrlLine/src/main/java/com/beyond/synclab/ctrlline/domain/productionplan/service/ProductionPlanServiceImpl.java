@@ -882,6 +882,14 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     public UpdateProductionPlanStatusResponseDto updateProductionPlanStatus(
         UpdateProductionPlanStatusRequestDto requestDto
     ) {
+        List<ProductionPlans> previousPlans = productionPlanRepository.findAllByIdIn(requestDto.getPlanIds());
+
+        Map<Long, PlanStatus> previousStatusMap = previousPlans.stream()
+            .collect(Collectors.toMap(
+                ProductionPlans::getId,
+                ProductionPlans::getStatus
+            ));
+
         int success = productionPlanRepository.updateAllStatusById(requestDto.getPlanIds(), requestDto.getPlanStatus());
 
         if (success != requestDto.getPlanIds().size()) {
@@ -892,7 +900,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         List<ProductionPlans> updatedPlans = productionPlanRepository.findAllByIdIn(requestDto.getPlanIds());
 
         for (ProductionPlans plan : updatedPlans) {
-            planStatusNotificationService.notifyStatusChange(plan, requestDto.getPlanStatus());
+            PlanStatus previousStatus = previousStatusMap.get(plan.getId());
+            planStatusNotificationService.notifyStatusChange(plan, previousStatus);
         }
 
         return UpdateProductionPlanStatusResponseDto.builder()
