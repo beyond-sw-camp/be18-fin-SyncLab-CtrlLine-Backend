@@ -158,7 +158,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.plusMinutes(30)))
                 .thenReturn(List.of());
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now.plusMinutes(30)))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
@@ -218,7 +218,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.plusMinutes(30)))
                 .thenReturn(List.of());
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now.plusMinutes(30)))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
@@ -249,7 +249,7 @@ class ProductionOrderServiceTest {
 
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.plusMinutes(30)))
             .thenReturn(List.of(pendingPlan));
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now.plusMinutes(30)))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
             .thenReturn(List.of());
 
         productionOrderService.dispatchDuePlans();
