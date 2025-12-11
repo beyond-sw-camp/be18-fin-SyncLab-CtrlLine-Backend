@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PUBLIC)
@@ -29,6 +30,7 @@ public class GetProductionPerformanceListResponseDto {
 
     private final String itemCode;
     private final String itemName;
+    private final String itemUnit;
 
     private final BigDecimal totalQty;
     private final BigDecimal performanceQty;
@@ -38,4 +40,5 @@ public class GetProductionPerformanceListResponseDto {
     private final String remark;
 
     private final Boolean isDeleted;
+    private final LocalDateTime createdAt;
 }

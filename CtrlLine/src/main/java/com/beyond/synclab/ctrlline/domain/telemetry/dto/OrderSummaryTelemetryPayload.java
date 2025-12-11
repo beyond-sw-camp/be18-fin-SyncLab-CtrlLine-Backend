@@ -12,6 +12,7 @@ public record OrderSummaryTelemetryPayload(
         String orderNo,
         String status,
         List<String> goodSerials,
-        String goodSerialsGzip
+        String goodSerialsGzip,
+        String machine
 ) {
 }

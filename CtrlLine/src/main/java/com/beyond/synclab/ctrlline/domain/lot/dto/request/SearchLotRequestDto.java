@@ -15,13 +15,18 @@ public class SearchLotRequestDto {
 
     private String lotNo;
     private String itemCode;
+    private String itemName;
     private Boolean isDeleted;
     private String factoryCode;
+    private String factoryName;
     private String lineCode;
+    private String lineName;
     private String productionManagerNo;
+    private String productionManagerName;
 
     // 생산실적 기반 검색 조건
     private String performanceDocumentNo;
+    private String defectiveDocumentNo;
 
     // 수량 범위 조건
     private BigDecimal minPerformanceQty;

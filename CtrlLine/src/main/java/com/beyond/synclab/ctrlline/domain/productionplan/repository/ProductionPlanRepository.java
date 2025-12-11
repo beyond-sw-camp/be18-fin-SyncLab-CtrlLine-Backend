@@ -33,21 +33,6 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
 
     Optional<ProductionPlans> findFirstByDocumentNoAndStatusOrderByIdDesc(String documentNo, PlanStatus status);
 
-    // lineCode + 상태(PENDING, CONFIRMED) 기준으로 최신 생성된 ProductionPlan 조회
-    @Query("""
-        SELECT p
-        FROM ProductionPlans p
-        WHERE p.itemLine.line.lineCode = :lineCode
-          AND p.status IN :statuses
-          AND p.endTime > :now
-        ORDER BY p.createdAt DESC
-        LIMIT 1
-    """)
-    Optional<ProductionPlans> findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(String lineCode, List<PlanStatus> statuses,
-        LocalDateTime now);
-
-
-
     @Modifying(clearAutomatically = true)
     @Query("UPDATE ProductionPlans p SET p.status = :status WHERE p.id IN :ids")
     int updateAllStatusById(@Param("ids") List<Long> planIds, @Param("status") PlanStatus planStatus);
@@ -75,4 +60,16 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     ORDER BY p.startTime ASC
     """)
     List<ProductionPlans> findAllByLineCodeAndStatusInOrderByStartTimeAsc(String lineCode, List<PlanStatus> statuses);
+
+    @Query("""
+    select p
+    from ProductionPlans p
+    join ItemsLines il on p.itemLineId = il.id
+    where il.lineId = :lineId
+    and p.startTime >= :startTime
+    order by p.startTime asc
+""")
+    List<ProductionPlans> findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(Long lineId, @Param("startTime") LocalDateTime scheduledEnd);
+
+    List<ProductionPlans> findAllByStatus(PlanStatus planStatus);
 }

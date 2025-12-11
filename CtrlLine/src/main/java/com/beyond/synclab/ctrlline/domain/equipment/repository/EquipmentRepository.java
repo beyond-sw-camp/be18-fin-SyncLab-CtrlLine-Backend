@@ -15,6 +15,8 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
 
     Optional<Equipments> findByEquipmentCode(String equipmentCode);
 
+    Optional<Equipments> findFirstByLine_LineCodeIgnoreCaseAndEquipmentNameIgnoreCase(String lineCode, String equipmentName);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Equipments e where e.equipmentCode = :equipmentCode")
     Optional<Equipments> findByEquipmentCodeForUpdate(String equipmentCode);
@@ -23,6 +25,15 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
     boolean existsByEquipmentCode(String equipmentCode);
 
     List<Equipments> findAllByLineId(Long lineId);
+
+    @Query("""
+            select e from Equipments e
+            join e.line l
+            join l.factory f
+            where (:factoryId is null or f.id = :factoryId)
+              and (:factoryCode is null or upper(f.factoryCode) = :factoryCode)
+            """)
+    List<Equipments> findAllByFactory(Long factoryId, String factoryCode);
 
     @Query("""
             select new com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentLocation(
@@ -39,4 +50,7 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
             where e.equipmentCode = :equipmentCode
             """)
     Optional<EquipmentLocation> findLocationByEquipmentCode(String equipmentCode);
+
+    @Query("select e from Equipments e where upper(e.equipmentCode) like upper(concat(:codePrefix, '%')) order by e.equipmentCode")
+    List<Equipments> findAllByEquipmentCodePrefix(String codePrefix);
 }

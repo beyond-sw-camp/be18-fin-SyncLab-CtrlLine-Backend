@@ -3,6 +3,7 @@ package com.beyond.synclab.ctrlline.domain.productionperformance.repository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.query.ProductionPerformanceQueryRepository;
 import jakarta.persistence.LockModeType;
+import jakarta.persistence.Tuple;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -40,4 +41,12 @@ public interface ProductionPerformanceRepository
         ORDER BY pp.endTime DESC
     """)
     List<ProductionPerformances> findRecentByLineId(@Param("lineId") Long lineId, Pageable pageable);
+
+    @Query("""
+    SELECT p.productionPlanId AS planId, MAX(p.endTime) AS actualEnd
+    FROM ProductionPerformances p
+    WHERE p.productionPlanId IN :planIds
+    GROUP BY p.productionPlanId
+""")
+    List<Tuple> findLatestActualEndTimeTuples(@Param("planIds") List<Long> planIds);
 }

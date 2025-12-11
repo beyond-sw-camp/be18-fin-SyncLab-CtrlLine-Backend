@@ -5,16 +5,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
-import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.SearchUserParameterDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserListResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserResponseDto;
+import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateMeRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.dto.UserUpdateRequestDto;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -40,9 +41,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 @DisplayName("유저서비스 테스트")
 class UserServiceImplTest {
     @InjectMocks
@@ -88,7 +88,7 @@ class UserServiceImplTest {
         SearchUserParameterDto command = SearchUserParameterDto.builder()
             .userDepartment("testDepartment")
             .userStatus(UserStatus.ACTIVE)
-            .userRole(UserRole.USER)
+            .userRole(List.of(UserRole.USER))
             .userPosition(UserPosition.ASSISTANT)
             .userPhoneNumber("010-1234-1234")
             .userEmail("test@test.com")
@@ -122,7 +122,7 @@ class UserServiceImplTest {
         SearchUserParameterDto command = SearchUserParameterDto.builder()
             .userDepartment("wrongDepartment")
             .userStatus(UserStatus.ACTIVE)
-            .userRole(UserRole.USER)
+            .userRole(List.of(UserRole.USER))
             .userPosition(UserPosition.ASSISTANT)
             .userPhoneNumber("010-1234-1234")
             .userEmail("test@test.com")

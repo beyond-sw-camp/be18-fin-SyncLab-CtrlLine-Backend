@@ -1,18 +1,26 @@
 package com.beyond.synclab.ctrlline.domain.serial.storage;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
+@Slf4j
 public class S3SerialStorageService implements SerialStorageService {
     private static final String S3_PREFIX = "s3://";
     private final S3Client s3Client;
@@ -40,60 +48,70 @@ public class S3SerialStorageService implements SerialStorageService {
 
         String key = buildObjectKey(orderNo);
 
+        // ------------------------
+        // 신규 업로드 (or 덮어쓰기 모드일 때는 조건 제거)
+        // ------------------------
         PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .contentType("application/gzip")
-                .build();
+            .bucket(bucket)
+            .key(key)
+            .contentType("application/gzip")
+            .build();
 
         s3Client.putObject(putRequest, RequestBody.fromBytes(gzipPayload));
+
+        log.info("Uploaded serial file to S3. key={}", key);
+
         return S3_PREFIX + bucket + "/" + key;
     }
 
     // -----------------------------------------------------------------------
-    // 2) GZIP 파일 읽기
+    // 2) 읽기 (gzip 해제 포함)
     // -----------------------------------------------------------------------
     @Override
     public List<String> read(String path) {
 
-        // ★ 수정됨: 상수 사용
         if (!path.startsWith(S3_PREFIX)) {
             throw new IllegalArgumentException("Invalid S3 path: " + path);
         }
 
-        // ★ 수정됨: 상수 사용
         String withoutPrefix = path.substring(S3_PREFIX.length());
-
         int slash = withoutPrefix.indexOf("/");
         String bucketName = withoutPrefix.substring(0, slash);
         String key = withoutPrefix.substring(slash + 1);
 
         try (ResponseInputStream<?> s3Stream = s3Client.getObject(
-                GetObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build()
+            GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build()
         );
-             GZIPInputStream gzipInputStream = new GZIPInputStream(s3Stream);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream))
+            GZIPInputStream gzipInputStream = new GZIPInputStream(s3Stream);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8))
         ) {
-            return reader.lines().toList();
+            String content = reader.lines().reduce("", (a, b) -> a + b).trim();
 
+            // JSON 배열이면 Jackson 파싱
+            if (content.startsWith("[") && content.endsWith("]")) {
+                ObjectMapper mapper = new ObjectMapper();
+                return mapper.readValue(content, new TypeReference<List<String>>() {});
+            }
+
+            // 아니면 줄 단위 split
+            return List.of(content.split("\\R"));
         } catch (Exception ex) {
             throw new IllegalStateException("S3 시리얼 파일 읽기 실패: " + path, ex);
         }
     }
 
     // -----------------------------------------------------------------------
-    // 내부 메서드 - Object Key 생성
+    // 멱등성 보장: orderNo 기준으로 key 고정
     // -----------------------------------------------------------------------
     private String buildObjectKey(String orderNo) {
         String safeOrder = StringUtils.hasText(orderNo)
-                ? orderNo.replaceAll("[^A-Za-z0-9_-]", "_")
-                : "order";
+            ? orderNo.replaceAll("[^A-Za-z0-9_-]", "_")
+            : "order";
 
-        String prefix = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
-
-        return prefix + "/" + safeOrder + "/serials-" + Instant.now().toEpochMilli() + ".gz";
+        // timestamp 제거해서 멱등성 보장
+        return basePath + "/" + safeOrder + "/serials.gz";
     }
 }

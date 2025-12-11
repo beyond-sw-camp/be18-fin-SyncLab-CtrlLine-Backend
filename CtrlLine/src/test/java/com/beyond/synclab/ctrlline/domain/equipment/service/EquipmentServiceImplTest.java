@@ -259,7 +259,7 @@ class EquipmentServiceImplTest {
 
     @Test
     @DisplayName("전 설비 상태를 조회하면 runtimeStatusLevel을 함께 반환한다.")
-    void getAllEquipmentStatuses_returnsLevels() {
+    void getEquipmentStatuses_returnsLevels() {
         Equipments equipment = Equipments.builder()
                 .equipmentCode("EQ-ALL-01")
                 .equipmentName("성형기-01")
@@ -268,7 +268,7 @@ class EquipmentServiceImplTest {
         when(equipmentRuntimeStatusService.getLevelOrDefault("EQ-ALL-01"))
                 .thenReturn(EquipmentRuntimeStatusLevel.LOW_WARNING);
 
-        List<EquipmentStatusResponseDto> result = equipmentService.getAllEquipmentStatuses();
+        List<EquipmentStatusResponseDto> result = equipmentService.getEquipmentStatuses(null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).runtimeStatusLevel()).isEqualTo(EquipmentRuntimeStatusLevel.LOW_WARNING);

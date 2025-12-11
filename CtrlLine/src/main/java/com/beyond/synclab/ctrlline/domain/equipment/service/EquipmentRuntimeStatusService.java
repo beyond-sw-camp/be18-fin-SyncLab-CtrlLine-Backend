@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.equipment.service;
 
 import com.beyond.synclab.ctrlline.domain.equipment.dto.EquipmentRuntimeStatusLevel;
 import com.beyond.synclab.ctrlline.domain.equipment.service.dto.EquipmentRuntimeStatusSnapshot;
+import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -33,10 +34,10 @@ public class EquipmentRuntimeStatusService {
             Set.of("STOPPING");
 
     private static final Set<String> SEVERE_ALARM_LEVELS =
-            Set.of("CRITICAL", "FATAL", "ERROR", "MAJOR");
+            Set.of("CRITICAL", "FATAL", "ERROR", "MAJOR", "FAULT", "EMERGENCY");
 
     private static final Set<String> LIGHT_ALARM_LEVELS =
-            Set.of("WARN", "WARNING", "INFO", "MINOR");
+            Set.of("WARN", "WARNING", "INFO", "MINOR", "NOTICE");
 
     private final Clock clock;
     private final EquipmentStatusStreamService statusStreamService;
@@ -72,6 +73,34 @@ public class EquipmentRuntimeStatusService {
 
     public EquipmentRuntimeStatusSnapshot getSnapshot(String equipmentCode) {
         return snapshotByEquipment.get(equipmentCode);
+    }
+
+    public void applyAlarm(AlarmTelemetryPayload payload) {
+        if (payload == null || !StringUtils.hasText(payload.equipmentCode())) {
+            return;
+        }
+
+        EquipmentRuntimeStatusSnapshot previous = snapshotByEquipment.get(payload.equipmentCode());
+        boolean alarmActive = payload.clearedAt() == null;
+        EquipmentRuntimeStatusLevel level = alarmActive
+                ? levelFromAlarm(payload.alarmLevel())
+                : resolveFromState(previous != null ? previous.state() : null);
+        String state = previous != null ? previous.state() : null;
+        LocalDateTime timestamp = Optional.ofNullable(alarmActive ? payload.occurredAt() : payload.clearedAt())
+                .orElse(LocalDateTime.now(clock));
+
+        EquipmentRuntimeStatusSnapshot snapshot = new EquipmentRuntimeStatusSnapshot(
+                payload.equipmentCode(),
+                state,
+                alarmActive ? payload.alarmLevel() : null,
+                alarmActive,
+                level,
+                timestamp
+        );
+        snapshotByEquipment.put(payload.equipmentCode(), snapshot);
+        log.debug("Updated runtime status from alarm equipmentCode={} alarmLevel={} alarmActive={} level={}",
+                payload.equipmentCode(), payload.alarmLevel(), alarmActive, level);
+        statusStreamService.broadcast(snapshot);
     }
 
     private EquipmentRuntimeStatusLevel resolveLevel(EquipmentStatusTelemetryPayload payload) {
@@ -114,6 +143,13 @@ public class EquipmentRuntimeStatusService {
             return AlarmSeverity.WARNING;
         }
         return AlarmSeverity.WARNING;
+    }
+
+    private EquipmentRuntimeStatusLevel levelFromAlarm(String alarmLevel) {
+        AlarmSeverity severity = resolveAlarmSeverity(alarmLevel);
+        return severity == AlarmSeverity.SEVERE
+                ? EquipmentRuntimeStatusLevel.HIGH_WARNING
+                : EquipmentRuntimeStatusLevel.LOW_WARNING;
     }
 
     private enum AlarmSeverity {

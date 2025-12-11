@@ -63,11 +63,6 @@ public class ProcessServiceImpl implements ProcessService {
         Users newManagerRequested = userRepository.findByEmpNo(request.getEmpNo())
                 .orElseThrow(() -> new AppException(UserErrorCode.USER_NOT_FOUND));
 
-        // 사원명과 사번 매핑 검증
-        if (!newManagerRequested.getName().equals(request.getUserName())) {
-            throw new AppException(UserErrorCode.USER_INFO_MISMATCH);
-        }
-
         // 공정 사용여부
         if (request.getIsActive() != null) {
             process.updateStatus(request.getIsActive());

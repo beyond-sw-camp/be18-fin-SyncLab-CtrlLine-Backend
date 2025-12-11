@@ -5,6 +5,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -22,13 +23,6 @@ public class UserSpecification {
             status == null
                 ? null
                 : cb.equal(root.get("status"), status);
-    }
-
-    public Specification<Users> userRoleEquals(UserRole role) {
-        return (root, query, cb) ->
-            role == null
-                ? null
-                : cb.equal(root.get("role"), role);
     }
 
     public Specification<Users> userPositionEquals(UserPosition userPosition) {
@@ -78,5 +72,12 @@ public class UserSpecification {
             date == null
                 ? null
                 : cb.lessThanOrEqualTo(root.get("terminationDate"), date);
+    }
+
+    public Specification<Users> userRoleIn(List<UserRole> roles) {
+        return (root, query, cb) ->
+            (roles == null || roles.isEmpty())
+                ? null
+                : root.get("role").in(roles);
     }
 }

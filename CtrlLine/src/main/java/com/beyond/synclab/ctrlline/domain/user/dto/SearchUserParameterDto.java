@@ -4,6 +4,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserPosition;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserStatus;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.Builder;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -11,7 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 public record SearchUserParameterDto(
     String userDepartment,
     UserStatus userStatus,
-    UserRole userRole,
+    List<UserRole> userRole,
     UserPosition userPosition,
     String userPhoneNumber,
     String userEmail,

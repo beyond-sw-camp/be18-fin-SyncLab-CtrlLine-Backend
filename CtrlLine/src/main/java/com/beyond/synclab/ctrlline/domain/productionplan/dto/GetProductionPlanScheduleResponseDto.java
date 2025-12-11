@@ -30,9 +30,10 @@ public class GetProductionPlanScheduleResponseDto {
     private BigDecimal plannedQty;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private LocalDateTime actualEndTime;
     private String remark;
 
-    public static GetProductionPlanScheduleResponseDto fromEntity(ProductionPlans pp) {
+    public static GetProductionPlanScheduleResponseDto fromEntity(ProductionPlans pp, LocalDateTime actualEndTime) {
         return GetProductionPlanScheduleResponseDto.builder()
             .id(pp.getId())
             .lineCode(pp.getItemLine().getLine().getLineCode())
@@ -49,6 +50,7 @@ public class GetProductionPlanScheduleResponseDto {
             .plannedQty(pp.getPlannedQty())
             .startTime(pp.getStartTime())
             .endTime(pp.getEndTime())
+            .actualEndTime(actualEndTime)
             .remark(pp.getRemark())
             .build();
     }

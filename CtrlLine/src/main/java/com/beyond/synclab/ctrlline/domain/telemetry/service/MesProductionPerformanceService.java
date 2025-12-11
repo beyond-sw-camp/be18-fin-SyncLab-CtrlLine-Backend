@@ -1,16 +1,16 @@
 package com.beyond.synclab.ctrlline.domain.telemetry.service;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.production.service.ProductionOrderService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanResolver;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +23,9 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class MesProductionPerformanceService {
-
-    private final ProductionPlanRepository productionPlanRepository;
     private final ProductionPerformanceRepository productionPerformanceRepository;
     private final ProductionOrderService productionOrderService;
+    private final ProductionPlanResolver productionPlanResolver;
     private final Clock clock;
 
     @Transactional
@@ -48,23 +47,23 @@ public class MesProductionPerformanceService {
             return;
         }
 
-        Optional<ProductionPlans> productionPlanOptional = findLatestPlan(payload.orderNo());
-        if (productionPlanOptional.isEmpty()) {
+        Optional<ProductionPlans> planOptional = productionPlanResolver.resolveLatestPlan(payload.orderNo());
+        if (planOptional.isEmpty()) {
             log.warn("전표번호에 해당하는 생산계획을 찾을 수 없어 생산실적을 저장하지 않습니다. orderNo={}", payload.orderNo());
             return;
         }
-
-        ProductionPlans productionPlan = productionPlanOptional.get();
+        ProductionPlans productionPlan = planOptional.get();
         BigDecimal producedQty = normalizeQuantity(payload.orderProducedQty());
         BigDecimal ngQty = normalizeQuantity(Optional.ofNullable(payload.ngCount()).orElse(BigDecimal.ZERO));
         BigDecimal totalQty = producedQty.add(ngQty);
         BigDecimal defectiveRate = calculateDefectiveRate(totalQty, ngQty);
+        LocalDateTime endTime = payload.waitingAckAt();
 
         ProductionPerformances performance = productionPerformanceRepository
                 .findByProductionPlanId(productionPlan.getId())
                 .map(existing -> {
                     existing.updatePerformance(totalQty, producedQty, defectiveRate,
-                            payload.executeAt(), payload.waitingAckAt());
+                            payload.executeAt(), endTime);
                     return existing;
                 })
                 .orElseGet(() -> ProductionPerformances.builder()
@@ -75,7 +74,7 @@ public class MesProductionPerformanceService {
                         .performanceQty(producedQty)
                         .performanceDefectiveRate(defectiveRate)
                         .startTime(payload.executeAt())
-                        .endTime(payload.waitingAckAt())
+                        .endTime(endTime)
                         .remark(null)
                         .isDeleted(Boolean.FALSE)
                         .build());
@@ -85,7 +84,7 @@ public class MesProductionPerformanceService {
                 performance.getPerformanceDocumentNo(),
                 productionPlan.getDocumentNo());
 
-        productionOrderService.sendLineAck(productionPlan);
+        productionOrderService.sendLineAck(productionPlan, endTime);
     }
 
     private BigDecimal normalizeQuantity(BigDecimal quantity) {
@@ -132,15 +131,4 @@ public class MesProductionPerformanceService {
         return prefix + String.format("-%d", nextSeq);
     }
 
-    private Optional<ProductionPlans> findLatestPlan(String orderNo) {
-        if (!StringUtils.hasText(orderNo)) {
-            return Optional.empty();
-        }
-        Optional<ProductionPlans> runningPlan =
-                productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc(orderNo, PlanStatus.RUNNING);
-        if (runningPlan.isPresent()) {
-            return runningPlan;
-        }
-        return productionPlanRepository.findFirstByDocumentNoOrderByIdDesc(orderNo);
-    }
 }

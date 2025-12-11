@@ -2,6 +2,9 @@ package com.beyond.synclab.ctrlline.domain.log.spec;
 
 import com.beyond.synclab.ctrlline.domain.log.entity.Logs;
 import com.beyond.synclab.ctrlline.domain.log.entity.Logs.ActionType;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,6 +42,28 @@ public class LogSpecification {
                 : cb.like(root.get("entityName"), "%" + entityName + "%");
     }
 
+    public Specification<Logs> logsUserNameContains(String userName) {
+        return (root, query, cb) -> {
+            if (userName == null || userName.isBlank())
+                return null;
+
+            Join<Logs, Users> user =  root.join("user", JoinType.LEFT);
+
+            return cb.like(user.get("name"), "%" + userName + "%");
+        };
+    }
+
+    public Specification<Logs> logsUserEmpNoContains(String empNo) {
+        return (root, query, cb) -> {
+            if (empNo == null || empNo.isBlank())
+                return null;
+
+            Join<Logs, Users> user =  root.join("user", JoinType.LEFT);
+
+            return cb.like(user.get("empNo"), "%" + empNo + "%");
+        };
+    }
+
     public Specification<Logs> logsActionTypeEquals(ActionType actionType) {
         return (root, query, cb) ->
             actionType == null ? null : cb.equal(root.get("actionType"), actionType);
@@ -48,4 +73,6 @@ public class LogSpecification {
         return (root, query, cb) ->
             userId == null ? null : cb.equal(root.get("userId"), userId);
     }
+
+
 }

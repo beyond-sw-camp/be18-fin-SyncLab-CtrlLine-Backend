@@ -1,23 +1,25 @@
 package com.beyond.synclab.ctrlline.domain.production.service;
 
 import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
+import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
+import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import com.beyond.synclab.ctrlline.domain.production.client.MiloProductionOrderClient;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderRequest;
 import com.beyond.synclab.ctrlline.domain.production.client.dto.MiloProductionOrderResponse;
-import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandRequest;
 import com.beyond.synclab.ctrlline.domain.production.dto.ProductionOrderCommandResponse;
-import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanDelayService;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
+import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import com.beyond.synclab.ctrlline.domain.productionplan.service.PlanDefectiveService;
-import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
-import com.beyond.synclab.ctrlline.domain.lot.service.LotGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,8 @@ public class ProductionOrderService {
     private final LotGeneratorService lotGeneratorService;
     private final Clock clock;
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
+    private final ProductionPlanDelayService productionPlanDelayService;
+    private final LineFinalInspectionProgressService lineFinalInspectionProgressService;
 
     @Transactional(readOnly = true)
     public ProductionOrderCommandResponse dispatchOrder(String factoryCode, String lineCode, ProductionOrderCommandRequest request) {
@@ -52,10 +56,15 @@ public class ProductionOrderService {
     @Transactional
     public void dispatchDuePlans() {
         LocalDateTime now = LocalDateTime.now(clock);
-        expirePendingPlans(now);
+
+        // Only expire PENDING plans
+        expirePendingPlans(now.plusMinutes(30));
+
+        // CONFIRMED but not expired (MES standard)
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
                 ProductionPlans.PlanStatus.CONFIRMED, now
         );
+
         log.debug("Found {} production plans to dispatch at {}", plans.size(), now);
 
         for (ProductionPlans plan : plans) {
@@ -92,6 +101,11 @@ public class ProductionOrderService {
                 ProductionPlans.PlanStatus previousStatus = plan.getStatus();
                 plan.markDispatched();
                 planStatusNotificationService.notifyStatusChange(plan, previousStatus);
+                lineFinalInspectionProgressService.initializeProgress(
+                        plan,
+                        context.factoryCode(),
+                        context.lineCode()
+                );
                 log.info("Production plan documentNo={} marked as RUNNING", plan.getDocumentNo());
                 planDefectiveService.createPlanDefective(plan);
                 lotGeneratorService.createLot(plan);
@@ -104,23 +118,26 @@ public class ProductionOrderService {
     }
 
     private void expirePendingPlans(LocalDateTime now) {
-        List<ProductionPlans> pendingPlans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
-            ProductionPlans.PlanStatus.PENDING, now
-        );
+        List<ProductionPlans> pendingPlans =
+            productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
+                ProductionPlans.PlanStatus.PENDING, now
+            );
+
         if (pendingPlans.isEmpty()) {
             return;
         }
+
         for (ProductionPlans pendingPlan : pendingPlans) {
-            log.info("Pending production plan documentNo={} expired at {} and will be marked RETURNED", pendingPlan.getDocumentNo(), now);
+            log.info("PENDING 계획 documentNo={} 만료되어 RETURNED 처리", pendingPlan.getDocumentNo());
             ProductionPlans.PlanStatus previousStatus = pendingPlan.getStatus();
-            pendingPlan.markDispatchFailed();
+            pendingPlan.markDispatchFailed();  // RETURNED
             productionPlanRepository.save(pendingPlan);
             planStatusNotificationService.notifyStatusChange(pendingPlan, previousStatus);
         }
     }
 
     @Transactional
-    public void sendLineAck(ProductionPlans plan) {
+    public void sendLineAck(ProductionPlans plan, LocalDateTime performanceEndTime) {
         if (plan == null) {
             return;
         }
@@ -142,10 +159,19 @@ public class ProductionOrderService {
                     context.lineCode(),
                     request
             );
+
             ProductionPlans.PlanStatus previousStatus = plan.getStatus();
             plan.updateStatus(ProductionPlans.PlanStatus.COMPLETED);
-            productionPlanRepository.save(plan);
+            productionPlanRepository.saveAndFlush(plan);
+
             planStatusNotificationService.notifyStatusChange(plan, previousStatus);
+            lineFinalInspectionProgressService.clearProgress(
+                    context.factoryCode(),
+                    context.lineCode()
+            );
+
+            productionPlanDelayService.applyRealPerformanceDelay(plan, performanceEndTime);
+
         } catch (Exception ex) {
             log.error("Failed to send ACK for production plan documentNo={}", plan.getDocumentNo(), ex);
         }
@@ -191,6 +217,30 @@ public class ProductionOrderService {
                 plan.getDocumentNo(),
                 null
         ));
+    }
+
+    @Transactional
+    public void detectAndApplyRunningDelays() {
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        List<ProductionPlans> runningPlans =
+            productionPlanRepository.findAllByStatus(ProductionPlans.PlanStatus.RUNNING);
+
+        for (ProductionPlans plan : runningPlans) {
+            LocalDateTime scheduledEnd = plan.getEndTime();
+
+            // 2) endTime 이 이미 미래라면 delay 이미 반영된 것으로 간주
+            if (scheduledEnd.isAfter(now)) {
+                continue; // 지연 누적 방지
+            }
+
+            long delayMinutes = Duration.ofMinutes(10).toMinutes();
+
+            log.info("RUNNING 지연 감지: documentNo={}, delay={}min",
+                plan.getDocumentNo(), delayMinutes);
+
+            productionPlanDelayService.applyOngoingDelay(plan, delayMinutes);
+        }
     }
 
     private record DispatchContext(

@@ -1,5 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.optimization.dto;
 
+import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -21,6 +23,11 @@ public class OptimizePreviewResponseDto {
     public static class PreviewPlanDto {
         private Long planId;
         private String documentNo;
+        private PlanStatus planStatus;
+        private BigDecimal plannedQty;
+        private Long itemId;
+        private String itemName;
+        private String itemCode;
         private LocalDateTime originalStartTime;
         private LocalDateTime optimizedStartTime;
         private LocalDateTime optimizedEndTime;

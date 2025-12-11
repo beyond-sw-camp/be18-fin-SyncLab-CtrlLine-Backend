@@ -66,6 +66,7 @@ public class Lines {
 
     // JOIN을 위해 추가된 관계 코드, 조회용으로 사용 불가
     @OneToMany(mappedBy = "line", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<ItemsLines> itemLines = new ArrayList<>();
 
     @Column(name = "line_code", nullable = false, unique = true)

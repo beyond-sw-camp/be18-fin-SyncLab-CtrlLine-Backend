@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
@@ -61,9 +62,11 @@ public class EquipmentController {
 
     @GetMapping("/statuses")
     public ResponseEntity<BaseResponse<List<EquipmentStatusResponseDto>>> getEquipmentStatuses(
-            @AuthenticationPrincipal CustomUserDetails user
+            @AuthenticationPrincipal CustomUserDetails user,
+            @RequestParam(required = false) Long factoryId,
+            @RequestParam(required = false) String factoryCode
     ) {
-        List<EquipmentStatusResponseDto> response = equipmentService.getAllEquipmentStatuses();
+        List<EquipmentStatusResponseDto> response = equipmentService.getEquipmentStatuses(factoryId, factoryCode);
         return ResponseEntity.ok(BaseResponse.ok(response));
     }
 

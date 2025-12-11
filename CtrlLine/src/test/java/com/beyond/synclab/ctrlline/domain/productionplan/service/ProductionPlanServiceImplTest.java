@@ -111,6 +111,8 @@ class ProductionPlanServiceImplTest {
     @Mock
     private ProductionPlanStatusNotificationService planStatusNotificationService;
 
+    @Mock private ProductionPlanReconciliationService productionPlanReconciliationService;
+
     private ProductionPlanServiceImpl productionPlanService;
 
     private Clock testClock;
@@ -149,7 +151,8 @@ class ProductionPlanServiceImplTest {
             equipmentRepository,
             productionPerformanceRepository,
             planStatusNotificationService,
-            testClock
+            testClock,
+            productionPlanReconciliationService
         );
 
         lenient().when(productionPerformanceRepository.findRecentByLineId(anyLong(), any(Pageable.class)))
@@ -269,9 +272,9 @@ class ProductionPlanServiceImplTest {
                 .thenReturn(List.of(equipment));
 
             // 최근계획 없음
-            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-                anyString(), anyList(), any(LocalDateTime.class)
-            )).thenReturn(Optional.empty());
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                anyLong(), anyList()
+            )).thenReturn(Collections.emptyList());
 
             // save 시 ID 할당
             when(productionPlanRepository.save(any(ProductionPlans.class)))
@@ -393,9 +396,9 @@ class ProductionPlanServiceImplTest {
             when(itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
             when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
-            when(productionPlanRepository.findByLineCodeAndStatusInAndEndTimeAfterOrderByCreatedAtDesc(
-                eq(line.getLineCode()), anyList(), any(LocalDateTime.class)
-            )).thenReturn(Optional.of(existingPlan));
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+                eq(line.getId()), anyList()
+            )).thenReturn(List.of(existingPlan));
             when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of(existingPlan.getDocumentNo()));
 
             when(productionPlanRepository.save(any(ProductionPlans.class)))
@@ -1240,12 +1243,13 @@ class ProductionPlanServiceImplTest {
         void getProductionPlanList_success() {
             // given
             SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
-                .status(PlanStatus.PENDING)
+                .status(List.of(PlanStatus.PENDING))
                 .factoryName(factory.getFactoryName())
                 .salesManagerName(salesManager.getName())
                 .productionManagerName(productionManager.getName())
                 .itemName(item.getItemName())
-                .dueDate(testDate)
+                .dueDateFrom(testDate)
+                .dueDateTo(testDate.plusDays(1))
                 .startTime(testDateTime.minusDays(1))
                 .endTime(testDateTime.plusDays(1))
                 .build();
@@ -1286,7 +1290,7 @@ class ProductionPlanServiceImplTest {
         void getProductionPlanList_clientSortMerged() {
             // given
             SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
-                .status(PlanStatus.PENDING)
+                .status(List.of(PlanStatus.PENDING))
                 .build();
 
             // 클라이언트가 name ASC 정렬 요청

@@ -26,6 +26,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -57,6 +58,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
+@ToString
 public class ProductionPlans {
 
     @Id
@@ -168,6 +170,19 @@ public class ProductionPlans {
 
     public LocalDateTime getDueDateTime() {
         return this.dueDate.atStartOfDay().withHour(12);
+    }
+
+    public boolean isRunning() {
+        return this.status.equals(PlanStatus.RUNNING);
+    }
+
+    public boolean isCompleted() {
+        return this.status.equals(PlanStatus.COMPLETED);
+    }
+
+    public void updateSchedule(LocalDateTime newStart, LocalDateTime newEnd) {
+        this.startTime = newStart;
+        this.endTime = newEnd;
     }
 
     public enum PlanStatus {

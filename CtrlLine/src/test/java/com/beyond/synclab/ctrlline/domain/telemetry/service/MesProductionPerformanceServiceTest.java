@@ -7,9 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
 import com.beyond.synclab.ctrlline.domain.production.service.ProductionOrderService;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
+import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanResolver;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
@@ -33,11 +33,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MesProductionPerformanceServiceTest {
 
     @Mock
-    private ProductionPlanRepository productionPlanRepository;
-    @Mock
     private ProductionPerformanceRepository productionPerformanceRepository;
     @Mock
     private ProductionOrderService productionOrderService;
+    @Mock
+    private ProductionPlanResolver productionPlanResolver;
     @Mock
     private Clock clock;
 
@@ -64,7 +64,7 @@ class MesProductionPerformanceServiceTest {
                 .endTime(LocalDateTime.of(2025, 11, 19, 11, 0))
                 .build();
 
-        when(productionPlanRepository.findFirstByDocumentNoAndStatusOrderByIdDesc("2025/11/19-1", ProductionPlans.PlanStatus.RUNNING))
+        when(productionPlanResolver.resolveLatestPlan("2025/11/19-1"))
                 .thenReturn(Optional.of(plan));
         when(productionPerformanceRepository.findDocumentNosByPrefix("2025/11/19"))
                 .thenReturn(Collections.emptyList());
@@ -91,7 +91,7 @@ class MesProductionPerformanceServiceTest {
         assertThat(saved.getEndTime()).isEqualTo(payload.waitingAckAt());
         assertThat(saved.getProductionPlan()).isSameAs(plan);
 
-        verify(productionOrderService).sendLineAck(plan);
+        verify(productionOrderService).sendLineAck(plan, LocalDateTime.of(2025, 11, 19, 10, 15));
     }
 
     @Test
@@ -106,8 +106,8 @@ class MesProductionPerformanceServiceTest {
 
         mesProductionPerformanceService.saveProductionPerformance(payload);
 
-        verify(productionPlanRepository, never()).findFirstByDocumentNoAndStatusOrderByIdDesc(any(), any());
+        verify(productionPlanResolver, never()).resolveLatestPlan(any());
         verify(productionPerformanceRepository, never()).save(any());
-        verify(productionOrderService, never()).sendLineAck(any());
+        verify(productionOrderService, never()).sendLineAck(any(), any());
     }
 }
