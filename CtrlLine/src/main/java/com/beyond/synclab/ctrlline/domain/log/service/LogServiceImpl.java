@@ -28,7 +28,9 @@ public class LogServiceImpl implements LogService {
             LogSpecification.logsBetween(logSearchDto.fromDate(), logSearchDto.toDate()),
             LogSpecification.logsEntityNameContains(logSearchDto.entityName()),
             LogSpecification.logsActionTypeEquals(logSearchDto.actionType()),
-            LogSpecification.logsUserIdEquals(logSearchDto.userId())
+            LogSpecification.logsUserIdEquals(logSearchDto.userId()),
+            LogSpecification.logsUserNameContains(logSearchDto.userName()),
+            LogSpecification.logsUserEmpNoContains(logSearchDto.empNo())
         );
 
         List<Logs> logs = logRepository.findAll(spec, Sort.by(Direction.DESC, "createdAt"));

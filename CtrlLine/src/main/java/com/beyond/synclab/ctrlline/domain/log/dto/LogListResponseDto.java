@@ -16,6 +16,8 @@ public class LogListResponseDto {
     private final String entityName;
     private final Long entityId;
     private final Long userId;
+    private final String userName;
+    private final String empNo;
     private final ActionType actionType;
     private final LocalDateTime createdAt;
 
@@ -25,6 +27,8 @@ public class LogListResponseDto {
             .entityName(log.getEntityName())
             .entityId(log.getEntityId())
             .userId(log.getUserId())
+            .userName(log.getUser().getName())
+            .empNo(log.getUser().getEmpNo())
             .actionType(log.getActionType())
             .createdAt(log.getCreatedAt())
             .build();
