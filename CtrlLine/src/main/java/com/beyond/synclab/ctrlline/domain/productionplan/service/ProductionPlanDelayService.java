@@ -22,39 +22,35 @@ public class ProductionPlanDelayService {
         if (completedPlan == null || actualEndTime == null) return;
 
         Long lineId = completedPlan.getItemLine().getLineId();
-
         LocalDateTime scheduledEnd = completedPlan.getEndTime();
 
-        // "뒤" 계획들만 조회
-        List<ProductionPlans> futurePlans = productionPlanRepository
-            .findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(
+        // completedPlan 이후 계획들만 조회
+        List<ProductionPlans> futurePlans =
+            productionPlanRepository.findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(
                 lineId,
                 scheduledEnd
             );
 
+        log.debug("futurePlans : {}", futurePlans);
+
         if (futurePlans.isEmpty()) return;
 
-        // cursor = 실적 종료시간 (가장 최신 종료 기준)
+        // cursor = 실제 종료시간
         LocalDateTime cursor = actualEndTime;
 
         for (ProductionPlans plan : futurePlans) {
 
-            // 시작시간이 cursor보다 앞서면 밀어야 함
-            if (plan.getStartTime().isBefore(cursor)) {
+            Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
 
-                Duration duration = Duration.between(plan.getStartTime(), plan.getEndTime());
+            // --- 1) 밀기: 계획 시작이 cursor보다 앞이면 뒤로 미룬다 ---
+            // --- 2) 당기기: 계획 시작이 cursor보다 충분히 뒤에 있으면 당겨온다 ---
+            LocalDateTime newStart = cursor;
+            LocalDateTime newEnd = newStart.plus(duration);
 
-                LocalDateTime newStart = cursor;
-                LocalDateTime newEnd = newStart.plus(duration);
+            plan.updateStartTime(newStart);
+            plan.updateEndTime(newEnd);
 
-                plan.updateStartTime(newStart);
-                plan.updateEndTime(newEnd);
-
-                cursor = newEnd;
-            } else {
-                // 안 겹치면 그대로 cursor 이동
-                cursor = plan.getEndTime();
-            }
+            cursor = newEnd;
         }
 
         productionPlanRepository.saveAll(futurePlans);
