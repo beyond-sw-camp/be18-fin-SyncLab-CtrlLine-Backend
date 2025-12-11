@@ -156,9 +156,9 @@ class ProductionOrderServiceTest {
                 .build();
 
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.plusMinutes(30)))
                 .thenReturn(List.of());
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now.plusMinutes(30)))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(line));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
@@ -216,9 +216,9 @@ class ProductionOrderServiceTest {
                 .status(PlanStatus.CONFIRMED)
                 .build();
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.plusMinutes(30)))
                 .thenReturn(List.of());
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now.plusMinutes(30)))
                 .thenReturn(List.of(plan));
         when(lineRepository.findById(1L)).thenReturn(Optional.of(Lines.of(1L, 10L, "PS-001")));
         when(lineRepository.findFactoryCodeByLineId(1L)).thenReturn(Optional.of("FC-001"));
@@ -247,9 +247,9 @@ class ProductionOrderServiceTest {
             .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(Lines.builder().id(1L).lineCode("L001").build()).build())
             .build();
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.plusMinutes(30)))
             .thenReturn(List.of(pendingPlan));
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now.plusMinutes(30)))
             .thenReturn(List.of());
 
         productionOrderService.dispatchDuePlans();
