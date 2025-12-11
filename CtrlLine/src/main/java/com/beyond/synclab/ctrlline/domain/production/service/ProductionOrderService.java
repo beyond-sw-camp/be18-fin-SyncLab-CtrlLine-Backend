@@ -16,6 +16,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanD
 import com.beyond.synclab.ctrlline.domain.productionplan.service.ProductionPlanStatusNotificationService;
 import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -57,11 +58,11 @@ public class ProductionOrderService {
         LocalDateTime now = LocalDateTime.now(clock);
 
         // Only expire PENDING plans
-        expirePendingPlans(now);
+        expirePendingPlans(now.plusMinutes(30));
 
         // CONFIRMED but not expired (MES standard)
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(
-                ProductionPlans.PlanStatus.CONFIRMED, now
+                ProductionPlans.PlanStatus.CONFIRMED, now.plusMinutes(30)
         );
 
         log.debug("Found {} production plans to dispatch at {}", plans.size(), now);
@@ -216,6 +217,30 @@ public class ProductionOrderService {
                 plan.getDocumentNo(),
                 null
         ));
+    }
+
+    @Transactional
+    public void detectAndApplyRunningDelays() {
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        List<ProductionPlans> runningPlans =
+            productionPlanRepository.findAllByStatus(ProductionPlans.PlanStatus.RUNNING);
+
+        for (ProductionPlans plan : runningPlans) {
+            LocalDateTime scheduledEnd = plan.getEndTime();
+
+            // 2) endTime 이 이미 미래라면 delay 이미 반영된 것으로 간주
+            if (scheduledEnd.isAfter(now)) {
+                continue; // 지연 누적 방지
+            }
+
+            long delayMinutes = Duration.ofMinutes(10).toMinutes();
+
+            log.info("RUNNING 지연 감지: documentNo={}, delay={}min",
+                plan.getDocumentNo(), delayMinutes);
+
+            productionPlanDelayService.applyOngoingDelay(plan, delayMinutes);
+        }
     }
 
     private record DispatchContext(

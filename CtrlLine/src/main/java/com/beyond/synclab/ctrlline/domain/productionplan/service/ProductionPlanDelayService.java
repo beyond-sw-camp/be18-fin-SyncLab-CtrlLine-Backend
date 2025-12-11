@@ -55,4 +55,31 @@ public class ProductionPlanDelayService {
 
         productionPlanRepository.saveAll(futurePlans);
     }
+
+    @Transactional
+    public void applyOngoingDelay(ProductionPlans runningPlan, long delayMinutes) {
+        if (delayMinutes <= 0) return;
+
+        Long lineId = runningPlan.getItemLine().getLineId();
+        LocalDateTime scheduledEnd = runningPlan.getEndTime();
+
+        List<ProductionPlans> futurePlans =
+            productionPlanRepository.findAllByLineIdAndStartTimeAfterOrderByStartTimeAsc(
+                lineId,
+                scheduledEnd
+            );
+
+        for (ProductionPlans plan : futurePlans) {
+
+            LocalDateTime newStart = plan.getStartTime().plusMinutes(delayMinutes);
+            LocalDateTime newEnd   = plan.getEndTime().plusMinutes(delayMinutes);
+
+            log.info("RUNNING 지연 반영 → 계획 밀기: documentNo={} {} → {}",
+                plan.getDocumentNo(), plan.getStartTime(), newStart
+            );
+
+            plan.updateSchedule(newStart, newEnd);
+            productionPlanRepository.save(plan);
+        }
+    }
 }
