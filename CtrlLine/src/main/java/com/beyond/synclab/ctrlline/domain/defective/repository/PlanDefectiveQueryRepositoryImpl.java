@@ -17,6 +17,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.QPlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.QDefectives;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -43,6 +44,7 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
         QItemsLines il = QItemsLines.itemsLines;
         QItems item = QItems.items;
         QLines line = QLines.lines;
+        QFactories factory = QFactories.factories;
         QProductionPerformances perf = QProductionPerformances.productionPerformances;
 
         NumberExpression<BigDecimal> defectiveQtyExpr =
@@ -83,6 +85,7 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .leftJoin(pp.itemLine, il)
             .leftJoin(il.item, item)
             .leftJoin(il.line, line)
+            .leftJoin(line.factory, factory)
             .leftJoin(perf).on(perf.productionPlan.id.eq(pp.id))
             .where(
                 createdAtTo(request.toDate()),
@@ -93,6 +96,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
                 itemNameContains(request.itemName()),
                 lineNameContains(request.lineName()),
                 lineCodeContains(request.lineCode()),
+                factoryCodeContains(request.factoryCode()),
+                factoryNameContains(request.factoryName()),
                 defectiveQtyEq(request.defectiveQty(), defectiveQtyExpr),
                 defectiveRateEq(request.defectiveRate())
             )
@@ -108,6 +113,7 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .leftJoin(pp.itemLine, il)
             .leftJoin(il.item, item)
             .leftJoin(il.line, line)
+            .leftJoin(line.factory, factory)
             .leftJoin(perf).on(perf.productionPlan.id.eq(pp.id))
             .where(
                 createdAtTo(request.toDate()),
@@ -118,6 +124,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
                 itemNameContains(request.itemName()),
                 lineNameContains(request.lineName()),
                 lineCodeContains(request.lineCode()),
+                factoryCodeContains(request.factoryCode()),
+                factoryNameContains(request.factoryName()),
                 defectiveQtyEq(request.defectiveQty(), defectiveQtyExpr),
                 defectiveRateEq(request.defectiveRate())
             );
@@ -174,8 +182,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
                 createdAtFrom(request.fromDate()),
                 createdAtTo(request.toDate()),
                 dueDateTo(request.dueDate()),
-                factoryCodeEq(request.factoryCode()),
-                lineCodeEq(request.lineCode()),
+                factoryCodeContains(request.factoryCode()),
+                lineCodeContains(request.lineCode()),
                 itemIdEq(request.itemId()),
                 prodManagerNoContains(request.productionManagerNo()),
                 salesManagerNoContains(request.salesManagerNo()),
@@ -265,16 +273,12 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             : null;
     }
 
-    private BooleanExpression factoryCodeEq(String factoryCode) {
-        return (factoryCode != null && !factoryCode.isBlank())
-            ? QFactories.factories.factoryCode.eq(factoryCode)
-            : null;
+    private BooleanExpression factoryCodeContains(String factoryCode) {
+        return factoryCode == null ? null : QFactories.factories.factoryCode.contains(factoryCode);
     }
 
-    private BooleanExpression lineCodeEq(String lineCode) {
-        return (lineCode != null && !lineCode.isBlank())
-            ? QLines.lines.lineCode.eq(lineCode)
-            : null;
+    private BooleanExpression factoryNameContains(String factoryName) {
+        return factoryName == null ? null : QFactories.factories.factoryName.contains(factoryName);
     }
 
     private BooleanExpression itemIdEq(Long itemId) {
