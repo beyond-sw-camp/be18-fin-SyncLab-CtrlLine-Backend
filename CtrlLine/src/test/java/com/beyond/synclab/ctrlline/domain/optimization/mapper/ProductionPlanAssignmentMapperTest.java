@@ -2,12 +2,15 @@ package com.beyond.synclab.ctrlline.domain.optimization.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.beyond.synclab.ctrlline.domain.item.entity.Items;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.ItemsLines;
 import com.beyond.synclab.ctrlline.domain.optimization.model.ProductionPlanAssignment;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,21 @@ class ProductionPlanAssignmentMapperTest {
     @InjectMocks
     private ProductionPlanAssignmentMapper mapper;
 
+    private ItemsLines itemsLines;
+    private Items items;
+    @BeforeEach
+    void setUp() {
+        items = Items.builder()
+            .itemName("아이템")
+            .itemCode("ITEM001")
+            .id(1L)
+            .build();
+
+        itemsLines = ItemsLines.builder()
+            .item(items)
+            .itemId(items.getId())
+            .build();
+    }
     @Test
     @DisplayName("ADMIN 은 confirmed 도 locked=false 이어야 한다")
     void adminDoesNotLockConfirmedPlans() {
@@ -28,6 +46,8 @@ class ProductionPlanAssignmentMapperTest {
             .id(1L)
             .startTime(LocalDateTime.of(2025, 1, 1, 10, 0))
             .endTime(LocalDateTime.of(2025, 1, 1, 11, 0))
+            .itemLine(itemsLines)
+            .itemLineId(itemsLines.getId())
             .dueDate(LocalDate.of(2025, 1, 12))
             .status(PlanStatus.CONFIRMED)
             .build();
@@ -54,6 +74,8 @@ class ProductionPlanAssignmentMapperTest {
             .startTime(LocalDateTime.of(2025, 1, 1, 10, 0))
             .endTime(LocalDateTime.of(2025, 1, 1, 11, 0))
             .dueDate(LocalDate.of(2025, 1, 12))
+            .itemLine(itemsLines)
+            .itemLineId(itemsLines.getId())
             .status(PlanStatus.CONFIRMED)
             .build();
 
@@ -77,6 +99,8 @@ class ProductionPlanAssignmentMapperTest {
             .startTime(LocalDateTime.of(2025, 1, 1, 10, 0))
             .endTime(LocalDateTime.of(2025, 1, 1, 12, 0))
             .dueDate(LocalDate.of(2025, 1, 12))
+            .itemLine(itemsLines)
+            .itemLineId(itemsLines.getId())
             .status(PlanStatus.PENDING)
             .build();
 
@@ -98,6 +122,8 @@ class ProductionPlanAssignmentMapperTest {
             .startTime(LocalDateTime.of(2025, 1, 1, 10, 0))
             .endTime(LocalDateTime.of(2025, 1, 1, 12, 30))
             .dueDate(LocalDate.of(2025, 1, 12))
+            .itemLine(itemsLines)
+            .itemLineId(itemsLines.getId())
             .build();
 
         Users admin = Users.builder()

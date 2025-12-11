@@ -12,6 +12,7 @@ import com.beyond.synclab.ctrlline.domain.log.dto.LogSearchDto;
 import com.beyond.synclab.ctrlline.domain.log.entity.Logs;
 import com.beyond.synclab.ctrlline.domain.log.entity.Logs.ActionType;
 import com.beyond.synclab.ctrlline.domain.log.repository.LogRepository;
+import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -39,8 +40,15 @@ class LogServiceImplTest {
 
     private LocalDate baseDate;
 
+    private Users users;
+
     @BeforeEach
     void setup() {
+        users = Users.builder()
+            .id(1L)
+            .name("홍길동")
+            .empNo("209901001")
+            .build();
         baseDate = LocalDate.ofInstant(Instant.parse("2099-01-01T00:00:00Z"), ZoneId.systemDefault());
     }
 
@@ -58,6 +66,7 @@ class LogServiceImplTest {
 
         Logs logs = Logs.builder()
             .entityName("user")
+            .user(users)
             .userId(1L)
             .createdAt(baseDate.plusDays(1).atStartOfDay())
             .actionType(ActionType.CREATE)
@@ -82,7 +91,8 @@ class LogServiceImplTest {
 
         Logs log = Logs.builder()
             .entityName("item")
-            .userId(2L)
+            .userId(1L)
+            .user(users)
             .createdAt(baseDate.atStartOfDay())
             .actionType(ActionType.UPDATE)
             .build();
@@ -107,6 +117,8 @@ class LogServiceImplTest {
 
         Logs log = Logs.builder()
             .entityName("item")
+            .userId(1L)
+            .user(users)
             .createdAt(baseDate.plusDays(1).atStartOfDay())
             .build();
 
@@ -130,6 +142,7 @@ class LogServiceImplTest {
         Logs log = Logs.builder()
             .entityName("user")
             .userId(99L)
+            .user(users)
             .actionType(ActionType.DELETE)
             .build();
 
@@ -151,6 +164,8 @@ class LogServiceImplTest {
             .build();
 
         Logs log = Logs.builder()
+            .userId(users.getId())
+            .user(users)
             .createdAt(baseDate.atTime(12, 0))
             .build();
 
@@ -194,8 +209,16 @@ class LogServiceImplTest {
     @Test
     @DisplayName("createdAt 오름차순 정렬 확인")
     void getLogsList_sortedByCreatedAtAsc() {
-        Logs log1 = Logs.builder().createdAt(baseDate.atTime(9, 0)).build();
-        Logs log2 = Logs.builder().createdAt(baseDate.atTime(12, 0)).build();
+        Logs log1 = Logs.builder()
+            .userId(users.getId())
+            .user(users)
+            .createdAt(baseDate.atTime(9, 0))
+            .build();
+        Logs log2 = Logs.builder()
+            .userId(users.getId())
+            .user(users)
+            .createdAt(baseDate.atTime(12, 0))
+            .build();
 
         when(logRepository.findAll(ArgumentMatchers.<Specification<Logs>>any(), any(Sort.class)))
             .thenReturn(List.of(log1, log2));
