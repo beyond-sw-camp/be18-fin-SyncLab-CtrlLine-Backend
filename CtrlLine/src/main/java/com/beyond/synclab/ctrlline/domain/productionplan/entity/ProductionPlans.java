@@ -180,6 +180,11 @@ public class ProductionPlans {
         return this.status.equals(PlanStatus.COMPLETED);
     }
 
+    public void updateSchedule(LocalDateTime newStart, LocalDateTime newEnd) {
+        this.startTime = newStart;
+        this.endTime = newEnd;
+    }
+
     public enum PlanStatus {
         PENDING,
         CONFIRMED,
