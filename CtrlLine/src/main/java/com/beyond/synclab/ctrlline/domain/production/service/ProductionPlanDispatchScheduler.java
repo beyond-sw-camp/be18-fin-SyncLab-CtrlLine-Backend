@@ -27,6 +27,9 @@ public class ProductionPlanDispatchScheduler {
         }
         try {
             productionOrderService.dispatchDuePlans();
+
+            // 2) RUNNING 지연 감지 + 미래 계획 밀기
+            productionOrderService.detectAndApplyRunningDelays();
         } catch (Exception ex) {
             log.error("생산계획 지시 처리 중 오류가 발생했습니다.", ex);
         }
