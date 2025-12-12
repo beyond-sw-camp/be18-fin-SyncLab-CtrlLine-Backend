@@ -1186,7 +1186,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         // 2. 라인 전체 계획 조회
-        List<ProductionPlans> plans = findAllActivePlans(line.getId());
+        List<ProductionPlans> plans = productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
+            line.getId(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+        );
 
         if (plans.isEmpty()) {
             return GetProductionPlanBoundaryResponseDto.builder()
