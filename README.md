@@ -193,7 +193,7 @@
 <details>
 <summary>향후 개선 계획 보기</summary>
 
-![alt text](<스크린샷 2025-12-12 오후 6.22.54.png>)
+![차후개선점](docs/images/차후개선점.png)
 
 </details>
 
