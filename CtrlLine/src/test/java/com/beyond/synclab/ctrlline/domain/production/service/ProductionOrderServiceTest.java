@@ -156,7 +156,7 @@ class ProductionOrderServiceTest {
                 .build();
 
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.minusMinutes(30)))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
                 .thenReturn(List.of());
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
@@ -216,7 +216,7 @@ class ProductionOrderServiceTest {
                 .status(PlanStatus.CONFIRMED)
                 .build();
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.minusMinutes(30)))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
                 .thenReturn(List.of());
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
                 .thenReturn(List.of(plan));
@@ -247,7 +247,7 @@ class ProductionOrderServiceTest {
             .itemLine(ItemsLines.builder().id(1L).lineId(1L).line(Lines.builder().id(1L).lineCode("L001").build()).build())
             .build();
 
-        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now.minusMinutes(30)))
+        when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.PENDING, now))
             .thenReturn(List.of(pendingPlan));
         when(productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(PlanStatus.CONFIRMED, now))
             .thenReturn(List.of());
