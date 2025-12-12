@@ -15,6 +15,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanCommitRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
@@ -96,6 +97,31 @@ public class ProductionPlanController {
     ) {
         Users user = userDetails.getUser();
         PlanScheduleChangeResponseDto responseDto = productionPlanService.updateProductionPlan(requestDto, planId, user);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @GetMapping("/update/{planId}/preview")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<PlanScheduleChangeResponseDto>> updateProductionPlanPreview(
+        @RequestBody UpdateProductionPlanRequestDto requestDto,
+        @PathVariable Long planId,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user = userDetails.getUser();
+        PlanScheduleChangeResponseDto responseDto = productionPlanService.updateProductionPlanPreview(requestDto, planId, user);
+
+        return ResponseEntity.ok(BaseResponse.ok(responseDto));
+    }
+
+    @PatchMapping("/update/commit")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<BaseResponse<PlanScheduleChangeResponseDto>> updateProductionPlanCommit(
+        @RequestBody UpdateProductionPlanCommitRequestDto requestDto,
+        @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Users user = userDetails.getUser();
+        PlanScheduleChangeResponseDto responseDto = productionPlanService.updateProductionPlanCommit(requestDto, user);
 
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
