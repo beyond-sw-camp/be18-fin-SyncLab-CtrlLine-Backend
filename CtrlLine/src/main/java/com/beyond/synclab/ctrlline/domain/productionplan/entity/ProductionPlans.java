@@ -17,6 +17,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -26,7 +27,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -58,7 +58,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @EntityListeners(EntityActionLogger.class)
 @EqualsAndHashCode(of = "id")
-@ToString
 public class ProductionPlans {
 
     @Id
@@ -183,6 +182,17 @@ public class ProductionPlans {
     public void updateSchedule(LocalDateTime newStart, LocalDateTime newEnd) {
         this.startTime = newStart;
         this.endTime = newEnd;
+    }
+
+    public void updateFields(PlanStatus status, Long salesManagerId, Long productionManagerId, String remark, Long itemLineId, LocalDate dueDate,
+        BigDecimal plannedQty) {
+        this.status = Optional.ofNullable(status).orElse(this.status);
+        this.plannedQty = Optional.ofNullable(plannedQty).orElse(this.plannedQty);
+        this.salesManagerId = this.salesManager != null ? salesManagerId : this.salesManagerId;
+        this.productionManagerId = this.productionManager != null ? productionManagerId : this.productionManagerId;
+        this.itemLineId = this.itemLine != null ? itemLineId : this.itemLineId;
+        this.dueDate = Optional.ofNullable(dueDate).orElse(this.dueDate);
+        this.remark = Optional.ofNullable(remark).orElse(this.remark);
     }
 
     public enum PlanStatus {
