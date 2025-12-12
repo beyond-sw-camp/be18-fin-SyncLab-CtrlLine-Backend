@@ -53,6 +53,7 @@ import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users.UserRole;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -78,6 +79,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -113,6 +115,9 @@ class ProductionPlanServiceImplTest {
 
     @Mock private ProductionPlanReconciliationService productionPlanReconciliationService;
 
+    @Mock private RedisTemplate<String, Object> redisTemplate;
+    @Mock private ObjectMapper objectMapper;
+
     private ProductionPlanServiceImpl productionPlanService;
 
     private Clock testClock;
@@ -142,6 +147,7 @@ class ProductionPlanServiceImplTest {
 
         // 서비스에 Mock + FixedClock 직접 주입
         productionPlanService = new ProductionPlanServiceImpl(
+            objectMapper,
             productionPlanRepository,
             userRepository,
             lineRepository,
@@ -152,7 +158,8 @@ class ProductionPlanServiceImplTest {
             productionPerformanceRepository,
             planStatusNotificationService,
             testClock,
-            productionPlanReconciliationService
+            productionPlanReconciliationService,
+            redisTemplate
         );
 
         lenient().when(productionPerformanceRepository.findRecentByLineId(anyLong(), any(Pageable.class)))
@@ -1201,10 +1208,16 @@ class ProductionPlanServiceImplTest {
                 .documentNo("2099/01/01-1")
                 .plannedQty(BigDecimal.valueOf(500))
                 .build();
+            ProductionPerformances productionPerformances = ProductionPerformances.builder()
+                    .id(1L)
+                    .productionPlanId(planId)
+                    .endTime(testDateTime)
+                    .build();
 
             when(productionPlanRepository.findById(planId))
                 .thenReturn(Optional.of(productionPlans));
-
+            when(productionPerformanceRepository.findByProductionPlanId(planId))
+                .thenReturn(Optional.of(productionPerformances));
             // when
             GetProductionPlanDetailResponseDto response = productionPlanService.getProductionPlan(planId);
 
