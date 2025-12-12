@@ -101,7 +101,7 @@ public class ProductionPlanController {
         return ResponseEntity.ok(BaseResponse.ok(responseDto));
     }
 
-    @GetMapping("/update/{planId}/preview")
+    @PostMapping("/update/{planId}/preview")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<BaseResponse<PlanScheduleChangeResponseDto>> updateProductionPlanPreview(
         @RequestBody UpdateProductionPlanRequestDto requestDto,
