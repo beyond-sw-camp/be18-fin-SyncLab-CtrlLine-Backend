@@ -17,6 +17,7 @@ import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
+import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
@@ -33,6 +34,9 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdatePlanPreviewSnapshot;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdatePlanPreviewSnapshot.PlanTimeSnapshot;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanCommitRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
@@ -44,6 +48,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.Tuple;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -57,6 +62,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +73,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +86,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private static final int PERFORMANCE_SAMPLE_SIZE = 5;
     private static final long BASE_BUFFER_MINUTES = 30;
 
+    private final ObjectMapper objectMapper; // Spring이 관리하는 mapper (JSR310 모듈 등록됨)
     private final ProductionPlanRepository productionPlanRepository;
     private final UserRepository userRepository;
     private final LineRepository lineRepository;
@@ -90,7 +98,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final ProductionPlanStatusNotificationService planStatusNotificationService;
     private final Clock clock;
     private final ProductionPlanReconciliationService reconciliationService;
-
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private List<ProductionPlans> findAllActivePlans(Long lineId) {
         return productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
@@ -472,6 +480,197 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return buildScheduleChangeResponse(productionPlan, beforeStart, beforeEnd, afterPlans);
     }
 
+    private List<ProductionPlans> scheduleUpdatedPlanPreview(
+        ProductionPlans updatedPlan,
+        Users requester,
+        Long lineId
+    ) {
+        List<ProductionPlans> plans = buildPlansForUpdate(updatedPlan, lineId);
+
+        applyShift(plans, updatedPlan, requester);
+        applyCompact(plans, requester);
+
+        return plans;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PlanScheduleChangeResponseDto updateProductionPlanPreview(
+        UpdateProductionPlanRequestDto dto,
+        Long planId,
+        Users requester
+    ) {
+
+        // 1) 기본 검증
+        validateEndAndStartTime(dto.getStartTime());
+
+        ProductionPlans plan = findPlanById(planId);
+        validateUpdatable(plan);
+        validateRequestedStatusByRole(dto.getStatus(), requester);
+
+        // 2) DTO 기반 관련 엔티티 로딩
+        Users salesManager = findUserByEmpNo(dto.getSalesManagerNo());
+        Users productionManager = findUserByEmpNo(dto.getProductionManagerNo());
+        Lines line = dto.getLineCode() == null
+            ? plan.getItemLine().getLine()
+            : lineRepository.findBylineCode(dto.getLineCode())
+                .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+
+        Items item = itemRepository.findByItemCode(dto.getItemCode())
+            .orElseThrow(() -> new AppException(ItemErrorCode.ITEM_NOT_FOUND));
+        ItemsLines itemsLine = itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())
+            .orElseThrow(() -> new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND));
+
+        // 3) BEFORE snapshot (affectedPlans 계산용)
+        List<ProductionPlans> beforePlans = findAllActivePlans(line.getId());
+        reconciliationService.reconcileWithActualEndTimes(beforePlans);
+
+        Map<Long, LocalDateTime> beforeStart = snapshotStart(beforePlans);
+        Map<Long, LocalDateTime> beforeEnd   = snapshotEnd(beforePlans);
+
+        // 4) Preview 대상 plan을 clone (DB 오염 방지)
+        ProductionPlans cloned = plan.toBuilder().build();
+
+        LocalDateTime newStart = calculateNewStart(dto, cloned);
+        LocalDateTime newEnd   = calculateNewEnd(dto, cloned, newStart, line.getId());
+
+        // clone 업데이트
+        cloned.update(dto, newStart, newEnd, salesManager, productionManager, itemsLine);
+
+        // 5) Shift + Compact 실행 (DB 저장 없음)
+        List<ProductionPlans> previewPlans =
+            scheduleUpdatedPlanPreview(cloned, requester, line.getId());
+
+        // 6) 전체 snapshot 생성 → Redis 저장
+        String previewKey = "upd:plan:preview:" + UUID.randomUUID();
+
+        UpdatePlanPreviewSnapshot snapshot = UpdatePlanPreviewSnapshot.builder()
+            .planId(planId)
+            .documentNo(plan.getDocumentNo())
+            .lineId(line.getId())
+            .plans(previewPlans.stream()
+                .map(p -> UpdatePlanPreviewSnapshot.PlanTimeSnapshot.builder()
+                    .planId(p.getId())
+                    .startTime(p.getStartTime())
+                    .endTime(p.getEndTime())
+                    .build())
+                .toList()
+            )
+            .updateFields(UpdatePlanPreviewSnapshot.UpdateFieldSnapshot.builder()
+                .status(dto.getStatus())
+                .salesManagerId(salesManager != null ? salesManager.getId() : null)
+                .productionManagerId(productionManager != null ? productionManager.getId() : null)
+                .remark(dto.getRemark())
+                .itemLineId(itemsLine.getId())
+                .dueDate(dto.getDueDate())
+                .plannedQty(dto.getPlannedQty())
+                .build())
+            .build();
+
+        redisTemplate.opsForValue().set(
+            previewKey,
+            snapshot,
+            Duration.ofMinutes(10)
+        );
+
+        // 7) 클라이언트 응답 (기존 DTO 그대로)
+        return buildScheduleChangeResponse(plan, beforeStart, beforeEnd, previewPlans)
+                .toBuilder()
+                .previewKey(previewKey)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PlanScheduleChangeResponseDto updateProductionPlanCommit(
+        UpdateProductionPlanCommitRequestDto requestDto,
+        Users requester
+    ) {
+        String previewKey = requestDto.previewKey();
+
+        Object raw = redisTemplate.opsForValue().get(previewKey);
+        if (raw == null) {
+            throw new AppException(CommonErrorCode.INVALID_REQUEST);
+        }
+
+        UpdatePlanPreviewSnapshot snapshot =
+            objectMapper.convertValue(raw, UpdatePlanPreviewSnapshot.class);
+
+        // 1) 대상 플랜 전체 조회
+        List<Long> planIds = snapshot.getPlans().stream()
+            .map(PlanTimeSnapshot::getPlanId)
+            .toList();
+
+        Map<Long, ProductionPlans> planMap =
+            productionPlanRepository.findAllById(planIds).stream()
+                .collect(Collectors.toMap(ProductionPlans::getId, p -> p));
+
+        ProductionPlans targetPlan = planMap.get(snapshot.getPlanId());
+        if (targetPlan == null) {
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND);
+        }
+
+        // 2) BEFORE snapshot (notify 용)
+        Map<Long, LocalDateTime> beforeStart =
+            planMap.values().stream().collect(
+                Collectors.toMap(ProductionPlans::getId, ProductionPlans::getStartTime));
+
+        Map<Long, LocalDateTime> beforeEnd =
+            planMap.values().stream().collect(
+                Collectors.toMap(ProductionPlans::getId, ProductionPlans::getEndTime));
+
+        // 3) updateFields 반영
+        var uf = snapshot.getUpdateFields();
+
+        targetPlan.updateFields(
+            uf.getStatus(),
+            uf.getSalesManagerId(),
+            uf.getProductionManagerId(),
+            uf.getRemark(),
+            uf.getItemLineId(),
+            uf.getDueDate(),
+            uf.getPlannedQty()
+        );
+
+        // 4) start/end 반영
+        for (UpdatePlanPreviewSnapshot.PlanTimeSnapshot ps : snapshot.getPlans()) {
+            ProductionPlans plan = planMap.get(ps.getPlanId());
+            if (plan == null) continue;
+
+            if (!plan.isUpdatable()) {
+                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+            }
+
+            plan.updateStartTime(ps.getStartTime());
+            plan.updateEndTime(ps.getEndTime());
+        }
+
+        productionPlanRepository.saveAll(planMap.values());
+
+        // 5) notify는 commit에서만 발생
+        for (ProductionPlans p : planMap.values()) {
+            LocalDateTime prevStart = beforeStart.get(p.getId());
+            LocalDateTime prevEnd = beforeEnd.get(p.getId());
+
+            checkDueDate(p, p.getEndTime());
+
+            if (!prevStart.equals(p.getStartTime()) ||
+                !prevEnd.equals(p.getEndTime())) {
+
+                planStatusNotificationService.notifyScheduleChange(
+                    p, prevStart, prevEnd
+                );
+            }
+        }
+
+        redisTemplate.delete(previewKey);
+
+        return PlanScheduleChangeResponseDto.builder()
+            .planId(snapshot.getPlanId())
+            .planDocumentNo(snapshot.getDocumentNo())
+            .build();
+    }
+
     // PENDING 인 계획일때
     // - 자유롭게 땡기거나 미룸.
     // CONFIRMED 인 계획일때
@@ -757,7 +956,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         Items item = productionPlans.getItemLine().getItem();
 
-        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item);
+        ProductionPerformances productionPerformances = productionPerformanceRepository.findByProductionPlanId(planId)
+            .orElseThrow(() -> new AppException(ProductionPerformanceErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND));
+
+        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item, productionPerformances.getEndTime());
     }
 
     @Override
@@ -836,8 +1038,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             PlanSpecification.planStatusNotEquals(PlanStatus.RETURNED), // 반려 조건 제외해서 조회
             PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
             PlanSpecification.planLineNameContains(requestDto.lineName()),
-            PlanSpecification.planStartTimeAfter(requestDto.startTime()),
-            PlanSpecification.planEndTimeBefore(requestDto.endTime())
+            PlanSpecification.planStartTimeBeforeScheduledEndAndEndTimeAfterScheduledStart(requestDto.endTime(), requestDto.startTime())
         );
 
         List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.ASC, "startTime"));

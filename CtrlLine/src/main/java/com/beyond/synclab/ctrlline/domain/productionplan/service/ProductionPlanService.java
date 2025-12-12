@@ -13,6 +13,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanSc
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanCommitRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
@@ -24,6 +25,17 @@ import org.springframework.data.domain.Pageable;
 public interface ProductionPlanService {
 
     PlanScheduleChangeResponseDto createProductionPlan(CreateProductionPlanRequestDto requestDto, Users user);
+
+    PlanScheduleChangeResponseDto updateProductionPlanPreview(
+        UpdateProductionPlanRequestDto dto,
+        Long planId,
+        Users requester
+    );
+
+    PlanScheduleChangeResponseDto updateProductionPlanCommit(
+        UpdateProductionPlanCommitRequestDto dto,
+        Users requester
+    );
 
     GetProductionPlanDetailResponseDto getProductionPlan(Long planId);
 

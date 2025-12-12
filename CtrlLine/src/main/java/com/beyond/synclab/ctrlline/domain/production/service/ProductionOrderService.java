@@ -58,7 +58,7 @@ public class ProductionOrderService {
         LocalDateTime now = LocalDateTime.now(clock);
 
         // Only expire PENDING plans
-        expirePendingPlans(now.plusMinutes(30));
+        expirePendingPlans(now.minusMinutes(30));
 
         // CONFIRMED but not expired (MES standard)
         List<ProductionPlans> plans = productionPlanRepository.findAllByStatusAndStartTimeLessThanEqual(

@@ -27,6 +27,7 @@ public class GetProductionPlanDetailResponseDto {
     private String productionManagerName;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private LocalDateTime actualEndTime;
     private Long factoryId;
     private String factoryCode;
     private String factoryName;
@@ -41,7 +42,7 @@ public class GetProductionPlanDetailResponseDto {
     private String lineName;
     private String remark;
 
-    public static GetProductionPlanDetailResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items) {
+    public static GetProductionPlanDetailResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items, LocalDateTime actualEndTime) {
         return GetProductionPlanDetailResponseDto.builder()
             .id(productionPlans.getId())
             .planDocumentNo(productionPlans.getDocumentNo())
@@ -53,6 +54,7 @@ public class GetProductionPlanDetailResponseDto {
             .productionManagerName(productionPlans.getProductionManager().getName())
             .startTime(productionPlans.getStartTime())
             .endTime(productionPlans.getEndTime())
+            .actualEndTime(actualEndTime)
             .lineId(productionPlans.getItemLine().getLineId())
             .factoryId(factories.getId())
             .factoryCode(factories.getFactoryCode())
