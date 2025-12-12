@@ -26,4 +26,7 @@ public interface ItemRepository extends JpaRepository<Items, Long>, ItemQueryRep
 
     // 품목 사용여부별 조회
     List<Items> findByIsActive(Boolean isActive);
+
+    // 품목 코드 목록으로 조회
+    List<Items> findByItemCodeIn(List<String> itemCodes);
 }
