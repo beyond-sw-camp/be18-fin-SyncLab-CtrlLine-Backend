@@ -17,7 +17,6 @@ import com.beyond.synclab.ctrlline.domain.line.entity.Lines;
 import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
-import com.beyond.synclab.ctrlline.domain.productionperformance.exception.ProductionPerformanceErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
@@ -956,10 +955,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         Items item = productionPlans.getItemLine().getItem();
 
-        ProductionPerformances productionPerformances = productionPerformanceRepository.findByProductionPlanId(planId)
-            .orElseThrow(() -> new AppException(ProductionPerformanceErrorCode.PRODUCTION_PERFORMANCE_NOT_FOUND));
+        LocalDateTime actualEndTime = productionPerformanceRepository.findByProductionPlanId(planId)
+            .orElse(ProductionPerformances.builder().build())
+            .getEndTime();
 
-        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item, productionPerformances.getEndTime());
+        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item, actualEndTime);
     }
 
     @Override
