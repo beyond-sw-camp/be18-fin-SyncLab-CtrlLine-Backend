@@ -112,6 +112,21 @@ public class PlanSpecification {
         };
     }
 
+
+    public Specification<ProductionPlans> planStartTimeBeforeScheduledEndAndEndTimeAfterScheduledStart(
+        LocalDateTime scheduledEnd, LocalDateTime scheduledStart
+    ) {
+        return (root, query, cb) -> {
+            if (scheduledStart == null || scheduledEnd == null) return null;
+
+            return cb.and(
+                cb.lessThanOrEqualTo(root.get("startTime"), scheduledEnd),
+                cb.greaterThanOrEqualTo(root.get("endTime"), scheduledStart)
+            );
+        };
+    }
+
+
     public Specification<ProductionPlans> planEndTimeBefore(LocalDateTime end) {
         return (root, query, cb) -> {
             if (end == null) return null;
