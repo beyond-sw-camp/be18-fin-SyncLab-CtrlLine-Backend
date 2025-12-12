@@ -45,8 +45,6 @@ public class UpdatePlanPreviewSnapshot {
         private Long productionManagerId;
         private String remark;
         private Long itemLineId;
-        private Long lineId;
-        private Long itemId;
         private LocalDate dueDate;
         private BigDecimal plannedQty;
     }
