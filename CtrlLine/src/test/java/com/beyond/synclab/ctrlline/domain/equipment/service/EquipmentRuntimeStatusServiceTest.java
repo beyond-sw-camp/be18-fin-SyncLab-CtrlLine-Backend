@@ -72,6 +72,21 @@ class EquipmentRuntimeStatusServiceTest {
     }
 
     @Test
+    void updateStatus_holdWithoutActiveAlarmUsesAlarmLevel() {
+        EquipmentStatusTelemetryPayload payload = new EquipmentStatusTelemetryPayload(
+                "EQP-105",
+                "HOLD",
+                "CRITICAL",
+                false,
+                null
+        );
+
+        service.updateStatus(payload);
+
+        assertThat(service.getLevelOrDefault("EQP-105")).isEqualTo(EquipmentRuntimeStatusLevel.HIGH_WARNING);
+    }
+
+    @Test
     void updateStatus_marksNoticeAlarmAsLightWarning() {
         EquipmentStatusTelemetryPayload payload = new EquipmentStatusTelemetryPayload(
                 "EQP-103",
@@ -99,6 +114,21 @@ class EquipmentRuntimeStatusServiceTest {
         service.updateStatus(payload);
 
         assertThat(service.getLevelOrDefault("EQP-104")).isEqualTo(EquipmentRuntimeStatusLevel.HIGH_WARNING);
+    }
+
+    @Test
+    void updateStatus_suspendStateDefaultsToLowWarningWhenAlarmLevelMissing() {
+        EquipmentStatusTelemetryPayload payload = new EquipmentStatusTelemetryPayload(
+                "EQP-106",
+                "SUSPEND",
+                null,
+                false,
+                null
+        );
+
+        service.updateStatus(payload);
+
+        assertThat(service.getLevelOrDefault("EQP-106")).isEqualTo(EquipmentRuntimeStatusLevel.LOW_WARNING);
     }
 
     @Test
