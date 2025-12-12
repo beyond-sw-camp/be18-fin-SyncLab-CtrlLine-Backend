@@ -28,10 +28,13 @@ public class EquipmentRuntimeStatusService {
             Set.of("EXECUTE", "STARTING", "COMPLETING");
 
     private static final Set<String> STOPPED_STATES =
-            Set.of("IDLE", "RESETTING", "HOLD", "SUSPEND", "COMPLETE", "WAITING_ACK");
+            Set.of("IDLE", "RESETTING", "COMPLETE", "WAITING_ACK");
 
     private static final Set<String> WARNING_STATES =
             Set.of("STOPPING");
+
+    private static final Set<String> ALARM_DOMINATED_STATES =
+            Set.of("HOLD", "SUSPEND");
 
     private static final Set<String> SEVERE_ALARM_LEVELS =
             Set.of("CRITICAL", "FATAL", "ERROR", "MAJOR", "FAULT", "EMERGENCY");
@@ -104,20 +107,23 @@ public class EquipmentRuntimeStatusService {
     }
 
     private EquipmentRuntimeStatusLevel resolveLevel(EquipmentStatusTelemetryPayload payload) {
-        if (payload.alarmActive()) {
+        String normalizedState = normalizeState(payload.state());
+        boolean dependsOnAlarm = payload.alarmActive()
+                || (normalizedState != null && ALARM_DOMINATED_STATES.contains(normalizedState));
+        if (dependsOnAlarm) {
             AlarmSeverity severity = resolveAlarmSeverity(payload.alarmLevel());
             return severity == AlarmSeverity.SEVERE
                     ? EquipmentRuntimeStatusLevel.HIGH_WARNING
                     : EquipmentRuntimeStatusLevel.LOW_WARNING;
         }
-        return resolveFromState(payload.state());
+        return resolveFromState(normalizedState);
     }
 
     private EquipmentRuntimeStatusLevel resolveFromState(String state) {
-        if (!StringUtils.hasText(state)) {
+        String normalized = normalizeState(state);
+        if (normalized == null) {
             return EquipmentRuntimeStatusLevel.STOPPED;
         }
-        String normalized = state.trim().toUpperCase();
         if (RUNNING_STATES.contains(normalized)) {
             return EquipmentRuntimeStatusLevel.RUNNING;
         }
@@ -150,6 +156,13 @@ public class EquipmentRuntimeStatusService {
         return severity == AlarmSeverity.SEVERE
                 ? EquipmentRuntimeStatusLevel.HIGH_WARNING
                 : EquipmentRuntimeStatusLevel.LOW_WARNING;
+    }
+
+    private String normalizeState(String state) {
+        if (!StringUtils.hasText(state)) {
+            return null;
+        }
+        return state.trim().toUpperCase();
     }
 
     private enum AlarmSeverity {
