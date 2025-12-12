@@ -52,7 +52,7 @@ public class ItemLineServiceImpl implements ItemLineService {
         log.info("라인({}) 생산 가능 품목 등록 요청", lineCode);
 
         final Lines line = findLineOrThrow(lineCode);
-        final List<String> itemCodes = normalizeItemCodes(requestDto);
+        final List<String> itemCodes = normalizeItemCodes(requestDto, false);
         final Map<String, Items> itemsByCode = findItemsByCodes(itemCodes);
         final Set<Long> existingItemIds = itemLineRepository.findByLine(line).stream()
                 .map(ItemsLines::getItemId)
@@ -79,7 +79,7 @@ public class ItemLineServiceImpl implements ItemLineService {
         log.info("라인({}) 생산 가능 품목 수정 요청", lineCode);
 
         final Lines line = findLineOrThrow(lineCode);
-        final List<String> itemCodes = normalizeItemCodes(requestDto);
+        final List<String> itemCodes = normalizeItemCodes(requestDto, true);
         final Map<String, Items> itemsByCode = findItemsByCodes(itemCodes);
 
         // 기존 매핑 전체 삭제
@@ -87,6 +87,11 @@ public class ItemLineServiceImpl implements ItemLineService {
         if (!existingMappings.isEmpty()) {
             itemLineRepository.deleteAllInBatch(existingMappings);
             log.debug("라인({}) 기존 매핑 {}건 삭제 완료", lineCode, existingMappings.size());
+        }
+
+        if (itemCodes.isEmpty()) {
+            log.info("라인({})의 생산 가능 품목이 0건으로 수정 완료", lineCode);
+            return;
         }
 
         final List<ItemsLines> newMappings = itemCodes.stream()
@@ -103,8 +108,11 @@ public class ItemLineServiceImpl implements ItemLineService {
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
     }
 
-    private List<String> normalizeItemCodes(final ManageItemLineRequestDto requestDto) {
+    private List<String> normalizeItemCodes(final ManageItemLineRequestDto requestDto, final boolean allowEmpty) {
         if (requestDto == null || requestDto.getItemCodes() == null) {
+            if (allowEmpty) {
+                return List.of();
+            }
             throw new AppException(ItemLineErrorCode.INVALID_ITEM_LIST);
         }
 
@@ -114,6 +122,9 @@ public class ItemLineServiceImpl implements ItemLineService {
                 .collect(Collectors.toList());
 
         if (normalized.isEmpty()) {
+            if (allowEmpty) {
+                return List.of();
+            }
             throw new AppException(ItemLineErrorCode.INVALID_ITEM_LIST);
         }
 
@@ -128,6 +139,10 @@ public class ItemLineServiceImpl implements ItemLineService {
     }
 
     private Map<String, Items> findItemsByCodes(final List<String> itemCodes) {
+        if (itemCodes.isEmpty()) {
+            return Map.of();
+        }
+
         final List<Items> items = itemRepository.findByItemCodeIn(itemCodes);
         final Map<String, Items> itemsByCode = items.stream()
                 .collect(Collectors.toMap(Items::getItemCode, item -> item));
