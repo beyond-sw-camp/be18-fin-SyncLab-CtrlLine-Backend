@@ -79,6 +79,7 @@ class ItemLineRepositoryTest {
                                           .itemId(activeFinishedItem.getId())
                                           .createdAt(LocalDateTime.now())
                                           .updatedAt(LocalDateTime.now())
+                                            .isActive(true)
                                           .build());
 
         itemLineRepository.save(ItemsLines.builder()
@@ -86,6 +87,7 @@ class ItemLineRepositoryTest {
                                           .itemId(inactiveItem.getId())
                                           .createdAt(LocalDateTime.now())
                                           .updatedAt(LocalDateTime.now())
+                                            .isActive(true)
                                           .build());
 
         // when

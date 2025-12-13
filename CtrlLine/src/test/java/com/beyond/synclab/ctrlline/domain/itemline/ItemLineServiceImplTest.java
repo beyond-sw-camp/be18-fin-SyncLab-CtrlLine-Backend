@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.itemline;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.dto.request.ManageItemLineRequestDto;
@@ -134,6 +135,7 @@ class ItemLineServiceImplTest {
         return Lines.builder()
                 .id(id)
                 .factoryId(1L)
+                .factory(Factories.builder().id(1L).build())
                 .userId(1L)
                 .lineCode(lineCode)
                 .lineName("라인")
