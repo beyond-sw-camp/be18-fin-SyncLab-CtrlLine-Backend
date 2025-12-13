@@ -35,6 +35,11 @@ public class PlanScheduleSlot {
         return Duration.between(startTime, endTime);
     }
 
+    public void shiftBy(Duration delta) {
+        this.startTime = this.startTime.plus(delta);
+        this.endTime   = this.endTime.plus(delta);
+    }
+
     public void updateSchedule(LocalDateTime newStart, LocalDateTime newEnd) {
         this.startTime = newStart;
         this.endTime = newEnd;

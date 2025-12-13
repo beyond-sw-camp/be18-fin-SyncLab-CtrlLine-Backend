@@ -530,17 +530,47 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             List<PlanScheduleSlot> slots,
             Users requester
     ) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        Duration TOLERANCE = Duration.ofMinutes(10);
+
         boolean isAdmin = requester.isAdminRole();
 
-        // 시간순 정렬
+        // 1. 시간순 정렬
         slots.sort(Comparator.comparing(PlanScheduleSlot::getStartTime));
 
-        // anchor 기준 시간
-        LocalDateTime cursor = slots.stream()
+        // 2. anchor 기준 계산
+        LocalDateTime anchorEnd = slots.stream()
                 .filter(PlanScheduleSlot::isAnchor)
                 .map(PlanScheduleSlot::getEndTime)
                 .max(LocalDateTime::compareTo)
-                .orElse(slots.getFirst().getStartTime());
+                .orElse(null);
+
+        // 3. base 시점 결정
+        LocalDateTime base = (anchorEnd != null)
+                ? anchorEnd
+                : now.plus(TOLERANCE);
+
+        // 4. 이동 가능한 슬롯 중 가장 빠른 시작 시간
+        LocalDateTime minMovableStart = slots.stream()
+                .filter(s -> s.isMovable() && (isAdmin || s.getStatus() != PlanStatus.CONFIRMED))
+                .map(PlanScheduleSlot::getStartTime)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+
+        // 5. 앞 공백 제거 (rebase)
+        if (minMovableStart != null && minMovableStart.isAfter(base)) {
+            Duration delta = Duration.between(minMovableStart, base); // 음수 → 앞으로 당김
+
+            for (PlanScheduleSlot s : slots) {
+                if (s.isAnchor()) continue;
+                if (!isAdmin && s.getStatus() == PlanStatus.CONFIRMED) continue;
+
+                s.shiftBy(delta);
+            }
+        }
+
+        // 6. compact 수행 (기존 로직)
+        LocalDateTime cursor = base;
 
         for (PlanScheduleSlot slot : slots) {
 
