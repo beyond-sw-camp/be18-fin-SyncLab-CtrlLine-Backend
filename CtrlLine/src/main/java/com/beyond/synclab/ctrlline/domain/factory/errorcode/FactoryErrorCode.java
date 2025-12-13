@@ -7,7 +7,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum FactoryErrorCode implements ErrorCode {
     FACTORY_NOT_FOUND(HttpStatus.NOT_FOUND,"FACTORY_NOT_FOUND" , "해당 공장을 찾을 수 없습니다."), // 404
-    FACTORY_CONFLICT(HttpStatus.CONFLICT, "FACTORY_CONFLICT", "이미 존재하는 공장코드입니다."); // 409
+    FACTORY_CONFLICT(HttpStatus.CONFLICT, "FACTORY_CONFLICT", "이미 존재하는 공장코드입니다."), // 409
+    FACTORY_INACTIVE(HttpStatus.BAD_REQUEST, "FACTORY_INACTIVE", "비활성화된 공장입니다."); // 400
 
     private final HttpStatus status;
     private final String code;
