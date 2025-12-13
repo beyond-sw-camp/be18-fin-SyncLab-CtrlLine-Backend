@@ -49,6 +49,7 @@ public class ItemController {
             @RequestParam(required = false) String itemSpecification,
             @RequestParam(required = false) ItemStatus itemStatus,
             @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String factoryCode,
             @PageableDefault(size = 10, page = 0, sort = "itemCode") Pageable pageable
     ) {
         Page<GetItemListResponseDto> result = itemService.getItemList(
@@ -57,7 +58,8 @@ public class ItemController {
                 itemSpecification,
                 itemStatus,
                 isActive,
-                pageable
+                pageable,
+                factoryCode
         );
 
         PageResponse<GetItemListResponseDto> response = PageResponse.<GetItemListResponseDto>from(result);

@@ -60,7 +60,7 @@ public class MesProductionPerformanceService {
         LocalDateTime endTime = payload.waitingAckAt();
 
         ProductionPerformances performance = productionPerformanceRepository
-                .findByProductionPlanId(productionPlan.getId())
+                .findByProductionPlanIdAndIsDeletedFalse(productionPlan.getId())
                 .map(existing -> {
                     existing.updatePerformance(totalQty, producedQty, defectiveRate,
                             payload.executeAt(), endTime);

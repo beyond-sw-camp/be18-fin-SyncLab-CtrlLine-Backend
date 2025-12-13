@@ -19,7 +19,6 @@ import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
-import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
@@ -142,7 +141,7 @@ class MesTelemetryListenerTest {
                 .factoryName("Factory01")
                 .isActive(true)
                 .build());
-        when(factoryRepository.findByFactoryCode("F0001")).thenReturn(factory);
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue("F0001")).thenReturn(factory);
 
         String firstPayload = """
                 {"records":[
@@ -315,7 +314,7 @@ class MesTelemetryListenerTest {
                 .factoryName("Factory01")
                 .isActive(true)
                 .build();
-        when(factoryRepository.findByFactoryCode("F0001")).thenReturn(Optional.of(factory));
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue("F0001")).thenReturn(Optional.of(factory));
 
         String payload = """
                 {"machine":"F0001.CL0001","tag":"environment","value":{"temperature":23.56,"humidity":45.12,"timestamp":1764550749000}}

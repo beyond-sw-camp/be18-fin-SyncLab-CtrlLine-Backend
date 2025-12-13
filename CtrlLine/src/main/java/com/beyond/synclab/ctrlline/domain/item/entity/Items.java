@@ -84,4 +84,8 @@ public class Items {
             this.updatedAt = LocalDateTime.now();
         }
     }
+
+    public boolean isActivated() {
+        return this.isActive;
+    }
 }

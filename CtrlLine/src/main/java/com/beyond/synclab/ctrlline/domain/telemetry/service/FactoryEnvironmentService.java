@@ -65,7 +65,7 @@ public class FactoryEnvironmentService {
     }
 
     private Factories findFactory(String factoryCode) {
-        return factoryRepository.findByFactoryCode(factoryCode)
+        return factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
                 .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
     }
 

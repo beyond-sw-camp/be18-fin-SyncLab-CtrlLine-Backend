@@ -17,7 +17,8 @@ public enum ProductionPlanErrorCode implements ErrorCode {
 
     // 404
     PRODUCTION_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCTION_PLAN_NOT_FOUND", "생산계획을 찾을 수 없습니다."),
-    PRODUCTION_PLAN_DUEDATE_EXCEEDED(HttpStatus.BAD_REQUEST, "PRODUCTION_PLAN_DUEDATE_EXCEEDED", "납기일을 초과하여 생산계획을 등록할 수 없습니다.");
+    PRODUCTION_PLAN_DUEDATE_EXCEEDED(HttpStatus.BAD_REQUEST, "PRODUCTION_PLAN_DUEDATE_EXCEEDED", "납기일을 초과하여 생산계획을 등록할 수 없습니다."),
+    PRODUCTION_PLAN_NOT_UPDATABLE(HttpStatus.FORBIDDEN, "PRODUCTION_PLAN_NOT_UPDATABLE", "해당 생산계획은 상태값에 의해 업데이트가 불가능합니다.");
 
     private final HttpStatus status;
     private final String code;

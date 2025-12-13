@@ -36,6 +36,10 @@ public class ItemsLines {
     @JoinColumn(name = "line_id", updatable = false, insertable = false)
     private Lines line;
 
+    @Column(name = "is_active")
+    @Builder.Default
+    private Boolean isActive = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -44,4 +48,15 @@ public class ItemsLines {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    public void inactive() {
+        this.isActive = false;
+    }
+
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public boolean isActivated() {
+        return this.isActive;
+    }
 }

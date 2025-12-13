@@ -73,7 +73,7 @@ class FactoryServiceImplTest {
         Factories existingFactory = buildTestFactory(user, true);
 
         // when
-        when(factoryRepository.findByFactoryCode(factoryRequest.getFactoryCode())).thenReturn(java.util.Optional.of(existingFactory));
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryRequest.getFactoryCode())).thenReturn(java.util.Optional.of(existingFactory));
 
         // then
         assertThatThrownBy(() -> factoryService.createFactory(user, factoryRequest))
