@@ -1,14 +1,5 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
@@ -25,21 +16,7 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.*;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
@@ -51,33 +28,25 @@ import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.validator.DomainActivationValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.math.BigDecimal;
+import java.time.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("생산계획 서비스 테스트")
@@ -1383,76 +1352,72 @@ class ProductionPlanServiceImplTest {
         @DisplayName("정상 파라미터로 전체 목록 조회 성공")
         void getAllProductionPlan_success() {
             // given
-            ProductionPlans planA = productionPlan.toBuilder()
-                .documentNo("2099/01/01-1")
-                .status(PlanStatus.PENDING)
-                .build();
+            GetAllProductionPlanResponseDto dto1 =
+                    GetAllProductionPlanResponseDto.builder()
+                            .id(1L)
+                            .documentNo("2099/01/01-2")
+                            .status(PlanStatus.PENDING)
+                            .factoryName("A공장")
+                            .lineName("1호라인")
+                            .itemCode("ITEM001")
+                            .itemName("샘플제품")
+                            .build();
 
-            ProductionPlans planB = productionPlan.toBuilder()
-                .documentNo("2099/01/01-2")
-                .status(PlanStatus.PENDING)
-                .build();
+            GetAllProductionPlanResponseDto dto2 =
+                    GetAllProductionPlanResponseDto.builder()
+                            .id(2L)
+                            .documentNo("2099/01/01-1")
+                            .status(PlanStatus.PENDING)
+                            .factoryName("A공장")
+                            .lineName("1호라인")
+                            .itemCode("ITEM001")
+                            .itemName("샘플제품")
+                            .build();
 
-            // Repository mock 결과: documentNo DESC (PP-002 → PP-001)
-            when(productionPlanRepository.findAll(
-                ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                ArgumentMatchers.any(Sort.class)))
-                .thenReturn(List.of(planB, planA));
+            when(productionPlanRepository.findAllPlans(requestDto))
+                    .thenReturn(List.of(dto1, dto2));
 
             // when
             List<GetAllProductionPlanResponseDto> result =
-                productionPlanService.getAllProductionPlan(requestDto);
+                    productionPlanService.getAllProductionPlan(requestDto);
 
             // then
             assertThat(result).hasSize(2);
-
-            // 매핑 검증
             assertThat(result.get(0).getDocumentNo()).isEqualTo("2099/01/01-2");
             assertThat(result.get(1).getDocumentNo()).isEqualTo("2099/01/01-1");
 
-            // 정렬 조건(documentNo DESC) 검증
             verify(productionPlanRepository, times(1))
-                .findAll(
-                    ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                    ArgumentMatchers.<Sort>argThat(sort -> {
-                        Sort.Order order = sort.getOrderFor("createdAt");
-                        return order != null && order.getDirection() == Sort.Direction.DESC;
-                    })
-                );
+                    .findAllPlans(requestDto);
         }
 
 
         @Test
-        @DisplayName("파라미터 없이 전체 조회 시 기본 정렬(documentNo DESC) 적용")
-        void getAllProductionPlan_defaultSort() {
+        @DisplayName("파라미터 없이 전체 조회 성공")
+        void getAllProductionPlan_noCondition() {
             // given
-            GetAllProductionPlanRequestDto dto = GetAllProductionPlanRequestDto.builder()
-                .build();
+            GetAllProductionPlanRequestDto emptyDto =
+                    GetAllProductionPlanRequestDto.builder().build();
 
-            ProductionPlans planA = productionPlan.toBuilder().documentNo("2099/01/01-2").build();
-            ProductionPlans planB = productionPlan.toBuilder().documentNo("2099/01/01-1").build();
+            GetAllProductionPlanResponseDto dto =
+                    GetAllProductionPlanResponseDto.builder()
+                            .id(1L)
+                            .documentNo("2099/01/01-1")
+                            .status(PlanStatus.PENDING)
+                            .build();
 
-            when(productionPlanRepository.findAll(
-                ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                ArgumentMatchers.any(Sort.class)))
-                .thenReturn(List.of(planA, planB));
+            when(productionPlanRepository.findAllPlans(emptyDto))
+                    .thenReturn(List.of(dto));
 
             // when
             List<GetAllProductionPlanResponseDto> result =
-                productionPlanService.getAllProductionPlan(dto);
+                    productionPlanService.getAllProductionPlan(emptyDto);
 
             // then
-            assertThat(result).hasSize(2);
-            assertThat(result.getFirst().getDocumentNo()).isEqualTo("2099/01/01-2");
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().getDocumentNo()).isEqualTo("2099/01/01-1");
 
-            // 정렬 검증
-            verify(productionPlanRepository).findAll(
-                ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                ArgumentMatchers.<Sort>argThat(sort -> {
-                    Sort.Order order = sort.getOrderFor("createdAt");
-                    return order != null && order.getDirection() == Sort.Direction.DESC;
-                })
-            );
+            verify(productionPlanRepository, times(1))
+                    .findAllPlans(emptyDto);
         }
     }
 

@@ -18,4 +18,8 @@ public interface PlanQueryRepository {
     );
 
     Optional<GetProductionPlanDetailResponseDto> findPlanDetail(Long planId);
+
+    List<GetAllProductionPlanResponseDto> findAllPlans(
+            GetAllProductionPlanRequestDto requestDto
+    );
 }

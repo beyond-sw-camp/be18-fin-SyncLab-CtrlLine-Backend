@@ -25,7 +25,6 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.productionplan.vo.PlanScheduleSlot;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
@@ -37,9 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -1034,8 +1030,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return "IDX_" + fallbackIndex;
     }
 
-
-
     @Override
     @Transactional(readOnly = true)
     public GetProductionPlanDetailResponseDto getProductionPlan(Long planId) {
@@ -1061,29 +1055,12 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return productionPlanRepository.findPlanList(command, finalPageable);
     }
 
-
-
-
     @Override
     @Transactional(readOnly = true)
     public List<GetAllProductionPlanResponseDto> getAllProductionPlan(
         GetAllProductionPlanRequestDto requestDto
     ) {
-        Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
-            PlanSpecification.planLineNameContains(requestDto.lineName()),
-            PlanSpecification.planItemNameContains(requestDto.itemName()),
-            PlanSpecification.planItemCodeContains(requestDto.itemCode()),
-            PlanSpecification.planSalesManagerNameContains(requestDto.salesManagerName()),
-            PlanSpecification.planProductionManagerNameContains(requestDto.productionManagerName()),
-            PlanSpecification.planDueDateFromAfter(requestDto.dueDate()),
-            PlanSpecification.planStartTimeAfter(requestDto.startTime()),
-            PlanSpecification.planEndTimeBefore(requestDto.endTime())
-        );
-
-        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.DESC, "createdAt"));
-
-        return result.stream().map(GetAllProductionPlanResponseDto::fromEntity).toList();
+        return productionPlanRepository.findAllPlans(requestDto);
     }
 
     @Override

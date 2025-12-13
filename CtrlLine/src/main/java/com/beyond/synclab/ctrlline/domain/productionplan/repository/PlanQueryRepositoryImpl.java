@@ -29,7 +29,7 @@ import java.util.Optional;
 import static org.springframework.util.StringUtils.hasText;
 
 @RequiredArgsConstructor
-public class PlanQueryRepositoryImpl implements PlanQueryRepository{
+public class PlanQueryRepositoryImpl implements PlanQueryRepository {
 
     private final JPAQueryFactory queryFactory;
     private static final String SALES_MANAGER_ALIAS = "salesManager";
@@ -310,6 +310,65 @@ public class PlanQueryRepositoryImpl implements PlanQueryRepository{
                         )
                         .fetchOne()
         );
+    }
+
+    @Override
+    public List<GetAllProductionPlanResponseDto> findAllPlans(GetAllProductionPlanRequestDto requestDto) {
+        QProductionPlans plan = QProductionPlans.productionPlans;
+        QItemsLines il = QItemsLines.itemsLines;
+        QItems item = QItems.items;
+        QLines line = QLines.lines;
+        QFactories fac = QFactories.factories;
+        QUsers salesManager = new QUsers(SALES_MANAGER_ALIAS);
+        QUsers prodManager = new QUsers(PROD_MANAGER_ALIAS);
+
+        return queryFactory
+                .select(Projections.fields(
+                        GetAllProductionPlanResponseDto.class,
+
+                        plan.id,
+                        plan.documentNo,
+                        plan.status,
+
+                        fac.factoryName,
+                        line.lineName,
+
+                        item.itemCode,
+                        item.itemName,
+                        item.itemSpecification,
+
+                        plan.plannedQty,
+                        plan.startTime,
+                        plan.endTime,
+                        plan.dueDate,
+
+                        salesManager.name.as("salesManagerName"),
+                        salesManager.empNo.as("salesManagerNo"),
+                        prodManager.name.as("productionManagerName"),
+                        prodManager.empNo.as("productionManagerNo"),
+
+                        plan.remark
+                ))
+                .from(plan)
+                .leftJoin(plan.itemLine, il)
+                .leftJoin(il.item, item)
+                .leftJoin(il.line, line)
+                .leftJoin(line.factory, fac)
+                .leftJoin(plan.salesManager, salesManager)
+                .leftJoin(plan.productionManager, prodManager)
+                .where(
+                        factoryNameContains(requestDto.factoryName(), fac),
+                        lineNameContains(requestDto.lineName()),
+                        itemNameContains(requestDto.itemName(), item),
+                        itemCodeEq(requestDto.itemCode(), item),
+                        salesManagerNameContains(requestDto.salesManagerName(), salesManager),
+                        productionManagerNameContains(requestDto.productionManagerName(), prodManager),
+                        dueDateFrom(requestDto.dueDate(), plan),
+                        startTimeAfter(requestDto.startTime(), plan),
+                        endTimeBefore(requestDto.endTime(), plan)
+                )
+                .orderBy(plan.createdAt.desc())
+                .fetch();
     }
 
     private BooleanExpression[] findPlanListWhere(
