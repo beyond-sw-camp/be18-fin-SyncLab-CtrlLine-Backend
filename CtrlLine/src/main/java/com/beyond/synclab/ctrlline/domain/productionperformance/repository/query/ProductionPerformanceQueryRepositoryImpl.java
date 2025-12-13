@@ -79,7 +79,7 @@ public class ProductionPerformanceQueryRepositoryImpl implements ProductionPerfo
                 perf.totalQty.subtract(perf.performanceQty);
         // SELECT
         List<GetProductionPerformanceListResponseDto> results = queryFactory
-                .select(Projections.fields(
+                .select(Projections.constructor(
                         GetProductionPerformanceListResponseDto.class,
                         perf.id,
                         perf.performanceDocumentNo,
