@@ -28,6 +28,7 @@ public class GetProductionPlanListResponseDto {
     private String remark;
     private LocalDateTime createdAt;
 
+    @Deprecated
     public static GetProductionPlanListResponseDto fromEntity(ProductionPlans productionPlans) {
         return GetProductionPlanListResponseDto.builder()
             .id(productionPlans.getId())

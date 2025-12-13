@@ -47,4 +47,16 @@ public final class QuerydslUtils {
 
         return orders;
     }
+
+    /**
+     * 기본 정렬 보장 (order 비어있을 때)
+     */
+    public List<OrderSpecifier<?>> getSortOrDefault(
+            Sort sort,
+            Map<String, ?> mapping,
+            OrderSpecifier<?> defaultOrder
+    ) {
+        List<OrderSpecifier<?>> orders = getSort(sort, mapping);
+        return orders.isEmpty() ? List.of(defaultOrder) : orders;
+    }
 }

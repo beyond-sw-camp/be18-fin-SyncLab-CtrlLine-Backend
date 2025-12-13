@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductionPlanRepository extends JpaRepository<ProductionPlans, Long>,
-    JpaSpecificationExecutor<ProductionPlans> {
+    JpaSpecificationExecutor<ProductionPlans>, PlanQueryRepository{
 
     List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startTime);
 

@@ -42,6 +42,7 @@ public class GetProductionPlanDetailResponseDto {
     private String lineName;
     private String remark;
 
+    @Deprecated
     public static GetProductionPlanDetailResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items, LocalDateTime actualEndTime) {
         return GetProductionPlanDetailResponseDto.builder()
             .id(productionPlans.getId())
