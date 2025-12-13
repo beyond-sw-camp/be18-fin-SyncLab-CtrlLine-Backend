@@ -635,9 +635,14 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
                                 t -> t.get("actualEnd", LocalDateTime.class)
                         ));
 
-        List<PlanScheduleSlot> slots = plans.stream()
-                .map(p -> PlanScheduleSlot.fromEntity(p, actualEndMap.getOrDefault(p.getId(), p.getEndTime())))
-                .toList();
+        List<PlanScheduleSlot> slots = new ArrayList<>(
+                plans.stream()
+                .map(p -> PlanScheduleSlot.fromEntity(
+                        p,
+                        actualEndMap.getOrDefault(p.getId(), p.getEndTime())
+                ))
+                .toList()
+        );
 
         // 4 target slot 수정
         PlanScheduleSlot targetSlot = slots.stream()
