@@ -2,6 +2,7 @@ package com.beyond.synclab.ctrlline.domain.itemline.service;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
+import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.item.exception.ItemErrorCode;
 import com.beyond.synclab.ctrlline.domain.itemline.dto.request.ManageItemLineRequestDto;
 import com.beyond.synclab.ctrlline.domain.itemline.dto.response.GetItemLineListResponseDto;
@@ -35,7 +36,7 @@ public class ItemLineServiceImpl implements ItemLineService {
     @Transactional(readOnly = true)
     public List<GetItemLineListResponseDto> getItemLineList(final String lineCode) {
         final Lines line = findLineOrThrow(lineCode);
-        final List<Items> itemsList = itemLineRepository.findActiveFinishedItemsByLine(line);
+        final List<Items> itemsList = itemLineRepository.findActiveItemsByLineAndStatus(line, ItemStatus.FINISHED_PRODUCT);
 
         return itemsList.stream()
                 .map(GetItemLineListResponseDto::fromEntity)
@@ -52,7 +53,7 @@ public class ItemLineServiceImpl implements ItemLineService {
         final List<String> itemCodes = normalizeItemCodes(requestDto, false);
         final Map<String, Items> itemsByCode = findItemsByCodes(itemCodes);
 
-        validateItemsActive(itemsByCode.values());
+        validateItemsForItemLine(itemsByCode.values());
 
         final Set<Long> existingItemIds = itemLineRepository.findByLine(line).stream()
                 .map(ItemsLines::getItemId)
@@ -81,7 +82,7 @@ public class ItemLineServiceImpl implements ItemLineService {
         List<String> newCodes = normalizeItemCodes(dto, true);
         Map<String, Items> itemsByCode = findItemsByCodes(newCodes);
 
-        validateItemsActive(itemsByCode.values());
+        validateItemsForItemLine(itemsByCode.values());
 
         List<ItemsLines> existing = itemLineRepository.findByLine(line);
 
@@ -114,13 +115,6 @@ public class ItemLineServiceImpl implements ItemLineService {
                 .toList();
 
         itemLineRepository.saveAll(newOnes);
-    }
-
-    private void validateItemsActive(Collection<Items> items) {
-        boolean hasInactive = items.stream().anyMatch(item -> !item.isActivated());
-        if (hasInactive) {
-            throw new AppException(ItemErrorCode.ITEM_INACTIVE);
-        }
     }
 
     private Lines findActiveLineOrThrow(String lineCode) {
@@ -189,6 +183,18 @@ public class ItemLineServiceImpl implements ItemLineService {
         });
 
         return itemsByCode;
+    }
+
+    private void validateItemsForItemLine(Collection<Items> items) {
+        for (Items item : items) {
+            if (!item.isActivated()) {
+                throw new AppException(ItemErrorCode.ITEM_INACTIVE);
+            }
+
+            if (item.getItemStatus() != ItemStatus.FINISHED_PRODUCT) {
+                throw new AppException(ItemErrorCode.INVALID_ITEM_STATUS_FINISHED_PRODUCT);
+            }
+        }
     }
 
     private ItemsLines buildItemLine(final Lines line, final Items item) {
