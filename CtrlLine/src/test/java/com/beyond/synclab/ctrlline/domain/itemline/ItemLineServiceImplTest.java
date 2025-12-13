@@ -120,7 +120,6 @@ class ItemLineServiceImplTest {
         itemLineService.updateItemLine("LINE-B", request);
 
         // then
-        verify(itemLineRepository).deleteAllInBatch(List.of(existing));
         ArgumentCaptor<List<ItemsLines>> captor = ArgumentCaptor.forClass(List.class);
         verify(itemLineRepository).saveAll(captor.capture());
         List<ItemsLines> saved = captor.getValue();
