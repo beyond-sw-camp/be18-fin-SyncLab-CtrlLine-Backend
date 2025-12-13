@@ -531,36 +531,46 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             Users requester
     ) {
         LocalDateTime now = LocalDateTime.now(clock);
+        Duration TOLERANCE = Duration.ofMinutes(10);
 
         boolean isAdmin = requester.isAdminRole();
 
-        // 시간순 정렬
+        // 1. 시간순 정렬
         slots.sort(Comparator.comparing(PlanScheduleSlot::getStartTime));
 
-        // anchor 기준 시간
+        // 2. anchor 기준 계산
         LocalDateTime anchorEnd = slots.stream()
                 .filter(PlanScheduleSlot::isAnchor)
                 .map(PlanScheduleSlot::getEndTime)
-                .filter(end -> end.isAfter(now))
                 .max(LocalDateTime::compareTo)
                 .orElse(null);
 
-        LocalDateTime cursor;
+        // 3. base 시점 결정
+        LocalDateTime base = (anchorEnd != null)
+                ? anchorEnd
+                : now.plus(TOLERANCE);
 
-        if (anchorEnd != null) {
-            cursor = anchorEnd;
-        } else {
-            PlanScheduleSlot first = slots.getFirst();
-            Duration gap = Duration.between(now, first.getStartTime());
+        // 4. 이동 가능한 슬롯 중 가장 빠른 시작 시간
+        LocalDateTime minMovableStart = slots.stream()
+                .filter(s -> s.isMovable() && (isAdmin || s.getStatus() != PlanStatus.CONFIRMED))
+                .map(PlanScheduleSlot::getStartTime)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
 
-            if (gap.isNegative() || gap.compareTo(Duration.ofMinutes(10)) <= 0) {
-                // 지금이거나, 허용 공백 이내 → 그대로
-                cursor = first.getStartTime();
-            } else {
-                // 공백이 너무 큼 → 앞으로 당겨서 compact
-                cursor = now.plusMinutes(10);
+        // 5. 앞 공백 제거 (rebase)
+        if (minMovableStart != null && minMovableStart.isAfter(base)) {
+            Duration delta = Duration.between(minMovableStart, base); // 음수 → 앞으로 당김
+
+            for (PlanScheduleSlot s : slots) {
+                if (s.isAnchor()) continue;
+                if (!isAdmin && s.getStatus() == PlanStatus.CONFIRMED) continue;
+
+                s.shiftBy(delta);
             }
         }
+
+        // 6. compact 수행 (기존 로직)
+        LocalDateTime cursor = base;
 
         for (PlanScheduleSlot slot : slots) {
 
