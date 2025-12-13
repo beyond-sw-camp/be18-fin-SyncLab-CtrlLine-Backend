@@ -210,8 +210,8 @@ class LineServiceImplTest {
         Boolean result = lineService.updateLineAct(requestDto);
 
         assertThat(result).isFalse();
-        assertThat(lineRepository.findBylineCodeAndIsActiveTrue("PL01").orElseThrow().getIsActive()).isFalse();
-        assertThat(lineRepository.findBylineCodeAndIsActiveTrue("PL03").orElseThrow().getIsActive()).isFalse();
+        assertThat(lineRepository.findBylineCode("PL01").orElseThrow().getIsActive()).isFalse();
+        assertThat(lineRepository.findBylineCode("PL03").orElseThrow().getIsActive()).isFalse();
     }
 
     @Test

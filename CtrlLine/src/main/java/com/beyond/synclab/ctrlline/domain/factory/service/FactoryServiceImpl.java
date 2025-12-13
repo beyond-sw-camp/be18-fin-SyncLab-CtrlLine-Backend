@@ -44,7 +44,7 @@ public class FactoryServiceImpl implements FactoryService {
     @Transactional(readOnly = true)
     public FactoryResponseDto getFactory(String factoryCode) {
 
-        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
                                              .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
         return FactoryResponseDto.fromEntity(factory, factory.getUsers());
@@ -68,7 +68,7 @@ public class FactoryServiceImpl implements FactoryService {
     public FactoryResponseDto updateFactoryStatus(Users user, UpdateFactoryRequestDto request,
                                                   String factoryCode) {
 
-        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
                                              .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
 
