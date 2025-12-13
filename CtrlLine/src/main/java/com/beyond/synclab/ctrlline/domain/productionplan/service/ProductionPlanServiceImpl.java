@@ -311,7 +311,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         activationValidator.validateItemActive(item);
 
-        List<Equipments> processingEquips = equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId());
+        List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
+
+        activationValidator.validateEquipmentActive(processingEquips);
 
         ItemsLines itemsLines = itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId())
                 .orElseThrow(() -> {
@@ -795,7 +797,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         // 수량 변경 → 종료시간 재계산 필요
-        List<Equipments> equips = equipmentRepository.findAllByLineIdAndIsActiveTrue(lineId);
+        List<Equipments> equips = equipmentRepository.findAllByLineId(lineId);
+        activationValidator.validateEquipmentActive(equips);
 
         return calculateEndTime(lineId, equips, dto.getPlannedQty(), newStart);
     }
@@ -1087,7 +1090,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         Lines line = lineRepository.findBylineCodeAndIsActiveTrue(requestDto.getLineCode())
             .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
-        List<Equipments> equipments =  equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId());
+        List<Equipments> equipments =  equipmentRepository.findAllByLineId(line.getId());
+        activationValidator.validateEquipmentActive(equipments);
 
         LocalDateTime endTime =
             calculateEndTime(line.getId(), equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
