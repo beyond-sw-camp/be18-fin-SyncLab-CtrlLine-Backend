@@ -1,11 +1,15 @@
 package com.beyond.synclab.ctrlline.domain.item.repository.query;
 
+import com.beyond.synclab.ctrlline.domain.factory.entity.QFactories;
 import com.beyond.synclab.ctrlline.domain.item.dto.request.SearchItemRequestDto;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.QItems;
+import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
+import com.beyond.synclab.ctrlline.domain.line.entity.QLines;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +56,8 @@ public class ItemQueryRepositoryImpl implements ItemQueryRepository {
                         itemNameContains(keyword.getItemName()),
                         specificationContains(keyword.getItemSpecification()),
                         statusEq(keyword.getItemStatus()),
-                        isActiveEq(keyword.getIsActive())
+                        isActiveEq(keyword.getIsActive()),
+                        producibleByFactory(keyword.getFactoryCode())
                 )
                 .orderBy(orders.toArray(new OrderSpecifier[0])) // 정렬로직
                 .offset(pageable.getOffset())
@@ -68,10 +73,33 @@ public class ItemQueryRepositoryImpl implements ItemQueryRepository {
                         itemNameContains(keyword.getItemName()),
                         specificationContains(keyword.getItemSpecification()),
                         statusEq(keyword.getItemStatus()),
-                        isActiveEq(keyword.getIsActive())
+                        isActiveEq(keyword.getIsActive()),
+                        producibleByFactory(keyword.getFactoryCode())
                 );
 
         return PageableExecutionUtils.getPage(results, pageable, countQuery::fetchOne);
+    }
+
+    private BooleanExpression producibleByFactory(String factoryCode) {
+        if (factoryCode == null || factoryCode.isBlank()) {
+            return null;
+        }
+
+        QItemsLines il = QItemsLines.itemsLines;
+        QLines line = QLines.lines;
+        QFactories factory = QFactories.factories;
+
+        return QItems.items.id.in(
+                JPAExpressions
+                        .select(il.item.id)
+                        .from(il)
+                        .join(il.line, line)
+                        .join(line.factory, factory)
+                        .where(
+                                factory.factoryCode.contains(factoryCode),
+                                il.isActive.isTrue()
+                        )
+        );
     }
 
     // 품목사용여부 검색

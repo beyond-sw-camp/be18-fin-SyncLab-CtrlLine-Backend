@@ -14,4 +14,5 @@ public class SearchItemRequestDto {
     private String itemSpecification;
     private ItemStatus itemStatus;
     private Boolean isActive;
+    private String factoryCode;
 }
