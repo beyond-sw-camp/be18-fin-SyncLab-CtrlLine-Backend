@@ -9,7 +9,8 @@ public enum ItemErrorCode implements ErrorCode {
 
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ITEM_NOT_FOUND", "해당 품목을 찾을 수 없습니다."),
     ITEMCODE_CONFLICT(HttpStatus.CONFLICT, "ITEMCODE_CONFLICT", "이미 존재하는 품목코드입니다."),
-    ITEM_INACTIVE(HttpStatus.BAD_REQUEST, "ITEM_INACTIVE", "비활성화된 품목입니다.");
+    ITEM_INACTIVE(HttpStatus.BAD_REQUEST, "ITEM_INACTIVE", "비활성화된 품목입니다."),
+    INVALID_ITEM_STATUS_FINISHED_PRODUCT(HttpStatus.BAD_REQUEST, "INVALID_ITEM_STATUS_FINISHED_PRODUCT", "품목(들)이 완제품이 아닙니다.");
 
     private final HttpStatus status;
     private final String code;
