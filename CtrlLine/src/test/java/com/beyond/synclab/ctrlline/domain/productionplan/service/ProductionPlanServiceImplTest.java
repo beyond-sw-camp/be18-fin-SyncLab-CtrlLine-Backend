@@ -278,7 +278,7 @@ class ProductionPlanServiceImplTest {
             when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
 
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId()))
+            when(equipmentRepository.findAllByLineId(line.getId()))
                 .thenReturn(List.of(equipment));
 
             // 최근계획 없음
@@ -354,7 +354,7 @@ class ProductionPlanServiceImplTest {
             when(lineRepository.findBylineCodeAndIsActiveTrue(line.getLineCode())).thenReturn(Optional.of(line));
             when(itemRepository.findByItemCodeAndIsActiveTrue(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId())).thenReturn(Collections.emptyList());
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(Collections.emptyList());
 
             assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
                 .isInstanceOf(AppException.class)
@@ -379,7 +379,7 @@ class ProductionPlanServiceImplTest {
             when(lineRepository.findBylineCodeAndIsActiveTrue(line.getLineCode())).thenReturn(Optional.of(line));
             when(itemRepository.findByItemCodeAndIsActiveTrue(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId())).thenReturn(Optional.of(itemsLines));
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId())).thenReturn(List.of(ppmZeroEquipment));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(ppmZeroEquipment));
 
             assertThatThrownBy(() -> productionPlanService.createProductionPlan(dto, requestUser))
                 .isInstanceOf(AppException.class)
@@ -405,7 +405,7 @@ class ProductionPlanServiceImplTest {
             when(itemRepository.findByItemCodeAndIsActiveTrue(item.getItemCode())).thenReturn(Optional.of(item));
             when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId())).thenReturn(List.of(equipment));
+            when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
             when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
                 eq(line.getId()), anyList()
             )).thenReturn(List.of(existingPlan));
@@ -490,7 +490,7 @@ class ProductionPlanServiceImplTest {
             when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
 
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId()))
+            when(equipmentRepository.findAllByLineId(line.getId()))
                 .thenReturn(List.of(equipment));
 
             // 기존 계획이 하나 있다고 가정 → shift 발생 여부 검증 가능
@@ -545,7 +545,7 @@ class ProductionPlanServiceImplTest {
                 .thenReturn(Optional.of(item));
             lenient().when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId()))
                 .thenReturn(Optional.of(itemsLines));
-            lenient().when(equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId()))
+            lenient().when(equipmentRepository.findAllByLineId(line.getId()))
                 .thenReturn(List.of(equipment));
         }
 
@@ -1551,7 +1551,7 @@ class ProductionPlanServiceImplTest {
                 .build();
 
             when(lineRepository.findBylineCodeAndIsActiveTrue("LINE001")).thenReturn(Optional.of(line));
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(1L)).thenReturn(List.of(eq1, eq2));
+            when(equipmentRepository.findAllByLineId(1L)).thenReturn(List.of(eq1, eq2));
 
             // when
             GetProductionPlanEndTimeResponseDto response = productionPlanService.getProductionPlanEndTime(request);
@@ -1594,7 +1594,7 @@ class ProductionPlanServiceImplTest {
                 .build();
 
             when(lineRepository.findBylineCodeAndIsActiveTrue("LINE001")).thenReturn(Optional.of(line));
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(1L)).thenReturn(List.of(eq1, eq2));
+            when(equipmentRepository.findAllByLineId(1L)).thenReturn(List.of(eq1, eq2));
             when(productionPerformanceRepository.findRecentByLineId(eq(line.getId()), any(Pageable.class)))
                 .thenReturn(List.of(performance));
 
@@ -1631,7 +1631,7 @@ class ProductionPlanServiceImplTest {
                 .build();
 
             when(lineRepository.findBylineCodeAndIsActiveTrue("LINE-1")).thenReturn(Optional.of(line));
-            when(equipmentRepository.findAllByLineIdAndIsActiveTrue(1L)).thenReturn(List.of());
+            when(equipmentRepository.findAllByLineId(1L)).thenReturn(List.of());
 
             assertThatThrownBy(() -> productionPlanService.getProductionPlanEndTime(request))
                 .isInstanceOf(AppException.class)

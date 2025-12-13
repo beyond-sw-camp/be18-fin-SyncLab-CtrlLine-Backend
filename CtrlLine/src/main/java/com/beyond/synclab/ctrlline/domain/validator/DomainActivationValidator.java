@@ -13,6 +13,8 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class DomainActivationValidator {
@@ -36,9 +38,9 @@ public class DomainActivationValidator {
         }
     }
 
-    public void validateEquipmentActive(Equipments equipment) {
-        validateLineActive(equipment.getLine());
-        if (!equipment.isActivated()) {
+    public void validateEquipmentActive(List<Equipments> equipments) {
+        validateLineActive(equipments.getFirst().getLine());
+        if (equipments.stream().anyMatch(eq -> !eq.isActivated())) {
             throw new AppException(LineErrorCode.EQUIPMENT_INACTIVE);
         }
     }

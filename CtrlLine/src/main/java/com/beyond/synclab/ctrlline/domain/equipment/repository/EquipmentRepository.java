@@ -24,7 +24,7 @@ public interface EquipmentRepository extends JpaRepository<Equipments, Long>, Eq
     // 설비코드 중복 여부 확인
     boolean existsByEquipmentCode(String equipmentCode);
 
-    List<Equipments> findAllByLineIdAndIsActiveTrue(Long lineId);
+    List<Equipments> findAllByLineId(Long lineId);
 
     @Query("""
             select e from Equipments e
