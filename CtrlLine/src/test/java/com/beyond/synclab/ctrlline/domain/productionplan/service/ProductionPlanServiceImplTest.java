@@ -283,7 +283,7 @@ class ProductionPlanServiceImplTest {
 
             // 최근계획 없음
             when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-                anyLong(), anyList()
+                anyLong(), anyList(), any()
             )).thenReturn(Collections.emptyList());
 
             // save 시 ID 할당
@@ -407,7 +407,7 @@ class ProductionPlanServiceImplTest {
                 .thenReturn(Optional.of(itemsLines));
             when(equipmentRepository.findAllByLineId(line.getId())).thenReturn(List.of(equipment));
             when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-                eq(line.getId()), anyList()
+                eq(line.getId()), anyList(), any()
             )).thenReturn(List.of(existingPlan));
             when(productionPlanRepository.findByDocumentNoByPrefix(anyString())).thenReturn(List.of(existingPlan.getDocumentNo()));
 
@@ -504,7 +504,7 @@ class ProductionPlanServiceImplTest {
                 .build();
 
             when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-                eq(line.getId()), anyList()))
+                eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(existingPlan));
 
             // saveAll 시 확인용으로 그대로 반환한다.
@@ -571,7 +571,7 @@ class ProductionPlanServiceImplTest {
                 .thenReturn(Optional.of(productionPlan));
 
             when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-                eq(line.getId()), anyList()))
+                eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(productionPlan, nextPlan));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -599,7 +599,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans original = productionPlan;
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(original));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(original));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -696,7 +696,7 @@ class ProductionPlanServiceImplTest {
                 .thenReturn(Optional.of(productionPlan));
 
             when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-                eq(line.getId()), anyList()))
+                eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(productionPlan, confirmedNext));
 
             UpdateProductionPlanRequestDto req =
@@ -746,7 +746,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans plan = productionPlan;
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(plan));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -781,7 +781,7 @@ class ProductionPlanServiceImplTest {
                 .build();
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan1));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(plan1, plan2));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -806,7 +806,7 @@ class ProductionPlanServiceImplTest {
             mockCommonFind();
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(productionPlan));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -830,7 +830,7 @@ class ProductionPlanServiceImplTest {
             mockCommonFind();
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(productionPlan));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(productionPlan));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -865,7 +865,7 @@ class ProductionPlanServiceImplTest {
 
             when(productionPlanRepository.findById(1L))
                 .thenReturn(Optional.of(productionPlan));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(productionPlan, confirmed));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -905,7 +905,7 @@ class ProductionPlanServiceImplTest {
                 .thenReturn(Optional.of(newItemLine));
 
 
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(productionPlan));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -945,7 +945,7 @@ class ProductionPlanServiceImplTest {
             when(itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), newItem.getId()))
                 .thenReturn(Optional.of(newItemLine));
 
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(productionPlan));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -982,7 +982,7 @@ class ProductionPlanServiceImplTest {
                 .build();
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(plan1));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(any(), anyList(), any()))
                 .thenReturn(List.of(plan1, plan2));
 
             when(productionPlanRepository.saveAll(anyList()))
@@ -1039,7 +1039,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans p3 = plan(3L, "13:00", "15:00");
 
             when(productionPlanRepository.findById(2L)).thenReturn(Optional.of(p2));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(p1, p2, p3));
             when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -1067,7 +1067,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans p3 = plan(3L, "14:00", "16:00");
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(p1));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(p1, p2, p3));
             when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -1100,7 +1100,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans p3 = plan(3L, "15:00", "17:00");
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(p1));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(p1, p2, p3));
             when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -1135,7 +1135,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans p3 = plan(3L, "13:00", "15:00");
 
             when(productionPlanRepository.findById(1L)).thenReturn(Optional.of(p1));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(p1, p2, p3));
             when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -1170,7 +1170,7 @@ class ProductionPlanServiceImplTest {
             ProductionPlans p3 = plan(3L, "13:00", "15:00");
 
             when(productionPlanRepository.findById(2L)).thenReturn(Optional.of(p2));
-            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList()))
+            when(productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(eq(line.getId()), anyList(), any()))
                 .thenReturn(List.of(p1, p2, p3));
             when(productionPlanRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
