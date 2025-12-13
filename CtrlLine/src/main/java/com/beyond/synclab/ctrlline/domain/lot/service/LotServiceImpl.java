@@ -46,7 +46,7 @@ public class LotServiceImpl implements LotService {
                 .orElseThrow(LotNotFoundException::new);
 
         ProductionPerformances perf = performanceRepository
-                .findByProductionPlanId(lot.getProductionPlan().getId())
+                .findByProductionPlanIdAndIsDeletedFalse(lot.getProductionPlan().getId())
                 .orElseThrow(ProductionPerformanceNotFoundException::new);
 
         String serialFilePath = itemSerialRepository.findByLotId(lot.getId())

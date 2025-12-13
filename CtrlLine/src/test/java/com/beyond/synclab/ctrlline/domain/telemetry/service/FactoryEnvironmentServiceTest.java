@@ -89,7 +89,7 @@ class FactoryEnvironmentServiceTest {
                 .factoryName("Factory01")
                 .isActive(true)
                 .build();
-        when(factoryRepository.findByFactoryCode("F0001")).thenReturn(Optional.of(factory));
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue("F0001")).thenReturn(Optional.of(factory));
 
         ObjectMapper mapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
@@ -111,7 +111,7 @@ class FactoryEnvironmentServiceTest {
 
     @Test
     void getLatestReading_throwsWhenMissing() {
-        when(factoryRepository.findByFactoryCode("F0001")).thenReturn(
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue("F0001")).thenReturn(
                 Optional.of(Factories.builder().id(1L).factoryCode("F0001").build()));
         when(valueOperations.get("ctrlline:env:F0001")).thenReturn(null);
 

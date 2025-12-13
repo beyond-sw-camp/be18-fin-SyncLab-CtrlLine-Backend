@@ -121,4 +121,8 @@ public class Equipments {
             this.defectiveCount = currentDefective.add(defectiveDelta);
         }
     }
+
+    public boolean isActivated() {
+        return this.isActive;
+    }
 }

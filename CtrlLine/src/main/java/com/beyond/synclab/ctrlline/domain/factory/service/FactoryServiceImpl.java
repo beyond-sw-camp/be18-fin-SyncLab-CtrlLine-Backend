@@ -26,7 +26,7 @@ public class FactoryServiceImpl implements FactoryService {
 
     public FactoryResponseDto createFactory(Users user, CreateFactoryRequestDto requestDto) {
 
-        if(factoryRepository.findByFactoryCode(requestDto.getFactoryCode()).isPresent()) {
+        if(factoryRepository.findByFactoryCodeAndIsActiveTrue(requestDto.getFactoryCode()).isPresent()) {
             throw new AppException(FactoryErrorCode.FACTORY_CONFLICT);
         }
 

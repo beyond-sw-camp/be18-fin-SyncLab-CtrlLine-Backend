@@ -160,7 +160,7 @@ class LotServiceTest {
 
         // MOCK
         when(lotRepository.findById(lotId)).thenReturn(Optional.of(lot));
-        when(performanceRepository.findByProductionPlanId(plan.getId())).thenReturn(Optional.of(perf));
+        when(performanceRepository.findByProductionPlanIdAndIsDeletedFalse(plan.getId())).thenReturn(Optional.of(perf));
         when(itemSerialRepository.findByLotId(lotId)).thenReturn(Optional.of(serial));
 
         // WHEN
@@ -183,7 +183,7 @@ class LotServiceTest {
         assertThat(result.getSerialFilePath()).isEqualTo("/serials/2025/001.gz");
 
         verify(lotRepository, times(1)).findById(lotId);
-        verify(performanceRepository, times(1)).findByProductionPlanId(plan.getId());
+        verify(performanceRepository, times(1)).findByProductionPlanIdAndIsDeletedFalse(plan.getId());
     }
 
     // -------------------------------------------------------------
@@ -223,12 +223,12 @@ class LotServiceTest {
 
         // Mock 설정
         when(lotRepository.findById(1L)).thenReturn(Optional.of(lot));
-        when(performanceRepository.findByProductionPlanId(10L)).thenReturn(Optional.empty());
+        when(performanceRepository.findByProductionPlanIdAndIsDeletedFalse(10L)).thenReturn(Optional.empty());
 
         // 검증
         assertThatThrownBy(() -> lotService.getLotDetail(1L))
                 .isInstanceOf(ProductionPerformanceNotFoundException.class);
 
-        verify(performanceRepository, times(1)).findByProductionPlanId(10L);
+        verify(performanceRepository, times(1)).findByProductionPlanIdAndIsDeletedFalse(10L);
     }
 }

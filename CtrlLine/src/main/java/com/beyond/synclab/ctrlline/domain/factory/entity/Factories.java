@@ -48,7 +48,8 @@ public class Factories {
     private String factoryName;
 
     @Column(name="is_active", nullable = false)
-    private Boolean isActive;
+    @Builder.Default
+    private Boolean isActive = true;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -62,4 +63,7 @@ public class Factories {
         this.isActive = isActive;
     }
 
+    public boolean isActivated() {
+        return this.isActive;
+    }
 }

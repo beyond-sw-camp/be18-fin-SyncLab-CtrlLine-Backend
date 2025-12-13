@@ -19,7 +19,7 @@ public interface ItemRepository extends JpaRepository<Items, Long>, ItemQueryRep
     Optional<Items> findByItemName(String itemName);
 
     // 품목코드로 단건 검색
-    Optional<Items> findByItemCode(String itemCode);
+    Optional<Items> findByItemCodeAndIsActiveTrue(String itemCode);
 
     // 품목구분별 조회
     List<Items> findByItemStatus(ItemStatus itemStatus);

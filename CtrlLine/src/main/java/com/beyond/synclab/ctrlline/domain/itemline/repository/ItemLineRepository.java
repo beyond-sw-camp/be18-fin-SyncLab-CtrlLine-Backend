@@ -18,6 +18,7 @@ public interface ItemLineRepository extends JpaRepository<ItemsLines, Long> {
             FROM ItemsLines il
             JOIN il.item i
             WHERE il.line = :line
+              AND il.isActive = true
               AND i.isActive = true
               AND i.itemStatus = 'FINISHED_PRODUCT'
     """)
@@ -25,5 +26,5 @@ public interface ItemLineRepository extends JpaRepository<ItemsLines, Long> {
 
     List<ItemsLines> findByLine(Lines line);
 
-    Optional<ItemsLines> findByLineIdAndItemId(Long lineId, Long itemId);
+    Optional<ItemsLines> findByLineIdAndItemIdAndIsActiveTrue(Long lineId, Long itemId);
 }

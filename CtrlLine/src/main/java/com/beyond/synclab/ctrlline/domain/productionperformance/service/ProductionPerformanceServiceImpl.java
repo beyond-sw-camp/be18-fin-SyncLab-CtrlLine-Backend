@@ -103,7 +103,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     getMonthlySumProductionPerformances(String factoryCode, String baseMonth) {
 
         // 공장 검증
-        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
                 .orElseThrow(() -> new AppException(CommonErrorCode.INVALID_INPUT_VALUE));
 
         // 기준월 검증
@@ -153,7 +153,7 @@ public class ProductionPerformanceServiceImpl implements ProductionPerformanceSe
     getMonthlyDefectiveRateProductionPerformances(String factoryCode, String baseMonth) {
 
         // 공장 검증
-        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
                 .orElseThrow(() -> new AppException(CommonErrorCode.INVALID_INPUT_VALUE));
 
         // 기준월 파싱 (예외 처리 포함)

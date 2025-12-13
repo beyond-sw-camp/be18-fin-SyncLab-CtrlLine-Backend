@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -51,9 +48,12 @@ public class ItemLineServiceImpl implements ItemLineService {
     public void createItemLine(final String lineCode, final ManageItemLineRequestDto requestDto) {
         log.info("라인({}) 생산 가능 품목 등록 요청", lineCode);
 
-        final Lines line = findLineOrThrow(lineCode);
+        final Lines line = findActiveLineOrThrow(lineCode);
         final List<String> itemCodes = normalizeItemCodes(requestDto, false);
         final Map<String, Items> itemsByCode = findItemsByCodes(itemCodes);
+
+        validateItemsActive(itemsByCode.values());
+
         final Set<Long> existingItemIds = itemLineRepository.findByLine(line).stream()
                 .map(ItemsLines::getItemId)
                 .collect(Collectors.toSet());
@@ -75,36 +75,71 @@ public class ItemLineServiceImpl implements ItemLineService {
     // 수정 탭 - 특정 라인의 생산 가능 품목 전체 수정
     @Override
     @Transactional
-    public void updateItemLine(final String lineCode, final ManageItemLineRequestDto requestDto) {
-        log.info("라인({}) 생산 가능 품목 수정 요청", lineCode);
+    public void updateItemLine(final String lineCode, final ManageItemLineRequestDto dto) {
+        Lines line = findActiveLineOrThrow(lineCode);
 
-        final Lines line = findLineOrThrow(lineCode);
-        final List<String> itemCodes = normalizeItemCodes(requestDto, true);
-        final Map<String, Items> itemsByCode = findItemsByCodes(itemCodes);
+        List<String> newCodes = normalizeItemCodes(dto, true);
+        Map<String, Items> itemsByCode = findItemsByCodes(newCodes);
 
-        // 기존 매핑 전체 삭제
-        final List<ItemsLines> existingMappings = itemLineRepository.findByLine(line);
-        if (!existingMappings.isEmpty()) {
-            itemLineRepository.deleteAllInBatch(existingMappings);
-            log.debug("라인({}) 기존 매핑 {}건 삭제 완료", lineCode, existingMappings.size());
-        }
+        validateItemsActive(itemsByCode.values());
 
-        if (itemCodes.isEmpty()) {
-            log.info("라인({})의 생산 가능 품목이 0건으로 수정 완료", lineCode);
-            return;
-        }
+        List<ItemsLines> existing = itemLineRepository.findByLine(line);
 
-        final List<ItemsLines> newMappings = itemCodes.stream()
-                .map(itemsByCode::get)
-                .map(item -> buildItemLine(line, item))
+        Set<Long> newItemIds = itemsByCode.values().stream()
+                .map(Items::getId)
+                .collect(Collectors.toSet());
+
+        // 1) 기존 매핑 중, 빠진 것은 INACTIVE
+        existing.stream()
+                .filter(il -> !newItemIds.contains(il.getItemId()))
+                .forEach(ItemsLines::inactive);
+
+        // 2) 기존 매핑 중, 유지되는 것은 ACTIVE
+        existing.stream()
+                .filter(il -> newItemIds.contains(il.getItemId()))
+                .forEach(ItemsLines::activate);
+
+        // 3) 신규만 INSERT
+        Set<Long> existingItemIds = existing.stream()
+                .map(ItemsLines::getItemId)
+                .collect(Collectors.toSet());
+
+        List<ItemsLines> newOnes = itemsByCode.values().stream()
+                .filter(item -> !existingItemIds.contains(item.getId()))
+                .map(item -> ItemsLines.builder()
+                        .lineId(line.getId())
+                        .itemId(item.getId())
+                        .isActive(true)
+                        .build())
                 .toList();
 
-        itemLineRepository.saveAll(newMappings);
-        log.info("라인({})의 생산 가능 품목이 {}건으로 수정 완료", lineCode, newMappings.size());
+        itemLineRepository.saveAll(newOnes);
+    }
+
+    private void validateItemsActive(Collection<Items> items) {
+        boolean hasInactive = items.stream().anyMatch(item -> !item.isActivated());
+        if (hasInactive) {
+            throw new AppException(ItemErrorCode.ITEM_INACTIVE);
+        }
+    }
+
+    private Lines findActiveLineOrThrow(String lineCode) {
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(lineCode)
+                .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+
+        if (!line.isActivated()) {
+            throw new AppException(LineErrorCode.LINE_INACTIVE);
+        }
+
+        if (!line.getFactory().isActivated()) {
+            throw new AppException(LineErrorCode.LINE_INACTIVE);
+        }
+
+        return line;
     }
 
     private Lines findLineOrThrow(final String lineCode) {
-        return lineRepository.findBylineCode(lineCode)
+        return lineRepository.findBylineCodeAndIsActiveTrue(lineCode)
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
     }
 
@@ -160,6 +195,7 @@ public class ItemLineServiceImpl implements ItemLineService {
         return ItemsLines.builder()
                 .lineId(line.getId())
                 .itemId(item.getId())
+                .isActive(true)
                 .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.beyond.synclab.ctrlline.domain.itemline;
 
 import com.beyond.synclab.ctrlline.common.exception.AppException;
+import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.item.entity.Items;
 import com.beyond.synclab.ctrlline.domain.item.entity.enums.ItemStatus;
 import com.beyond.synclab.ctrlline.domain.itemline.dto.request.ManageItemLineRequestDto;
@@ -52,7 +53,7 @@ class ItemLineServiceImplTest {
         Items item1 = buildItem(1L, "ITEM-001");
         Items item2 = buildItem(2L, "ITEM-002");
 
-        when(lineRepository.findBylineCode("PL0001")).thenReturn(Optional.of(line));
+        when(lineRepository.findBylineCodeAndIsActiveTrue("PL0001")).thenReturn(Optional.of(line));
         when(itemRepository.findByItemCodeIn(List.of("ITEM-001", "ITEM-002")))
                 .thenReturn(List.of(item1, item2));
         when(itemLineRepository.findByLine(line)).thenReturn(List.of());
@@ -87,7 +88,7 @@ class ItemLineServiceImplTest {
                 .itemId(item.getId())
                 .build();
 
-        when(lineRepository.findBylineCode("LINE-A")).thenReturn(Optional.of(line));
+        when(lineRepository.findBylineCodeAndIsActiveTrue("LINE-A")).thenReturn(Optional.of(line));
         when(itemRepository.findByItemCodeIn(List.of("ITEM-001"))).thenReturn(List.of(item));
         when(itemLineRepository.findByLine(line)).thenReturn(List.of(existing));
 
@@ -112,7 +113,7 @@ class ItemLineServiceImplTest {
                 .itemId(99L)
                 .build();
 
-        when(lineRepository.findBylineCode("LINE-B")).thenReturn(Optional.of(line));
+        when(lineRepository.findBylineCodeAndIsActiveTrue("LINE-B")).thenReturn(Optional.of(line));
         when(itemRepository.findByItemCodeIn(List.of("ITEM-003"))).thenReturn(List.of(newItem));
         when(itemLineRepository.findByLine(line)).thenReturn(List.of(existing));
 
@@ -120,7 +121,6 @@ class ItemLineServiceImplTest {
         itemLineService.updateItemLine("LINE-B", request);
 
         // then
-        verify(itemLineRepository).deleteAllInBatch(List.of(existing));
         ArgumentCaptor<List<ItemsLines>> captor = ArgumentCaptor.forClass(List.class);
         verify(itemLineRepository).saveAll(captor.capture());
         List<ItemsLines> saved = captor.getValue();
@@ -135,6 +135,7 @@ class ItemLineServiceImplTest {
         return Lines.builder()
                 .id(id)
                 .factoryId(1L)
+                .factory(Factories.builder().id(1L).build())
                 .userId(1L)
                 .lineCode(lineCode)
                 .lineName("라인")
