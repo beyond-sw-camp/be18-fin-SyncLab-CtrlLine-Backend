@@ -21,7 +21,8 @@ public interface ItemService {
             final String itemSpecification,
             final ItemStatus itemStatus,
             final Boolean isActive,
-            final Pageable pageable
+            final Pageable pageable,
+            final String factoryCode
     );
 
     // 품목 상세 조회

@@ -48,7 +48,8 @@ public class ItemServiceImpl implements ItemService {
             final String itemSpecification,
             final ItemStatus itemStatus,
             final Boolean isActive,
-            final Pageable pageable
+            final Pageable pageable,
+            final String factoryCode
     ) {
         SearchItemRequestDto condition = SearchItemRequestDto.builder()
                 .itemCode(itemCode)
@@ -56,6 +57,7 @@ public class ItemServiceImpl implements ItemService {
                 .itemSpecification(itemSpecification)
                 .itemStatus(itemStatus)
                 .isActive(isActive)
+                .factoryCode(factoryCode)
                 .build();
 
         Page<Items> result = itemRepository.searchItems(condition, pageable);

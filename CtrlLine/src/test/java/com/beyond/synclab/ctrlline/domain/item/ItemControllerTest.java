@@ -110,7 +110,7 @@ class ItemControllerTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<GetItemListResponseDto> page = new PageImpl<>(List.of(item1, item2), pageable, 2);
 
-        when(itemService.getItemList(any(), any(), any(), any(), any(), any())).thenReturn(page);
+        when(itemService.getItemList(any(), any(), any(), any(), any(), any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/items")
                         .param("itemCode", "ITEM")
