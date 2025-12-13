@@ -40,7 +40,7 @@ class ItemLineRepositoryTest {
 
     @Test
     @DisplayName("isActive=true && itemStatus=FINISHED_PRODUCT 인 품목만 조회되어야 한다")
-    void findActiveFinishedItemsByLine_shouldReturnOnlyActiveFinishedProducts() {
+    void findActiveFinishedItemsByLine_shouldReturnOnlyActiveProductsAndStatus() {
         // given
         // Line 생성
         Lines line = lineRepository.save(Lines.builder()
@@ -91,7 +91,7 @@ class ItemLineRepositoryTest {
                                           .build());
 
         // when
-        List<Items> result = itemLineRepository.findActiveFinishedItemsByLine(line);
+        List<Items> result = itemLineRepository.findActiveItemsByLineAndStatus(line, ItemStatus.FINISHED_PRODUCT);
 
         // then
         assertThat(result)
