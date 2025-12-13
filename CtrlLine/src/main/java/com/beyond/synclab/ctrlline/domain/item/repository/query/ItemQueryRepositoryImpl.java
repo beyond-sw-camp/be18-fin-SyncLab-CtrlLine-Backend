@@ -95,7 +95,10 @@ public class ItemQueryRepositoryImpl implements ItemQueryRepository {
                         .from(il)
                         .join(il.line, line)
                         .join(line.factory, factory)
-                        .where(factory.factoryCode.contains(factoryCode))
+                        .where(
+                                factory.factoryCode.contains(factoryCode),
+                                il.isActive.isTrue()
+                        )
         );
     }
 
