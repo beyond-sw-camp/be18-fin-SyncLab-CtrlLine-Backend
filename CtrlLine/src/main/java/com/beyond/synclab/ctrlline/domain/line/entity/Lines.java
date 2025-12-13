@@ -123,4 +123,8 @@ public class Lines {
             this.updatedAt = LocalDateTime.now();
         }
     }
+
+    public boolean isActivated() {
+        return this.isActive;
+    }
 }

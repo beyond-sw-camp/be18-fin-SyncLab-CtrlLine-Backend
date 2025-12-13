@@ -62,4 +62,7 @@ public class Factories {
         this.isActive = isActive;
     }
 
+    public boolean isActivated() {
+        return this.isActive;
+    }
 }
