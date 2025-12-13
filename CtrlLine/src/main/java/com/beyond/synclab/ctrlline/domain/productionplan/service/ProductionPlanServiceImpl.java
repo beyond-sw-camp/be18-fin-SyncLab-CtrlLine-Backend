@@ -18,26 +18,8 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.DueDateExceededPlanDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanBoundaryResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdatePlanPreviewSnapshot;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.*;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdatePlanPreviewSnapshot.PlanTimeSnapshot;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanCommitRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
@@ -50,22 +32,6 @@ import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.validator.DomainActivationValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.Tuple;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -77,6 +43,16 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -1090,25 +1066,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             pageable.getSort()
         );
 
-        Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planStatusIn(command.status()),
-            PlanSpecification.planFactoryNameContains(command.factoryName()),
-            PlanSpecification.planSalesManagerNameContains(command.salesManagerName()),
-            PlanSpecification.planProductionManagerNameContains(command.productionManagerName()),
-            PlanSpecification.planSalesManagerNoContains(command.salesManagerNo()),
-            PlanSpecification.planProductionManagerNoContains(command.productionManagerNo()),
-            PlanSpecification.planItemNameContains(command.itemName()),
-            PlanSpecification.planItemCodeContains(command.itemCode()),
-            PlanSpecification.planFactoryCodeContains(command.factoryCode()),
-            PlanSpecification.planDueDateFromAfter(command.dueDateFrom()),
-            PlanSpecification.planDueDateToBefore(command.dueDateTo()),
-            PlanSpecification.planStartTimeAfter(command.startTime()),
-            PlanSpecification.planEndTimeBefore(command.endTime())
-        );
-
-
-        return productionPlanRepository.findAll(spec, finalPageable)
-            .map(GetProductionPlanListResponseDto::fromEntity);
+        return productionPlanRepository.findPlanList(command, finalPageable);
     }
 
 
@@ -1147,37 +1105,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
         }
 
-        Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planFactoryCodeContains(requestDto.factoryCode()),
-            PlanSpecification.planLineCodeContains(requestDto.lineCode()),
-            PlanSpecification.planStatusNotEquals(PlanStatus.RETURNED), // 반려 조건 제외해서 조회
-            PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
-            PlanSpecification.planLineNameContains(requestDto.lineName()),
-            PlanSpecification.planStartTimeBeforeScheduledEndAndEndTimeAfterScheduledStart(requestDto.endTime(), requestDto.startTime())
-        );
-
-        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.ASC, "startTime"));
-
-        // 1) 모든 planIds → 실제 종료시간 map 조회
-        List<Tuple> tuples =
-            productionPerformanceRepository.findLatestActualEndTimeTuples(
-                result.stream().map(ProductionPlans::getId).toList()
-            );
-
-        Map<Long, LocalDateTime> actualEndMap = tuples.stream()
-            .collect(Collectors.toMap(
-                t -> t.get("planId", Long.class),
-                t -> t.get("actualEnd", LocalDateTime.class)
-            ));
-
-        return result.stream()
-            .map(p -> {
-                    LocalDateTime actual = actualEndMap.get(p.getId());
-
-                    return GetProductionPlanScheduleResponseDto.fromEntity(p, actual);
-                }
-            )
-            .toList();
+        return productionPlanRepository.findSchedule(requestDto);
     }
 
     @Override

@@ -2,11 +2,7 @@ package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
@@ -1259,112 +1255,106 @@ class ProductionPlanServiceImplTest {
         void getProductionPlanList_success() {
             // given
             SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
-                .status(List.of(PlanStatus.PENDING))
-                .factoryName(factory.getFactoryName())
-                .salesManagerName(salesManager.getName())
-                .productionManagerName(productionManager.getName())
-                .itemName(item.getItemName())
-                .dueDateFrom(testDate)
-                .dueDateTo(testDate.plusDays(1))
-                .startTime(testDateTime.minusDays(1))
-                .endTime(testDateTime.plusDays(1))
-                .build();
+                    .status(List.of(PlanStatus.PENDING))
+                    .factoryName(factory.getFactoryName())
+                    .salesManagerName(salesManager.getName())
+                    .productionManagerName(productionManager.getName())
+                    .itemName(item.getItemName())
+                    .dueDateFrom(testDate)
+                    .dueDateTo(testDate.plusDays(1))
+                    .startTime(testDateTime.minusDays(1))
+                    .endTime(testDateTime.plusDays(1))
+                    .build();
 
             Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "documentNo"));
 
-            ProductionPlans planA = productionPlan.toBuilder()
-                .status(PlanStatus.PENDING)
-                .build();
+            GetProductionPlanListResponseDto dto =
+                    GetProductionPlanListResponseDto.builder()
+                            .id(productionPlan.getId())
+                            .documentNo(productionPlan.getDocumentNo())
+                            .status(productionPlan.getStatus())
+                            .plannedQty(productionPlan.getPlannedQty())
+                            .dueDate(productionPlan.getDueDate())
+                            .build();
 
-            Page<ProductionPlans> mockPage = new PageImpl<>(List.of(planA), pageable, 1);
+            Page<GetProductionPlanListResponseDto> mockPage =
+                    new PageImpl<>(List.of(dto), pageable, 1);
 
-            when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
-                .thenReturn(mockPage);
+            when(productionPlanRepository.findPlanList(eq(command), any(Pageable.class)))
+                    .thenReturn(mockPage);
 
             // when
             Page<GetProductionPlanListResponseDto> result =
-                productionPlanService.getProductionPlanList(command, pageable);
+                    productionPlanService.getProductionPlanList(command, pageable);
 
             // then
             assertThat(result.getTotalElements()).isEqualTo(1);
-            GetProductionPlanListResponseDto dto = result.getContent().getFirst();
+            GetProductionPlanListResponseDto resultDto = result.getContent().getFirst();
 
-            assertThat(dto.getId()).isEqualTo(planA.getId());
-            assertThat(dto.getDocumentNo()).isEqualTo(planA.getDocumentNo());
-            assertThat(dto.getStatus()).isEqualTo(planA.getStatus());
-            assertThat(dto.getPlannedQty()).isEqualTo(planA.getPlannedQty());
-            assertThat(dto.getDueDate()).isEqualTo(planA.getDueDate());
-            assertThat(dto.getRemark()).isEqualTo(planA.getRemark());
+            assertThat(resultDto.getId()).isEqualTo(productionPlan.getId());
+            assertThat(resultDto.getDocumentNo()).isEqualTo(productionPlan.getDocumentNo());
+            assertThat(resultDto.getStatus()).isEqualTo(productionPlan.getStatus());
+            assertThat(resultDto.getPlannedQty()).isEqualTo(productionPlan.getPlannedQty());
+            assertThat(resultDto.getDueDate()).isEqualTo(productionPlan.getDueDate());
 
-            // repository 호출 검증
             verify(productionPlanRepository, times(1))
-                .findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class));
+                    .findPlanList(eq(command), any(Pageable.class));
         }
 
         @Test
-        @DisplayName("계획 수량 오름차순 확인")
+        @DisplayName("계획 수량 오름차순 정렬 요청 전달")
         void getProductionPlanList_clientSortMerged() {
             // given
             SearchProductionPlanCommand command = SearchProductionPlanCommand.builder()
-                .status(List.of(PlanStatus.PENDING))
-                .build();
+                    .status(List.of(PlanStatus.PENDING))
+                    .build();
 
-            // 클라이언트가 name ASC 정렬 요청
-            Pageable pageable = PageRequest.of(0, 10, Sort.by("plannedQty").ascending());
+            Pageable pageable =
+                    PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "plannedQty"));
 
-            ProductionPlans planA = productionPlan.toBuilder()
-                .documentNo("2099/01/01-1")
-                .plannedQty(BigDecimal.valueOf(400))
-                .build();
+            Page<GetProductionPlanListResponseDto> mockPage =
+                    new PageImpl<>(Collections.emptyList(), pageable, 0);
 
-            ProductionPlans planB = productionPlan.toBuilder()
-                .documentNo("2099/01/01-2")
-                .plannedQty(BigDecimal.valueOf(300))
-                .build();
-
-            Page<ProductionPlans> mockPage = new PageImpl<>(List.of(planA, planB), pageable, 2);
-            when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
-                .thenReturn(mockPage);
+            when(productionPlanRepository.findPlanList(any(), any(Pageable.class)))
+                    .thenReturn(mockPage);
 
             // when
-            Page<GetProductionPlanListResponseDto> result =
-                productionPlanService.getProductionPlanList(command, pageable);
+            productionPlanService.getProductionPlanList(command, pageable);
 
             // then
-            assertThat(result.getTotalElements()).isEqualTo(2);
-            assertThat(result.getContent().getFirst().getId()).isEqualTo(planA.getId());
-
-            // 클라이언트 Sort(plannedQty ASC)로 되었는지 확인
-            verify(productionPlanRepository).findAll(
-                ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                ArgumentMatchers.<Pageable>argThat(p -> {
-                    Sort sort = p.getSort();
-                    Sort.Order plannedQtyOrder = sort.getOrderFor("plannedQty");
-
-                    return plannedQtyOrder != null
-                        && plannedQtyOrder.getDirection() == Sort.Direction.ASC;
-                }));
+            verify(productionPlanRepository).findPlanList(
+                    eq(command),
+                    argThat(p -> {
+                        Sort.Order order = p.getSort().getOrderFor("plannedQty");
+                        return order != null && order.getDirection() == Sort.Direction.ASC;
+                    })
+            );
         }
 
         @Test
         @DisplayName("빈 데이터 조회")
         void getProductionPlanList_emptyResult() {
             // given
-            SearchProductionPlanCommand command = SearchProductionPlanCommand.builder().build();
+            SearchProductionPlanCommand command =
+                    SearchProductionPlanCommand.builder().build();
 
             Pageable pageable = PageRequest.of(0, 10);
 
-            Page<ProductionPlans> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
-            when(productionPlanRepository.findAll(ArgumentMatchers.<Specification<ProductionPlans>>any(), any(Pageable.class)))
-                .thenReturn(emptyPage);
+            Page<GetProductionPlanListResponseDto> emptyPage =
+                    new PageImpl<>(Collections.emptyList(), pageable, 0);
+
+            when(productionPlanRepository.findPlanList(eq(command), any(Pageable.class)))
+                    .thenReturn(emptyPage);
 
             // when
             Page<GetProductionPlanListResponseDto> result =
-                productionPlanService.getProductionPlanList(command, pageable);
+                    productionPlanService.getProductionPlanList(command, pageable);
 
             // then
             assertThat(result.getTotalElements()).isZero();
             assertThat(result.getContent()).isEmpty();
+
+            verify(productionPlanRepository).findPlanList(eq(command), any(Pageable.class));
         }
     }
 
@@ -1475,16 +1465,20 @@ class ProductionPlanServiceImplTest {
             GetProductionPlanScheduleRequestDto requestDto = GetProductionPlanScheduleRequestDto.builder()
                 .factoryName("A공장")
                 .lineName("1호라인")
-                .startTime(LocalDateTime.now(testClock))
-                .endTime(LocalDateTime.now(testClock).plusHours(2))
+                .startTime(testDateTime)
+                .endTime(testDateTime.plusHours(2))
                 .build();
 
-            List<ProductionPlans> mockResult = List.of(productionPlan);
+            List<GetProductionPlanScheduleResponseDto> mockResult = List.of(
+                    GetProductionPlanScheduleResponseDto.builder()
+                            .factoryName("A공장")
+                            .lineName("1호라인")
+                            .startTime(LocalDateTime.now(testClock))
+                            .endTime(LocalDateTime.now(testClock).plusHours(2))
+                    .build()
+            );
 
-            when(productionPlanRepository.findAll(
-                ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                ArgumentMatchers.any(Sort.class)))
-                .thenReturn(mockResult);
+            when(productionPlanRepository.findSchedule(requestDto)).thenReturn(mockResult);
 
             // when
             List<GetProductionPlanScheduleResponseDto> result =
@@ -1492,20 +1486,9 @@ class ProductionPlanServiceImplTest {
 
             assertThat(result).hasSize(1);
             GetProductionPlanScheduleResponseDto dto = result.getFirst();
-            assertThat(dto.getDocumentNo()).isEqualTo(productionPlan.getDocumentNo());
-            assertThat(dto.getFactoryName()).isEqualTo(productionPlan.getItemLine().getLine().getFactory().getFactoryName());
-            assertThat(dto.getStartTime()).isEqualTo(productionPlan.getStartTime());
-            assertThat(dto.getEndTime()).isEqualTo(productionPlan.getEndTime());
-
-            // repository 호출 검증 (ASC 정렬)
-            verify(productionPlanRepository, times(1))
-                .findAll(
-                    ArgumentMatchers.<Specification<ProductionPlans>>any(),
-                    ArgumentMatchers.<Sort>argThat(sort -> {
-                        Sort.Order order = sort.getOrderFor("startTime");
-                        return order != null && order.getDirection() == Sort.Direction.ASC;
-                    })
-                );
+            assertThat(dto.getFactoryName()).isEqualTo("A공장");
+            assertThat(dto.getStartTime()).isEqualTo(testDateTime);
+            assertThat(dto.getEndTime()).isEqualTo(testDateTime.plusHours(2));
         }
 
         @Test
