@@ -530,17 +530,37 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             List<PlanScheduleSlot> slots,
             Users requester
     ) {
+        LocalDateTime now = LocalDateTime.now(clock);
+
         boolean isAdmin = requester.isAdminRole();
 
         // 시간순 정렬
         slots.sort(Comparator.comparing(PlanScheduleSlot::getStartTime));
 
         // anchor 기준 시간
-        LocalDateTime cursor = slots.stream()
+        LocalDateTime anchorEnd = slots.stream()
                 .filter(PlanScheduleSlot::isAnchor)
                 .map(PlanScheduleSlot::getEndTime)
+                .filter(end -> end.isAfter(now))
                 .max(LocalDateTime::compareTo)
-                .orElse(slots.getFirst().getStartTime());
+                .orElse(null);
+
+        LocalDateTime cursor;
+
+        if (anchorEnd != null) {
+            cursor = anchorEnd;
+        } else {
+            PlanScheduleSlot first = slots.getFirst();
+            Duration gap = Duration.between(now, first.getStartTime());
+
+            if (gap.isNegative() || gap.compareTo(Duration.ofMinutes(10)) <= 0) {
+                // 지금이거나, 허용 공백 이내 → 그대로
+                cursor = first.getStartTime();
+            } else {
+                // 공백이 너무 큼 → 앞으로 당겨서 compact
+                cursor = now.plusMinutes(10);
+            }
+        }
 
         for (PlanScheduleSlot slot : slots) {
 
