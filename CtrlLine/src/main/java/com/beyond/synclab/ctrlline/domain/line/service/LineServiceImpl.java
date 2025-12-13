@@ -31,7 +31,7 @@ public class LineServiceImpl implements LineService {
     @Override
     @Transactional(readOnly = true)
     public LineResponseDto getLine(String lineCode) {
-        Lines line = lineRepository.findBylineCode(lineCode).orElseThrow(() -> new AppException(
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(lineCode).orElseThrow(() -> new AppException(
                 LineErrorCode.LINE_NOT_FOUND));
 
         return LineResponseDto.fromEntity(line, line.getUser(), line.getFactory());
@@ -79,7 +79,7 @@ public class LineServiceImpl implements LineService {
     @Override
     @Transactional
     public LineResponseDto updateLine(String lineCode, UpdateLineRequestDto request) {
-        Lines line = lineRepository.findBylineCode(lineCode)
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(lineCode)
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
         if (request.getIsActive() != null) {
