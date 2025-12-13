@@ -1199,26 +1199,20 @@ class ProductionPlanServiceImplTest {
             // given
             Long planId = 1L;
 
-            ProductionPlans productionPlans = ProductionPlans.builder()
-                .id(planId)
-                .salesManager(salesManager)
-                .productionManager(productionManager)
-                .itemLine(itemsLines)
-                .documentNo("2099/01/01-1")
-                .plannedQty(BigDecimal.valueOf(500))
-                .build();
-            ProductionPerformances productionPerformances = ProductionPerformances.builder()
-                    .id(1L)
-                    .productionPlanId(planId)
-                    .endTime(testDateTime)
-                    .build();
+            GetProductionPlanDetailResponseDto mockDto =
+                    GetProductionPlanDetailResponseDto.builder()
+                            .id(planId)
+                            .planDocumentNo("2099/01/01-1")
+                            .itemCode(item.getItemCode())
+                            .factoryCode(factory.getFactoryCode())
+                            .build();
 
-            when(productionPlanRepository.findById(planId))
-                .thenReturn(Optional.of(productionPlans));
-            when(productionPerformanceRepository.findByProductionPlanIdAndIsDeletedFalse(planId))
-                .thenReturn(Optional.of(productionPerformances));
+            when(productionPlanRepository.findPlanDetail(planId))
+                    .thenReturn(Optional.of(mockDto));
+
             // when
-            GetProductionPlanDetailResponseDto response = productionPlanService.getProductionPlan(planId);
+            GetProductionPlanDetailResponseDto response =
+                    productionPlanService.getProductionPlan(planId);
 
             // then
             assertThat(response).isNotNull();
@@ -1226,7 +1220,8 @@ class ProductionPlanServiceImplTest {
             assertThat(response.getItemCode()).isEqualTo(item.getItemCode());
             assertThat(response.getFactoryCode()).isEqualTo(factory.getFactoryCode());
 
-            verify(productionPlanRepository, times(1)).findById(planId);
+            verify(productionPlanRepository, times(1))
+                    .findPlanDetail(planId);
         }
 
         @Test
@@ -1235,14 +1230,20 @@ class ProductionPlanServiceImplTest {
             // given
             Long planId = 999L;
 
-            when(productionPlanRepository.findById(planId)).thenReturn(Optional.empty());
+            when(productionPlanRepository.findPlanDetail(planId))
+                    .thenReturn(Optional.empty());
 
             // expected
-            assertThatThrownBy(() -> productionPlanService.getProductionPlan(planId))
-                .isInstanceOf(AppException.class)
-                .hasMessageContaining(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage());
+            assertThatThrownBy(() ->
+                    productionPlanService.getProductionPlan(planId)
+            )
+                    .isInstanceOf(AppException.class)
+                    .hasMessageContaining(
+                            ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND.getMessage()
+                    );
 
-            verify(productionPlanRepository, times(1)).findById(planId);
+            verify(productionPlanRepository, times(1))
+                    .findPlanDetail(planId);
         }
     }
 

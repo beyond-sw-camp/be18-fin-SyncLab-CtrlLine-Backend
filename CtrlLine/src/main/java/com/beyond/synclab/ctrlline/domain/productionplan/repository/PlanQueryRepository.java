@@ -1,13 +1,11 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.repository;
 
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PlanQueryRepository {
     List<GetProductionPlanScheduleResponseDto> findSchedule(
@@ -18,4 +16,6 @@ public interface PlanQueryRepository {
             SearchProductionPlanCommand command,
             Pageable pageable
     );
+
+    Optional<GetProductionPlanDetailResponseDto> findPlanDetail(Long planId);
 }

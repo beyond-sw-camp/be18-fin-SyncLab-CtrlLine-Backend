@@ -1039,18 +1039,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     @Override
     @Transactional(readOnly = true)
     public GetProductionPlanDetailResponseDto getProductionPlan(Long planId) {
-        ProductionPlans productionPlans = productionPlanRepository.findById(planId)
-            .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
-
-        Factories factory = productionPlans.getItemLine().getLine().getFactory();
-
-        Items item = productionPlans.getItemLine().getItem();
-
-        LocalDateTime actualEndTime = productionPerformanceRepository.findByProductionPlanIdAndIsDeletedFalse(planId)
-            .orElse(ProductionPerformances.builder().build())
-            .getEndTime();
-
-        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item, actualEndTime);
+        return productionPlanRepository.findPlanDetail(planId)
+                .orElseThrow(() ->
+                        new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND)
+                );
     }
 
     @Override

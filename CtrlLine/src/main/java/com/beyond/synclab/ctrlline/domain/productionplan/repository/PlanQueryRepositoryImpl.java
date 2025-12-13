@@ -6,10 +6,7 @@ import com.beyond.synclab.ctrlline.domain.item.entity.QItems;
 import com.beyond.synclab.ctrlline.domain.itemline.entity.QItemsLines;
 import com.beyond.synclab.ctrlline.domain.line.entity.QLines;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.QProductionPerformances;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.*;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.user.entity.QUsers;
@@ -27,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -223,6 +221,95 @@ public class PlanQueryRepositoryImpl implements PlanQueryRepository{
                         .fetchOne();
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
+    }
+
+    @Override
+    public Optional<GetProductionPlanDetailResponseDto> findPlanDetail(Long planId) {
+        QProductionPlans plan = QProductionPlans.productionPlans;
+        QItemsLines il = QItemsLines.itemsLines;
+        QItems item = QItems.items;
+        QLines line = QLines.lines;
+        QFactories fac = QFactories.factories;
+        QUsers salesManager = new QUsers(SALES_MANAGER_ALIAS);
+        QUsers prodManager = new QUsers(PROD_MANAGER_ALIAS);
+        QProductionPerformances perf = QProductionPerformances.productionPerformances;
+
+        return Optional.ofNullable(
+                queryFactory
+                        .select(Projections.fields(
+                                GetProductionPlanDetailResponseDto.class,
+
+                                plan.id,
+                                plan.documentNo.as("planDocumentNo"),
+                                plan.dueDate,
+                                plan.status,
+
+                                salesManager.empNo.as("salesManagerNo"),
+                                salesManager.name.as("salesManagerName"),
+                                prodManager.empNo.as("productionManagerNo"),
+                                prodManager.name.as("productionManagerName"),
+
+                                plan.startTime,
+                                plan.endTime,
+                                perf.endTime.max().as("actualEndTime"),
+
+                                fac.id.as("factoryId"),
+                                fac.factoryCode,
+                                fac.factoryName,
+
+                                item.id.as("itemId"),
+                                item.itemSpecification,
+                                item.itemUnit,
+                                item.itemCode,
+                                item.itemName,
+
+                                plan.plannedQty,
+
+                                line.id.as("lineId"),
+                                line.lineCode,
+                                line.lineName,
+
+                                plan.remark
+                        ))
+                        .from(plan)
+                        .leftJoin(plan.itemLine, il)
+                        .leftJoin(il.item, item)
+                        .leftJoin(il.line, line)
+                        .leftJoin(line.factory, fac)
+                        .leftJoin(plan.salesManager, salesManager)
+                        .leftJoin(plan.productionManager, prodManager)
+                        .leftJoin(perf).on(
+                                perf.productionPlan.eq(plan)
+                                        .and(perf.isDeleted.isFalse())
+                        )
+                        .where(plan.id.eq(planId))
+                        .groupBy(
+                                plan.id,
+                                plan.documentNo,
+                                plan.dueDate,
+                                plan.status,
+                                salesManager.empNo,
+                                salesManager.name,
+                                prodManager.empNo,
+                                prodManager.name,
+                                plan.startTime,
+                                plan.endTime,
+                                fac.id,
+                                fac.factoryCode,
+                                fac.factoryName,
+                                item.id,
+                                item.itemSpecification,
+                                item.itemUnit,
+                                item.itemCode,
+                                item.itemName,
+                                plan.plannedQty,
+                                line.id,
+                                line.lineCode,
+                                line.lineName,
+                                plan.remark
+                        )
+                        .fetchOne()
+        );
     }
 
     private BooleanExpression[] findPlanListWhere(
