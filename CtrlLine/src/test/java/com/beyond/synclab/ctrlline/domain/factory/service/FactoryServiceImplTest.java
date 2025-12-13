@@ -73,7 +73,7 @@ class FactoryServiceImplTest {
         Factories existingFactory = buildTestFactory(user, true);
 
         // when
-        when(factoryRepository.findByFactoryCode(factoryRequest.getFactoryCode())).thenReturn(java.util.Optional.of(existingFactory));
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryRequest.getFactoryCode())).thenReturn(java.util.Optional.of(existingFactory));
 
         // then
         assertThatThrownBy(() -> factoryService.createFactory(user, factoryRequest))
@@ -87,7 +87,7 @@ class FactoryServiceImplTest {
         // given
         Users manager = buildTestUser("홍길동", Users.UserRole.MANAGER);
         Factories factory = buildTestFactory(manager, true);
-        when(factoryRepository.findByFactoryCode(factory.getFactoryCode()))
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue(factory.getFactoryCode()))
                 .thenReturn(java.util.Optional.of(factory));
 
         // when
@@ -104,7 +104,7 @@ class FactoryServiceImplTest {
     void getFactory_notFound() {
         // given
         String factoryCode = "F999";
-        when(factoryRepository.findByFactoryCode(factoryCode))
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode))
                 .thenReturn(java.util.Optional.empty());
 
         // then
@@ -123,7 +123,7 @@ class FactoryServiceImplTest {
                 .isActive(false)
                 .build();
 
-        when(factoryRepository.findByFactoryCode(factory.getFactoryCode()))
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue(factory.getFactoryCode()))
                 .thenReturn(java.util.Optional.of(factory));
 
         // when
@@ -143,7 +143,7 @@ class FactoryServiceImplTest {
                 .isActive(false)
                 .build();
 
-        when(factoryRepository.findByFactoryCode("F999"))
+        when(factoryRepository.findByFactoryCodeAndIsActiveTrue("F999"))
                 .thenReturn(java.util.Optional.empty());
 
         // then

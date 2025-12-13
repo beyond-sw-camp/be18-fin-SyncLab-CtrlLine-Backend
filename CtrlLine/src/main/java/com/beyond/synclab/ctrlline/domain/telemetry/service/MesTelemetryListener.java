@@ -60,13 +60,11 @@ import static java.util.Map.entry;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
 import com.beyond.synclab.ctrlline.domain.equipment.repository.EquipmentRepository;
 import com.beyond.synclab.ctrlline.domain.equipment.service.EquipmentRuntimeStatusService;
-import com.beyond.synclab.ctrlline.domain.telemetry.service.LineFinalInspectionProgressService;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.AlarmTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.DefectiveTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.EquipmentStatusTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.OrderSummaryTelemetryPayload;
 import com.beyond.synclab.ctrlline.domain.telemetry.dto.ProductionPerformanceTelemetryPayload;
-import com.beyond.synclab.ctrlline.domain.factory.entity.Factories;
 import com.beyond.synclab.ctrlline.domain.factory.repository.FactoryRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1094,7 +1092,7 @@ public class MesTelemetryListener {
                 factoryCode,
                 machine);
         final String resolvedFactoryCode = factoryCode;
-        return factoryRepository.findByFactoryCode(resolvedFactoryCode)
+        return factoryRepository.findByFactoryCodeAndIsActiveTrue(resolvedFactoryCode)
                 .map(factory -> {
                     Long factoryId = factory.getId();
                     log.info("Resolved factory for telemetry. factoryCode={}, factoryId={}", resolvedFactoryCode, factoryId);

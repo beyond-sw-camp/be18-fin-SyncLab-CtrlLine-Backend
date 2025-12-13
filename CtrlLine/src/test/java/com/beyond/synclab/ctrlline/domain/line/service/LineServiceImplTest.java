@@ -202,16 +202,16 @@ class LineServiceImplTest {
     @DisplayName("라인 다건 사용 여부를 비활성화로 변경한다")
     void updateLineAct_success() {
         UpdateLineActRequestDto requestDto = UpdateLineActRequestDto.builder()
-                .lineIds(List.of(lineRepository.findBylineCode("PL01").orElseThrow().getId(),
-                        lineRepository.findBylineCode("PL03").orElseThrow().getId()))
+                .lineIds(List.of(lineRepository.findBylineCodeAndIsActiveTrue("PL01").orElseThrow().getId(),
+                        lineRepository.findBylineCodeAndIsActiveTrue("PL03").orElseThrow().getId()))
                 .isActive(false)
                 .build();
 
         Boolean result = lineService.updateLineAct(requestDto);
 
         assertThat(result).isFalse();
-        assertThat(lineRepository.findBylineCode("PL01").orElseThrow().getIsActive()).isFalse();
-        assertThat(lineRepository.findBylineCode("PL03").orElseThrow().getIsActive()).isFalse();
+        assertThat(lineRepository.findBylineCodeAndIsActiveTrue("PL01").orElseThrow().getIsActive()).isFalse();
+        assertThat(lineRepository.findBylineCodeAndIsActiveTrue("PL03").orElseThrow().getIsActive()).isFalse();
     }
 
     @Test

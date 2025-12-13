@@ -41,7 +41,7 @@ public class DefectiveServiceImpl implements DefectiveService {
         Long planId = planDefectives.getProductionPlan().getId();
 
         ProductionPerformances performance =
-                productionPerformanceRepository.findByProductionPlanId(planId)
+                productionPerformanceRepository.findByProductionPlanIdAndIsDeletedFalse(planId)
                         .orElse(null);
 
         String performanceDocNo =

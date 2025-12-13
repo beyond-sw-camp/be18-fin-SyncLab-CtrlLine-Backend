@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface FactoryRepository extends JpaRepository<Factories, Long>, FactoryQueryRepository {
-    Optional<Factories> findByFactoryCode(String factoryCode);
+    Optional<Factories> findByFactoryCodeAndIsActiveTrue(String factoryCode);
 }

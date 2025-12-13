@@ -124,7 +124,7 @@ public class ItemLineServiceImpl implements ItemLineService {
     }
 
     private Lines findActiveLineOrThrow(String lineCode) {
-        Lines line = lineRepository.findBylineCode(lineCode)
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(lineCode)
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
         if (!line.isActivated()) {
@@ -139,7 +139,7 @@ public class ItemLineServiceImpl implements ItemLineService {
     }
 
     private Lines findLineOrThrow(final String lineCode) {
-        return lineRepository.findBylineCode(lineCode)
+        return lineRepository.findBylineCodeAndIsActiveTrue(lineCode)
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
     }
 

@@ -27,7 +27,7 @@ public class FactoryEnergyUsageService {
         if (!StringUtils.hasText(factoryCode)) {
             throw new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
         }
-        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
                 .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
         MesDatas latest = mesDataRepository.findFirstByFactoryIdOrderByCreatedAtDesc(factory.getId())
@@ -45,7 +45,7 @@ public class FactoryEnergyUsageService {
         if (!StringUtils.hasText(factoryCode)) {
             throw new AppException(FactoryErrorCode.FACTORY_NOT_FOUND);
         }
-        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
                 .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
         LocalDate today = LocalDate.now();

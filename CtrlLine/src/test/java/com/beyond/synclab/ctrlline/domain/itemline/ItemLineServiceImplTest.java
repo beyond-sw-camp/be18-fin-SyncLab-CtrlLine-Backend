@@ -52,7 +52,7 @@ class ItemLineServiceImplTest {
         Items item1 = buildItem(1L, "ITEM-001");
         Items item2 = buildItem(2L, "ITEM-002");
 
-        when(lineRepository.findBylineCode("PL0001")).thenReturn(Optional.of(line));
+        when(lineRepository.findBylineCodeAndIsActiveTrue("PL0001")).thenReturn(Optional.of(line));
         when(itemRepository.findByItemCodeIn(List.of("ITEM-001", "ITEM-002")))
                 .thenReturn(List.of(item1, item2));
         when(itemLineRepository.findByLine(line)).thenReturn(List.of());
@@ -87,7 +87,7 @@ class ItemLineServiceImplTest {
                 .itemId(item.getId())
                 .build();
 
-        when(lineRepository.findBylineCode("LINE-A")).thenReturn(Optional.of(line));
+        when(lineRepository.findBylineCodeAndIsActiveTrue("LINE-A")).thenReturn(Optional.of(line));
         when(itemRepository.findByItemCodeIn(List.of("ITEM-001"))).thenReturn(List.of(item));
         when(itemLineRepository.findByLine(line)).thenReturn(List.of(existing));
 
@@ -112,7 +112,7 @@ class ItemLineServiceImplTest {
                 .itemId(99L)
                 .build();
 
-        when(lineRepository.findBylineCode("LINE-B")).thenReturn(Optional.of(line));
+        when(lineRepository.findBylineCodeAndIsActiveTrue("LINE-B")).thenReturn(Optional.of(line));
         when(itemRepository.findByItemCodeIn(List.of("ITEM-003"))).thenReturn(List.of(newItem));
         when(itemLineRepository.findByLine(line)).thenReturn(List.of(existing));
 

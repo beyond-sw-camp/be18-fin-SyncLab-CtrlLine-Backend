@@ -30,7 +30,7 @@ public interface LineRepository extends JpaRepository<Lines, Long> {
             """, nativeQuery = true)
     Optional<String> findFactoryCodeByLineId(@Param("lineId") Long lineId);
 
-    Optional<Lines> findBylineCode(String lineCode);
+    Optional<Lines> findBylineCodeAndIsActiveTrue(String lineCode);
 
     Page<Lines> findAll(Specification<Lines> spec, Pageable pageable);
 

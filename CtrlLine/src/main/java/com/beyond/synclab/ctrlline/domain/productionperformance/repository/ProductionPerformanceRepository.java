@@ -27,7 +27,7 @@ public interface ProductionPerformanceRepository
     """)
     List<String> findDocumentNosByPrefix(@Param("prefix") String prefix);
 
-    Optional<ProductionPerformances> findByProductionPlanId(Long productionPlanId);
+    Optional<ProductionPerformances> findByProductionPlanIdAndIsDeletedFalse(Long productionPlanId);
 
     Optional<ProductionPerformances> findById(Long id);
 
