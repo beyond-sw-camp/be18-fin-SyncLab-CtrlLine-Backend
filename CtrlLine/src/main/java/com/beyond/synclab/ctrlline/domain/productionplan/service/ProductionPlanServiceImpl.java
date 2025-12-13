@@ -47,6 +47,7 @@ import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
+import com.beyond.synclab.ctrlline.domain.validator.DomainActivationValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.Tuple;
 import java.math.BigDecimal;
@@ -98,6 +99,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     private final Clock clock;
     private final ProductionPlanReconciliationService reconciliationService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final DomainActivationValidator activationValidator;
+
 
     private List<ProductionPlans> findAllActivePlans(Long lineId) {
         return productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
@@ -118,22 +121,26 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     private Items findItem(String itemCode) {
         if (itemCode == null) return null;
-        return itemRepository.findByItemCode(itemCode)
+        return itemRepository.findByItemCodeAndIsActiveTrue(itemCode)
             .orElseThrow(() -> new AppException(ItemErrorCode.ITEM_NOT_FOUND));
     }
 
     private ItemsLines findValidatedItemLine(Lines line, Items item) {
         if (item == null) return null;
 
-        Optional<ItemsLines> itemsLinesOptional = itemLineRepository
-            .findByLineIdAndItemId(line.getId(), item.getId());
+        ItemsLines itemsLines = itemLineRepository
+            .findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId())
+            .orElseThrow(() -> {
+                log.debug(
+                        "비활성 또는 존재하지 않는 ItemLine. lineId={}, itemId={}",
+                        line.getId(), item.getId()
+                );
+                return new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND);
+            });
 
+        activationValidator.validateItemLineActive(itemsLines);
 
-        if (itemsLinesOptional.isEmpty()) {
-            throw new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND);
-        }
-
-        return itemsLinesOptional.get();
+        return itemsLines;
     }
 
 
@@ -160,7 +167,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         if (plan == null) return;
         if (!plan.isUpdatable()) {
             log.debug("해당 플랜은 업데이트가 불가능합니다.");
-            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
+            throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_UPDATABLE);
         }
     }
 
@@ -294,18 +301,25 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     ) {
         Users salesManager = findUserByEmpNo(requestDto.getSalesManagerNo());
         Users productionManager = findUserByEmpNo(requestDto.getProductionManagerNo());
-        Lines line = lineRepository.findBylineCode(requestDto.getLineCode())
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(requestDto.getLineCode())
             .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
-        Items item = itemRepository.findByItemCode(requestDto.getItemCode())
+
+        activationValidator.validateLineActive(line);
+
+        Items item = itemRepository.findByItemCodeAndIsActiveTrue(requestDto.getItemCode())
             .orElseThrow(() -> new AppException(ItemErrorCode.ITEM_NOT_FOUND));
 
-        List<Equipments> processingEquips = equipmentRepository.findAllByLineId(line.getId());
+        activationValidator.validateItemActive(item);
 
-        ItemsLines itemsLines = itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())
+        List<Equipments> processingEquips = equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId());
+
+        ItemsLines itemsLines = itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId())
                 .orElseThrow(() -> {
                     log.debug("ItemLine 이 존재하지 않습니다.");
                     return new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND);
                 });
+
+        activationValidator.validateItemLineActive(itemsLines);
 
         // 1. 전표 번호 생성
         String documentNo = createDocumentNo();
@@ -446,7 +460,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         Users productionManager = findUserByEmpNo(dto.getProductionManagerNo());
         Lines line = dto.getLineCode() == null
             ? productionPlan.getItemLine().getLine()
-            : lineRepository.findBylineCode(dto.getLineCode()).orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
+            : lineRepository.findBylineCodeAndIsActiveTrue(dto.getLineCode()).orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
         Items item = findItem(dto.getItemCode());
         ItemsLines itemsLine = findValidatedItemLine(line, item);
@@ -512,12 +526,12 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         Users productionManager = findUserByEmpNo(dto.getProductionManagerNo());
         Lines line = dto.getLineCode() == null
             ? plan.getItemLine().getLine()
-            : lineRepository.findBylineCode(dto.getLineCode())
+            : lineRepository.findBylineCodeAndIsActiveTrue(dto.getLineCode())
                 .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
-        Items item = itemRepository.findByItemCode(dto.getItemCode())
+        Items item = itemRepository.findByItemCodeAndIsActiveTrue(dto.getItemCode())
             .orElseThrow(() -> new AppException(ItemErrorCode.ITEM_NOT_FOUND));
-        ItemsLines itemsLine = itemLineRepository.findByLineIdAndItemId(line.getId(), item.getId())
+        ItemsLines itemsLine = itemLineRepository.findByLineIdAndItemIdAndIsActiveTrue(line.getId(), item.getId())
             .orElseThrow(() -> new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND));
 
         // 3) BEFORE snapshot (affectedPlans 계산용)
@@ -781,7 +795,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         // 수량 변경 → 종료시간 재계산 필요
-        List<Equipments> equips = equipmentRepository.findAllByLineId(lineId);
+        List<Equipments> equips = equipmentRepository.findAllByLineIdAndIsActiveTrue(lineId);
 
         return calculateEndTime(lineId, equips, dto.getPlannedQty(), newStart);
     }
@@ -955,7 +969,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         Items item = productionPlans.getItemLine().getItem();
 
-        LocalDateTime actualEndTime = productionPerformanceRepository.findByProductionPlanId(planId)
+        LocalDateTime actualEndTime = productionPerformanceRepository.findByProductionPlanIdAndIsDeletedFalse(planId)
             .orElse(ProductionPerformances.builder().build())
             .getEndTime();
 
@@ -1070,10 +1084,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     public GetProductionPlanEndTimeResponseDto getProductionPlanEndTime(
         GetProductionPlanEndTimeRequestDto requestDto)
     {
-        Lines line = lineRepository.findBylineCode(requestDto.getLineCode())
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(requestDto.getLineCode())
             .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
-        List<Equipments> equipments =  equipmentRepository.findAllByLineId(line.getId());
+        List<Equipments> equipments =  equipmentRepository.findAllByLineIdAndIsActiveTrue(line.getId());
 
         LocalDateTime endTime =
             calculateEndTime(line.getId(), equipments, requestDto.getPlannedQty(), requestDto.getStartTime());
@@ -1175,10 +1189,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         String lineCode) {
 
         // 1. Factory & Line 검증
-        Factories factory = factoryRepository.findByFactoryCode(factoryCode)
+        Factories factory = factoryRepository.findByFactoryCodeAndIsActiveTrue(factoryCode)
             .orElseThrow(() -> new AppException(FactoryErrorCode.FACTORY_NOT_FOUND));
 
-        Lines line = lineRepository.findBylineCode(lineCode)
+        Lines line = lineRepository.findBylineCodeAndIsActiveTrue(lineCode)
             .orElseThrow(() -> new AppException(LineErrorCode.LINE_NOT_FOUND));
 
         if (!line.getFactoryId().equals(factory.getId())) {
