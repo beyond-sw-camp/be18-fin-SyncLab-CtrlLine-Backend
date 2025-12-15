@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class GetProductionPlanDetailResponseDto {
     private Long id;
     private String planDocumentNo;
@@ -42,6 +42,7 @@ public class GetProductionPlanDetailResponseDto {
     private String lineName;
     private String remark;
 
+    @Deprecated
     public static GetProductionPlanDetailResponseDto fromEntity(ProductionPlans productionPlans, Factories factories, Items items, LocalDateTime actualEndTime) {
         return GetProductionPlanDetailResponseDto.builder()
             .id(productionPlans.getId())

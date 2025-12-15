@@ -18,64 +18,37 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.DueDateExceededPlanDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanBoundaryResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdatePlanPreviewSnapshot;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.*;
 import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdatePlanPreviewSnapshot.PlanTimeSnapshot;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanCommitRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.errorcode.ProductionPlanErrorCode;
 import com.beyond.synclab.ctrlline.domain.productionplan.repository.ProductionPlanRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.spec.PlanSpecification;
+import com.beyond.synclab.ctrlline.domain.productionplan.vo.PlanScheduleSlot;
 import com.beyond.synclab.ctrlline.domain.user.entity.Users;
 import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.validator.DomainActivationValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.Tuple;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -104,7 +77,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
     private List<ProductionPlans> findAllActivePlans(Long lineId) {
         return productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-            lineId, List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED, PlanStatus.RUNNING)
+            lineId, List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED, PlanStatus.RUNNING, PlanStatus.COMPLETED), LocalDateTime.now(clock)
         );
     }
 
@@ -224,6 +197,54 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return buildFullPlanList(updatedPlan, dbPlans);
     }
 
+    private PlanScheduleChangeResponseDto buildScheduleChangeResponseFromSlots(
+            PlanScheduleSlot target,
+            List<PlanScheduleSlot> slots,
+            String previewKey
+    ) {
+        List<AffectedPlanDto> affected = new ArrayList<>();
+        List<DueDateExceededPlanDto> dueExceeded = new ArrayList<>();
+
+        for (PlanScheduleSlot s : slots) {
+
+            LocalDateTime oldStart = s.getOriginalStartTime();
+            LocalDateTime oldEnd = s.getOriginalEndTime();
+            LocalDateTime newStart = s.getStartTime();
+            LocalDateTime newEnd = s.getEndTime();
+
+            // 변경된 계획만
+            if (!newStart.equals(oldStart) || !newEnd.equals(oldEnd)) {
+                affected.add(
+                        AffectedPlanDto.builder()
+                                .id(s.getPlanId())
+                                .oldStartTime(oldStart)
+                                .oldEndTime(oldEnd)
+                                .newStartTime(newStart)
+                                .newEndTime(newEnd)
+                                .build()
+                );
+            }
+
+            if (s.getDueDateTime() != null && newEnd.isAfter(s.getDueDateTime())) {
+                    dueExceeded.add(
+                            DueDateExceededPlanDto.builder()
+                                    .id(s.getPlanId())
+                                    .newEndTime(newEnd)
+                                    .dueDateLimit(s.getDueDateTime())
+                                    .build()
+                    );
+            }
+        }
+
+        return PlanScheduleChangeResponseDto.builder()
+                .planId(target.getPlanId())
+                .planDocumentNo(target.getDocumentNo())
+                .previewKey(previewKey)
+                .affectedPlans(affected)
+                .dueDateExceededPlans(dueExceeded)
+                .build();
+    }
+
     private PlanScheduleChangeResponseDto buildScheduleChangeResponse(
         ProductionPlans targetPlan,
         Map<Long, LocalDateTime> beforeStart,
@@ -286,11 +307,15 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
     }
 
     private Map<Long, LocalDateTime> snapshotStart(List<ProductionPlans> plans) {
-        return plans.stream().collect(Collectors.toMap(ProductionPlans::getId, ProductionPlans::getStartTime));
+        return plans.stream()
+                .filter(ProductionPlans::isUpdatable)
+                .collect(Collectors.toMap(ProductionPlans::getId, ProductionPlans::getStartTime));
     }
 
     private Map<Long, LocalDateTime> snapshotEnd(List<ProductionPlans> plans) {
-        return plans.stream().collect(Collectors.toMap(ProductionPlans::getId, ProductionPlans::getEndTime));
+        return plans.stream()
+                .filter(ProductionPlans::isUpdatable)
+                .collect(Collectors.toMap(ProductionPlans::getId, ProductionPlans::getEndTime));
     }
 
     @Override
@@ -365,8 +390,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 5. 종료시간 설정
         LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
 
-        productionPlan.updateStartTime(startTime);
-        productionPlan.updateEndTime(endTime);
+        productionPlan.updateSchedule(startTime, endTime);
 
         productionPlanRepository.save(productionPlan);
 
@@ -410,6 +434,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         productionPlanRepository.saveAll(fullPlans);
 
+        // 6. 납기일 체크
+        for (ProductionPlans plan : fullPlans) {
+            checkDueDate(plan, plan.getEndTime());
+        }
+
         return buildScheduleChangeResponse(
             newPlan,
             beforeStart,
@@ -418,6 +447,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         );
     }
 
+    @Deprecated
     private List<ProductionPlans> scheduleUpdatedPlan(
         ProductionPlans updatedPlan,
         Users requester,
@@ -441,6 +471,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
      */
     @Override
     @Transactional
+    @Deprecated
     public PlanScheduleChangeResponseDto updateProductionPlan(
         UpdateProductionPlanRequestDto dto,
         Long planId,
@@ -495,17 +526,74 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return buildScheduleChangeResponse(productionPlan, beforeStart, beforeEnd, afterPlans);
     }
 
-    private List<ProductionPlans> scheduleUpdatedPlanPreview(
-        ProductionPlans updatedPlan,
-        Users requester,
-        Long lineId
+    private void applyShiftAndCompact(
+            List<PlanScheduleSlot> slots,
+            Users requester
     ) {
-        List<ProductionPlans> plans = buildPlansForUpdate(updatedPlan, lineId);
+        LocalDateTime now = LocalDateTime.now(clock);
+        Duration TOLERANCE = Duration.ofMinutes(10);
 
-        applyShift(plans, updatedPlan, requester);
-        applyCompact(plans, requester);
+        boolean isAdmin = requester.isAdminRole();
 
-        return plans;
+        // 1. 시간순 정렬
+        slots.sort(Comparator.comparing(PlanScheduleSlot::getStartTime));
+
+        // 2. anchor 기준 계산
+        LocalDateTime anchorEnd = slots.stream()
+                .filter(PlanScheduleSlot::isAnchor)
+                .map(PlanScheduleSlot::getEndTime)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        // 3. base 시점 결정
+        LocalDateTime base = (anchorEnd != null)
+                ? anchorEnd
+                : now.plus(TOLERANCE);
+
+        // 4. 이동 가능한 슬롯 중 가장 빠른 시작 시간
+        LocalDateTime minMovableStart = slots.stream()
+                .filter(s -> s.isMovable() && (isAdmin || s.getStatus() != PlanStatus.CONFIRMED))
+                .map(PlanScheduleSlot::getStartTime)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+
+        // 5. 앞 공백 제거 (rebase)
+        if (minMovableStart != null && minMovableStart.isAfter(base)) {
+            Duration delta = Duration.between(minMovableStart, base); // 음수 → 앞으로 당김
+
+            for (PlanScheduleSlot s : slots) {
+                if (s.isAnchor()) continue;
+                if (!isAdmin && s.getStatus() == PlanStatus.CONFIRMED) continue;
+
+                s.shiftBy(delta);
+            }
+        }
+
+        // 6. compact 수행 (기존 로직)
+        LocalDateTime cursor = base;
+
+        for (PlanScheduleSlot slot : slots) {
+
+            if (slot.isAnchor()) {
+                cursor = slot.getEndTime();
+                continue;
+            }
+
+            // MANAGER + CONFIRMED 보호
+            if (!isAdmin && slot.getStatus() == PlanStatus.CONFIRMED) {
+                if (cursor.isAfter(slot.getStartTime())) {
+                    throw new AppException(
+                            ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN
+                    );
+                }
+                cursor = slot.getEndTime();
+                continue;
+            }
+
+            // 이동
+            slot.moveTo(cursor);
+            cursor = slot.getEndTime();
+        }
     }
 
     @Override
@@ -537,24 +625,38 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .orElseThrow(() -> new AppException(ItemLineErrorCode.ITEM_LINE_NOT_FOUND));
 
         // 3) BEFORE snapshot (affectedPlans 계산용)
-        List<ProductionPlans> beforePlans = findAllActivePlans(line.getId());
-        reconciliationService.reconcileWithActualEndTimes(beforePlans);
+        List<ProductionPlans> plans = findAllActivePlans(line.getId());
 
-        Map<Long, LocalDateTime> beforeStart = snapshotStart(beforePlans);
-        Map<Long, LocalDateTime> beforeEnd   = snapshotEnd(beforePlans);
+        // 2 실적 endTime 조회
+        Map<Long, LocalDateTime> actualEndMap =
+                productionPerformanceRepository.findLatestActualEndTimeTuples(
+                                plans.stream().map(ProductionPlans::getId).toList()
+                        ).stream()
+                        .collect(Collectors.toMap(
+                                t -> t.get("planId", Long.class),
+                                t -> t.get("actualEnd", LocalDateTime.class)
+                        ));
 
-        // 4) Preview 대상 plan을 clone (DB 오염 방지)
-        ProductionPlans cloned = plan.toBuilder().build();
+        List<PlanScheduleSlot> slots = new ArrayList<>(
+                plans.stream()
+                .map(p -> PlanScheduleSlot.fromEntity(
+                        p,
+                        actualEndMap.getOrDefault(p.getId(), p.getEndTime())
+                ))
+                .toList()
+        );
 
-        LocalDateTime newStart = calculateNewStart(dto, cloned);
-        LocalDateTime newEnd   = calculateNewEnd(dto, cloned, newStart, line.getId());
+        // 4 target slot 수정
+        PlanScheduleSlot targetSlot = slots.stream()
+                .filter(s -> s.getPlanId().equals(planId))
+                .findFirst()
+                .orElseThrow();
 
-        // clone 업데이트
-        cloned.update(dto, newStart, newEnd, salesManager, productionManager, itemsLine);
+        LocalDateTime newStart = dto.getStartTime() != null ? dto.getStartTime() : targetSlot.getStartTime();
+        LocalDateTime newEnd   = calculateNewEnd(dto, plan, newStart, line.getId());
+        targetSlot.updateSchedule(newStart, newEnd);
 
-        // 5) Shift + Compact 실행 (DB 저장 없음)
-        List<ProductionPlans> previewPlans =
-            scheduleUpdatedPlanPreview(cloned, requester, line.getId());
+        applyShiftAndCompact(slots, requester);
 
         // 6) 전체 snapshot 생성 → Redis 저장
         String previewKey = "upd:plan:preview:" + UUID.randomUUID();
@@ -563,11 +665,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .planId(planId)
             .documentNo(plan.getDocumentNo())
             .lineId(line.getId())
-            .plans(previewPlans.stream()
-                .map(p -> UpdatePlanPreviewSnapshot.PlanTimeSnapshot.builder()
-                    .planId(p.getId())
-                    .startTime(p.getStartTime())
-                    .endTime(p.getEndTime())
+            .plans(slots.stream()
+                .map(s -> UpdatePlanPreviewSnapshot.PlanTimeSnapshot.builder()
+                    .planId(s.getPlanId())
+                    .startTime(s.getStartTime())
+                    .endTime(s.getEndTime())
                     .build())
                 .toList()
             )
@@ -589,10 +691,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         );
 
         // 7) 클라이언트 응답 (기존 DTO 그대로)
-        return buildScheduleChangeResponse(plan, beforeStart, beforeEnd, previewPlans)
-                .toBuilder()
-                .previewKey(previewKey)
-                .build();
+        return buildScheduleChangeResponseFromSlots(
+                targetSlot,
+                slots,
+                previewKey
+                );
     }
 
     @Override
@@ -650,14 +753,9 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 4) start/end 반영
         for (UpdatePlanPreviewSnapshot.PlanTimeSnapshot ps : snapshot.getPlans()) {
             ProductionPlans plan = planMap.get(ps.getPlanId());
-            if (plan == null) continue;
+            if (plan == null || !plan.isUpdatable()) continue;
 
-            if (!plan.isUpdatable()) {
-                throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_FORBIDDEN);
-            }
-
-            plan.updateStartTime(ps.getStartTime());
-            plan.updateEndTime(ps.getEndTime());
+            plan.updateSchedule(ps.getStartTime(), ps.getEndTime());
         }
 
         productionPlanRepository.saveAll(planMap.values());
@@ -686,6 +784,8 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             .build();
     }
 
+    // running 인 계획 생산계획 시간만 가져옴
+    // completed 인계획 실적의 끝나는 시간 가져옴
     // PENDING 인 계획일때
     // - 자유롭게 땡기거나 미룸.
     // CONFIRMED 인 계획일때
@@ -703,7 +803,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         for (ProductionPlans plan : fullPlans) {
 
             // updatedPlan 이전 계획은 건드리지 않는다, updatedPlan 본인은 패스
-            if (plan.getStartTime().isBefore(baseStart) || plan.equals(updatedPlan)) {
+            if (plan.getEndTime().isBefore(baseStart) || plan.equals(updatedPlan)) {
                 continue;
             }
 
@@ -960,23 +1060,13 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         return "IDX_" + fallbackIndex;
     }
 
-
-
     @Override
     @Transactional(readOnly = true)
     public GetProductionPlanDetailResponseDto getProductionPlan(Long planId) {
-        ProductionPlans productionPlans = productionPlanRepository.findById(planId)
-            .orElseThrow(() -> new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND));
-
-        Factories factory = productionPlans.getItemLine().getLine().getFactory();
-
-        Items item = productionPlans.getItemLine().getItem();
-
-        LocalDateTime actualEndTime = productionPerformanceRepository.findByProductionPlanIdAndIsDeletedFalse(planId)
-            .orElse(ProductionPerformances.builder().build())
-            .getEndTime();
-
-        return GetProductionPlanDetailResponseDto.fromEntity(productionPlans, factory, item, actualEndTime);
+        return productionPlanRepository.findPlanDetail(planId)
+                .orElseThrow(() ->
+                        new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND)
+                );
     }
 
     @Override
@@ -992,50 +1082,15 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             pageable.getSort()
         );
 
-        Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planStatusIn(command.status()),
-            PlanSpecification.planFactoryNameContains(command.factoryName()),
-            PlanSpecification.planSalesManagerNameContains(command.salesManagerName()),
-            PlanSpecification.planProductionManagerNameContains(command.productionManagerName()),
-            PlanSpecification.planSalesManagerNoContains(command.salesManagerNo()),
-            PlanSpecification.planProductionManagerNoContains(command.productionManagerNo()),
-            PlanSpecification.planItemNameContains(command.itemName()),
-            PlanSpecification.planItemCodeContains(command.itemCode()),
-            PlanSpecification.planFactoryCodeContains(command.factoryCode()),
-            PlanSpecification.planDueDateFromAfter(command.dueDateFrom()),
-            PlanSpecification.planDueDateToBefore(command.dueDateTo()),
-            PlanSpecification.planStartTimeAfter(command.startTime()),
-            PlanSpecification.planEndTimeBefore(command.endTime())
-        );
-
-
-        return productionPlanRepository.findAll(spec, finalPageable)
-            .map(GetProductionPlanListResponseDto::fromEntity);
+        return productionPlanRepository.findPlanList(command, finalPageable);
     }
-
-
-
 
     @Override
     @Transactional(readOnly = true)
     public List<GetAllProductionPlanResponseDto> getAllProductionPlan(
         GetAllProductionPlanRequestDto requestDto
     ) {
-        Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
-            PlanSpecification.planLineNameContains(requestDto.lineName()),
-            PlanSpecification.planItemNameContains(requestDto.itemName()),
-            PlanSpecification.planItemCodeContains(requestDto.itemCode()),
-            PlanSpecification.planSalesManagerNameContains(requestDto.salesManagerName()),
-            PlanSpecification.planProductionManagerNameContains(requestDto.productionManagerName()),
-            PlanSpecification.planDueDateFromAfter(requestDto.dueDate()),
-            PlanSpecification.planStartTimeAfter(requestDto.startTime()),
-            PlanSpecification.planEndTimeBefore(requestDto.endTime())
-        );
-
-        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.DESC, "createdAt"));
-
-        return result.stream().map(GetAllProductionPlanResponseDto::fromEntity).toList();
+        return productionPlanRepository.findAllPlans(requestDto);
     }
 
     @Override
@@ -1049,37 +1104,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
             throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_BAD_REQUEST);
         }
 
-        Specification<ProductionPlans> spec = Specification.allOf(
-            PlanSpecification.planFactoryCodeContains(requestDto.factoryCode()),
-            PlanSpecification.planLineCodeContains(requestDto.lineCode()),
-            PlanSpecification.planStatusNotEquals(PlanStatus.RETURNED), // 반려 조건 제외해서 조회
-            PlanSpecification.planFactoryNameContains(requestDto.factoryName()),
-            PlanSpecification.planLineNameContains(requestDto.lineName()),
-            PlanSpecification.planStartTimeBeforeScheduledEndAndEndTimeAfterScheduledStart(requestDto.endTime(), requestDto.startTime())
-        );
-
-        List<ProductionPlans> result = productionPlanRepository.findAll(spec, Sort.by(Direction.ASC, "startTime"));
-
-        // 1) 모든 planIds → 실제 종료시간 map 조회
-        List<Tuple> tuples =
-            productionPerformanceRepository.findLatestActualEndTimeTuples(
-                result.stream().map(ProductionPlans::getId).toList()
-            );
-
-        Map<Long, LocalDateTime> actualEndMap = tuples.stream()
-            .collect(Collectors.toMap(
-                t -> t.get("planId", Long.class),
-                t -> t.get("actualEnd", LocalDateTime.class)
-            ));
-
-        return result.stream()
-            .map(p -> {
-                    LocalDateTime actual = actualEndMap.get(p.getId());
-
-                    return GetProductionPlanScheduleResponseDto.fromEntity(p, actual);
-                }
-            )
-            .toList();
+        return productionPlanRepository.findSchedule(requestDto);
     }
 
     @Override
@@ -1205,7 +1230,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 2. 라인 전체 계획 조회
         List<ProductionPlans> plans = productionPlanRepository.findAllByLineIdAndStatusesOrderByStartTimeAsc(
-            line.getId(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED)
+            line.getId(), List.of(PlanStatus.PENDING, PlanStatus.CONFIRMED), LocalDateTime.now(clock)
         );
 
         if (plans.isEmpty()) {

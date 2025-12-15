@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductionPlanRepository extends JpaRepository<ProductionPlans, Long>,
-    JpaSpecificationExecutor<ProductionPlans> {
+    JpaSpecificationExecutor<ProductionPlans>, PlanQueryRepository{
 
     List<ProductionPlans> findAllByStatusAndStartTimeLessThanEqual(PlanStatus status, LocalDateTime startTime);
 
@@ -43,11 +43,13 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     FROM ProductionPlans p
     WHERE p.itemLine.lineId = :lineId
       AND (:statuses IS NULL OR p.status IN :statuses)
+      AND p.endTime > :now
     ORDER BY p.startTime ASC
 """)
     List<ProductionPlans> findAllByLineIdAndStatusesOrderByStartTimeAsc(
         @Param("lineId") Long lineId,
-        @Param("statuses") List<ProductionPlans.PlanStatus> statuses
+        @Param("statuses") List<ProductionPlans.PlanStatus> statuses,
+        @Param("now") LocalDateTime now
     );
 
     List<ProductionPlans> findAllByIdIn(List<Long> ids);

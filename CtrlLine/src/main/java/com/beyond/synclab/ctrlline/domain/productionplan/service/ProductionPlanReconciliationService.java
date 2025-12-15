@@ -24,16 +24,14 @@ public class ProductionPlanReconciliationService {
 
         if (plans == null || plans.isEmpty()) return;
 
-        List<Tuple> tuples =
-            performanceRepository.findLatestActualEndTimeTuples(
-                plans.stream().map(ProductionPlans::getId).toList()
-            );
-
-        Map<Long, LocalDateTime> actualEndMap = tuples.stream()
-            .collect(Collectors.toMap(
+        Map<Long, LocalDateTime> actualEndMap =
+                performanceRepository.findLatestActualEndTimeTuples(
+                    plans.stream().map(ProductionPlans::getId).toList()
+                ).stream()
+                .collect(Collectors.toMap(
                 t -> t.get("planId", Long.class),
                 t -> t.get("actualEnd", LocalDateTime.class)
-            ));
+                ));
 
         plans.sort(Comparator.comparing(ProductionPlans::getStartTime));
 

@@ -12,25 +12,33 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@NoArgsConstructor
 public class GetProductionPlanScheduleResponseDto {
     private Long id;
+
     private String lineCode;
     private String lineName;
+
     private String factoryCode;
     private String factoryName;
+
     private String salesManagerNo;
     private String productionManagerNo;
+
     private String documentNo;
+
     private String itemName;
     private String itemCode;
+
     private ProductionPlans.PlanStatus status;
     private LocalDate dueDate;
     private BigDecimal plannedQty;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private LocalDateTime actualEndTime;
+
     private String remark;
 
     public static GetProductionPlanScheduleResponseDto fromEntity(ProductionPlans pp, LocalDateTime actualEndTime) {
