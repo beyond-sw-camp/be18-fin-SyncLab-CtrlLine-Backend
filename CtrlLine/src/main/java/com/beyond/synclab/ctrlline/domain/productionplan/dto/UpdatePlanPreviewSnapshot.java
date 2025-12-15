@@ -47,5 +47,6 @@ public class UpdatePlanPreviewSnapshot {
         private Long itemLineId;
         private LocalDate dueDate;
         private BigDecimal plannedQty;
+        private Long version;
     }
 }

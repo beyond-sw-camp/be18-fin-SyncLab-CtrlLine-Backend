@@ -674,6 +674,7 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
                 .toList()
             )
             .updateFields(UpdatePlanPreviewSnapshot.UpdateFieldSnapshot.builder()
+                .version(plan.getVersion())
                 .status(dto.getStatus())
                 .salesManagerId(salesManager != null ? salesManager.getId() : null)
                 .productionManagerId(productionManager != null ? productionManager.getId() : null)
@@ -726,6 +727,19 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         ProductionPlans targetPlan = planMap.get(snapshot.getPlanId());
         if (targetPlan == null) {
             throw new AppException(ProductionPlanErrorCode.PRODUCTION_PLAN_NOT_FOUND);
+        }
+
+        // 1) snapshot version 추출
+        Long snapshotVersion = snapshot.getUpdateFields().getVersion();
+
+        // 2) 현재 DB version
+        Long currentVersion = targetPlan.getVersion();
+
+        // 3) 비교
+        if (!currentVersion.equals(snapshotVersion)) {
+            throw new AppException(
+                ProductionPlanErrorCode.PRODUCTION_PLAN_ALREADY_CHANGED
+            );
         }
 
         // 2) BEFORE snapshot (notify 용)
