@@ -2,7 +2,6 @@ package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
-import jakarta.persistence.Tuple;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -72,5 +71,31 @@ public class ProductionPlanReconciliationService {
                 cursor = plan.getEndTime();
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    public LocalDateTime resolveActualAnchor(List<ProductionPlans> plans) {
+        if (plans == null || plans.isEmpty()) return null;
+
+        Map<Long, LocalDateTime> actualEndMap =
+            performanceRepository.findLatestActualEndTimeTuples(
+                    plans.stream().map(ProductionPlans::getId).toList()
+                ).stream()
+                .collect(Collectors.toMap(
+                    t -> t.get("planId", Long.class),
+                    t -> t.get("actualEnd", LocalDateTime.class)
+                ));
+
+        return plans.stream()
+            .filter(p -> p.isCompleted() || p.isRunning())
+            .map(p -> {
+                LocalDateTime actualEnd = actualEndMap.get(p.getId());
+                if (actualEnd != null && actualEnd.isAfter(p.getEndTime())) {
+                    return actualEnd;
+                }
+                return p.getEndTime();
+            })
+            .max(LocalDateTime::compareTo)
+            .orElse(null);
     }
 }

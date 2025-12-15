@@ -161,19 +161,6 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
     }
 
-    private void setEmergentPlanTime(ProductionPlans newPlan,
-        Long lineId,
-        List<Equipments> equipments
-    ) {
-
-        // 1) 긴급계획 Start/End 설정 (맨 앞 배치)
-        //    첫 계획으로 예약하므로 start = now + 10m
-        LocalDateTime start = LocalDateTime.now(clock).plusMinutes(10);
-        LocalDateTime end = calculateEndTime(lineId, equipments, newPlan.getPlannedQty(), start);
-
-        newPlan.updateStartTime(start);
-        newPlan.updateEndTime(end);
-    }
 
     private List<ProductionPlans> buildFullPlanList(
         ProductionPlans newPlan,
@@ -366,26 +353,23 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 0. 기존 계획들 실적 기반 Reconcile 수행
         // ------------------------------------------------------------
         List<ProductionPlans> activePlans = findAllActivePlans(line.getId());
-        reconciliationService.reconcileWithActualEndTimes(activePlans);
+        LocalDateTime anchor = reconciliationService.resolveActualAnchor(activePlans);
         // ------------------------------------------------------------
-
-        // 3. 동일한 라인에서 가장 최근에 생성된 생산계획 조회
-        // 종료 시각이 현재 이후 중에 최근
-        Optional<ProductionPlans> latestProdPlan =
-            activePlans.isEmpty()
-                ? Optional.empty()
-                : Optional.of(activePlans.getLast());
 
         PlanStatus requestedStatus = user.isAdminRole() ? PlanStatus.CONFIRMED : PlanStatus.PENDING;
 
         productionPlan.updateStatus(requestedStatus);
 
-        // 4. 시작 시간 계산
-        LocalDateTime startTime = latestProdPlan
-            .map(ProductionPlans::getEndTime)
-            .orElse(LocalDateTime.now(clock).plusMinutes(
-                requestedStatus == PlanStatus.PENDING ? 30 : 10
-            ));
+        // 3) startTime 결정
+        LocalDateTime startTime;
+        if (anchor != null) {
+            startTime = anchor;
+        } else if (!activePlans.isEmpty()) {
+            startTime = activePlans.getLast().getEndTime();
+        } else {
+            startTime = LocalDateTime.now(clock)
+                .plusMinutes(requestedStatus == PlanStatus.PENDING ? 30 : 10);
+        }
 
         // 5. 종료시간 설정
         LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
@@ -414,14 +398,25 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         // 0) 기존 계획 전체 조회
         List<ProductionPlans> dbPlans = findAllActivePlans(lineId);
 
-        reconciliationService.reconcileWithActualEndTimes(dbPlans);
-
         // Snapshot (Before)
         Map<Long, LocalDateTime> beforeStart = snapshotStart(dbPlans);
         Map<Long, LocalDateTime> beforeEnd   = snapshotEnd(dbPlans);
 
-        // 1) 긴급계획 start/end 설정
-        setEmergentPlanTime(newPlan, lineId, equipments);
+        LocalDateTime anchor = reconciliationService.resolveActualAnchor(dbPlans);
+
+        if (anchor == null && !dbPlans.isEmpty()) {
+            anchor = dbPlans.getLast().getEndTime();
+        }
+
+        // 1) 긴급계획 Start/End 설정 (맨 앞 배치)
+        //    첫 계획으로 예약하므로 start = now + 10m
+        LocalDateTime start = anchor != null
+            ? anchor
+            : LocalDateTime.now(clock).plusMinutes(10);
+
+        LocalDateTime end = calculateEndTime(lineId, equipments, newPlan.getPlannedQty(), start);
+
+        newPlan.updateSchedule(start, end);
 
         newPlan.updateStatus(PlanStatus.CONFIRMED);
 
