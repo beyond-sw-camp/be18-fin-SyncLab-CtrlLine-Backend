@@ -6,13 +6,13 @@ import lombok.Builder;
 
 @Builder(toBuilder = true)
 public record GetAllProductionPlanRequestDto (
-    String factoryName,
-    String lineName,
-    String salesManagerName,
-    String itemName,
+    String factoryCode,
+    String lineCode,
+    String salesManagerNo,
     String itemCode,
-    String productionManagerName,
-    LocalDate dueDate,
+    String productionManagerNo,
+    LocalDate dueDateFrom,
+    LocalDate dueDateTo,
     LocalDateTime startTime,
     LocalDateTime endTime
 ) {}

@@ -34,7 +34,12 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlans,
     Optional<ProductionPlans> findFirstByDocumentNoAndStatusOrderByIdDesc(String documentNo, PlanStatus status);
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE ProductionPlans p SET p.status = :status WHERE p.id IN :ids")
+    @Query("""
+    UPDATE ProductionPlans p
+    SET p.status = :status,
+        p.version = p.version + 1
+     WHERE p.id IN :ids
+""")
     int updateAllStatusById(@Param("ids") List<Long> planIds, @Param("status") PlanStatus planStatus);
 
 

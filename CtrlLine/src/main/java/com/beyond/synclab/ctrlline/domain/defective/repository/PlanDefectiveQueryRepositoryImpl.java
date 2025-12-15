@@ -17,7 +17,6 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.QPlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.QDefectives;
 import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -48,7 +47,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
         QProductionPerformances perf = QProductionPerformances.productionPerformances;
 
         NumberExpression<BigDecimal> defectiveQtyExpr =
-            perf.totalQty.subtract(perf.performanceQty);
+            perf.totalQty.coalesce(BigDecimal.ZERO)
+                .subtract(perf.performanceQty.coalesce(BigDecimal.ZERO));
 
         Map<String, Object> sortMapping = Map.of(
             "performanceDocumentNo", perf.performanceDocumentNo,
@@ -107,7 +107,7 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .fetch();
 
         JPAQuery<Long> countQuery = queryFactory
-            .select(pd.count())
+            .select(pd.id.countDistinct())
             .from(pd)
             .leftJoin(pd.productionPlan, pp)
             .leftJoin(pp.itemLine, il)
@@ -144,7 +144,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
         QProductionPerformances perf = QProductionPerformances.productionPerformances;
 
         NumberExpression<BigDecimal> defectiveQtyExpr =
-            perf.totalQty.subtract(perf.performanceQty);
+            perf.totalQty.coalesce(BigDecimal.ZERO)
+                .subtract(perf.performanceQty.coalesce(BigDecimal.ZERO));
 
         return queryFactory
             .select(Projections.constructor(
@@ -181,13 +182,15 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .where(
                 createdAtFrom(request.fromDate()),
                 createdAtTo(request.toDate()),
-                dueDateTo(request.dueDate()),
+                dueDateTo(request.dueDateTo()),
+                dueDateFrom(request.dueDateFrom()),
                 factoryCodeContains(request.factoryCode()),
                 lineCodeContains(request.lineCode()),
                 itemIdEq(request.itemId()),
                 prodManagerNoContains(request.productionManagerNo()),
                 salesManagerNoContains(request.salesManagerNo()),
-                performanceDocNoContains(request.productionPerformanceDocNo())
+                performanceDocNoContains(request.productionPerformanceDocNo()),
+                defectiveRateBetween(request.minDefectiveRate(), request.maxDefectiveRate())
             )
             .orderBy(pd.createdAt.desc())
             .fetch();
@@ -215,7 +218,11 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .join(defective).on(defective.equipmentId.eq(equipment.id))
             .join(xref).on(xref.defectiveId.eq(defective.id))
             .where(factory.factoryCode.eq(factoryCode).and(factory.isActive.isTrue()))
-            .groupBy(defective.defectiveCode)
+            .groupBy(
+                defective.defectiveCode,
+                defective.defectiveName,
+                defective.defectiveType
+            )
             .fetch();
 
 
@@ -273,6 +280,12 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             : null;
     }
 
+    private BooleanExpression dueDateFrom(LocalDate dueDate) {
+        return dueDate != null
+            ? QProductionPlans.productionPlans.dueDate.goe(dueDate)
+            : null;
+    }
+
     private BooleanExpression factoryCodeContains(String factoryCode) {
         return factoryCode == null ? null : QFactories.factories.factoryCode.contains(factoryCode);
     }
@@ -304,4 +317,27 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
                 perfDocNo
             ) : null;
     }
+
+    private BooleanExpression defectiveRateBetween(
+        BigDecimal minRate,
+        BigDecimal maxRate
+    ) {
+        if (minRate == null && maxRate == null) {
+            return null;
+        }
+
+        if (minRate != null && maxRate != null) {
+            return QProductionPerformances.productionPerformances
+                .performanceDefectiveRate.between(minRate, maxRate);
+        }
+
+        if (minRate != null) {
+            return QProductionPerformances.productionPerformances
+                .performanceDefectiveRate.goe(minRate);
+        }
+
+        return QProductionPerformances.productionPerformances
+            .performanceDefectiveRate.loe(maxRate);
+    }
+
 }
