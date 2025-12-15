@@ -370,7 +370,10 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         }
 
         if (!activePlans.isEmpty()) {
-            candidates.add(activePlans.getLast().getEndTime());
+            ProductionPlans candidate = activePlans.getLast();
+            if (candidate.isUpdatable()) {
+                candidates.add(candidate.getEndTime());
+            }
         }
         LocalDateTime now = LocalDateTime.now(clock);
         // 항상 현재 시간 기준 포함
@@ -416,8 +419,11 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         LocalDateTime anchor = reconciliationService.resolveActualAnchor(dbPlans);
 
         if (anchor == null && !dbPlans.isEmpty()) {
-            anchor = dbPlans.getLast().getEndTime();
+            if (dbPlans.getLast().isUpdatable()) {
+                anchor = dbPlans.getLast().getEndTime();
+            }
         }
+
 
         // 1) 긴급계획 Start/End 설정 (맨 앞 배치)
         //    첫 계획으로 예약하므로 start = now + 10m
