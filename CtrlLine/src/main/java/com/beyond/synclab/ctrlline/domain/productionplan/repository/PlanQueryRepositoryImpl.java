@@ -363,7 +363,8 @@ public class PlanQueryRepositoryImpl implements PlanQueryRepository {
                         itemCodeEq(requestDto.itemCode(), item),
                         salesManagerNameContains(requestDto.salesManagerName(), salesManager),
                         productionManagerNameContains(requestDto.productionManagerName(), prodManager),
-                        dueDateFrom(requestDto.dueDate(), plan),
+                        dueDateFrom(requestDto.dueDateFrom(), plan),
+                        dueDateTo(requestDto.dueDateFrom(), plan),
                         startTimeAfter(requestDto.startTime(), plan),
                         endTimeBefore(requestDto.endTime(), plan)
                 )

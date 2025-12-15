@@ -12,7 +12,8 @@ public record GetAllProductionPlanRequestDto (
     String itemName,
     String itemCode,
     String productionManagerName,
-    LocalDate dueDate,
+    LocalDate dueDateFrom,
+    LocalDate dueDateTo,
     LocalDateTime startTime,
     LocalDateTime endTime
 ) {}
