@@ -17,7 +17,6 @@ import com.beyond.synclab.ctrlline.domain.productionplan.entity.QPlanDefectives;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.QProductionPlans;
 import com.beyond.synclab.ctrlline.domain.telemetry.entity.QDefectives;
 import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -183,7 +182,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .where(
                 createdAtFrom(request.fromDate()),
                 createdAtTo(request.toDate()),
-                dueDateTo(request.dueDate()),
+                dueDateTo(request.dueDateTo()),
+                dueDateFrom(request.dueDateFrom()),
                 factoryCodeContains(request.factoryCode()),
                 lineCodeContains(request.lineCode()),
                 itemIdEq(request.itemId()),
@@ -277,6 +277,12 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
     private BooleanExpression dueDateTo(LocalDate dueDate) {
         return dueDate != null
             ? QProductionPlans.productionPlans.dueDate.loe(dueDate)
+            : null;
+    }
+
+    private BooleanExpression dueDateFrom(LocalDate dueDate) {
+        return dueDate != null
+            ? QProductionPlans.productionPlans.dueDate.goe(dueDate)
             : null;
     }
 
