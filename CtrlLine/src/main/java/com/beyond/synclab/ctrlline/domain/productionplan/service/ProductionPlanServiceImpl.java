@@ -31,6 +31,7 @@ import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.validator.DomainActivationValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -361,15 +362,25 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
         productionPlan.updateStatus(requestedStatus);
 
         // 3) startTime 결정
-        LocalDateTime startTime;
+        // 기준 시점 후보들
+        List<LocalDateTime> candidates = new ArrayList<>();
+
         if (anchor != null) {
-            startTime = anchor;
-        } else if (!activePlans.isEmpty()) {
-            startTime = activePlans.getLast().getEndTime();
-        } else {
-            startTime = LocalDateTime.now(clock)
-                .plusMinutes(requestedStatus == PlanStatus.PENDING ? 30 : 10);
+            candidates.add(anchor);
         }
+
+        if (!activePlans.isEmpty()) {
+            candidates.add(activePlans.getLast().getEndTime());
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        // 항상 현재 시간 기준 포함
+        candidates.add(now.plusMinutes(10));
+
+        // 최종 startTime = 가장 늦은 시간
+        LocalDateTime startTime = candidates.stream()
+            .filter(Objects::nonNull)
+            .max(LocalDateTime::compareTo)
+            .orElse(now.plusMinutes(10));
 
         // 5. 종료시간 설정
         LocalDateTime endTime = calculateEndTime(line.getId(), processingEquips, requestDto.getPlannedQty(), startTime);
@@ -410,9 +421,16 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 
         // 1) 긴급계획 Start/End 설정 (맨 앞 배치)
         //    첫 계획으로 예약하므로 start = now + 10m
-        LocalDateTime start = anchor != null
-            ? anchor
-            : LocalDateTime.now(clock).plusMinutes(10);
+        LocalDateTime now = LocalDateTime.now(clock);
+        Duration emergentBuffer = Duration.ofMinutes(10);
+
+        LocalDateTime start = Stream.of(
+                anchor,
+                now.plus(emergentBuffer)
+            )
+            .filter(Objects::nonNull)
+            .max(LocalDateTime::compareTo)
+            .orElse(now.plus(emergentBuffer));
 
         LocalDateTime end = calculateEndTime(lineId, equipments, newPlan.getPlannedQty(), start);
 
