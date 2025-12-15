@@ -48,7 +48,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
         QProductionPerformances perf = QProductionPerformances.productionPerformances;
 
         NumberExpression<BigDecimal> defectiveQtyExpr =
-            perf.totalQty.subtract(perf.performanceQty);
+            perf.totalQty.coalesce(BigDecimal.ZERO)
+                .subtract(perf.performanceQty.coalesce(BigDecimal.ZERO));
 
         Map<String, Object> sortMapping = Map.of(
             "performanceDocumentNo", perf.performanceDocumentNo,
@@ -107,7 +108,7 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .fetch();
 
         JPAQuery<Long> countQuery = queryFactory
-            .select(pd.count())
+            .select(pd.id.countDistinct())
             .from(pd)
             .leftJoin(pd.productionPlan, pp)
             .leftJoin(pp.itemLine, il)
@@ -144,7 +145,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
         QProductionPerformances perf = QProductionPerformances.productionPerformances;
 
         NumberExpression<BigDecimal> defectiveQtyExpr =
-            perf.totalQty.subtract(perf.performanceQty);
+            perf.totalQty.coalesce(BigDecimal.ZERO)
+                .subtract(perf.performanceQty.coalesce(BigDecimal.ZERO));
 
         return queryFactory
             .select(Projections.constructor(
@@ -187,7 +189,8 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
                 itemIdEq(request.itemId()),
                 prodManagerNoContains(request.productionManagerNo()),
                 salesManagerNoContains(request.salesManagerNo()),
-                performanceDocNoContains(request.productionPerformanceDocNo())
+                performanceDocNoContains(request.productionPerformanceDocNo()),
+                defectiveRateBetween(request.minDefectiveRate(), request.maxDefectiveRate())
             )
             .orderBy(pd.createdAt.desc())
             .fetch();
@@ -215,7 +218,11 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
             .join(defective).on(defective.equipmentId.eq(equipment.id))
             .join(xref).on(xref.defectiveId.eq(defective.id))
             .where(factory.factoryCode.eq(factoryCode).and(factory.isActive.isTrue()))
-            .groupBy(defective.defectiveCode)
+            .groupBy(
+                defective.defectiveCode,
+                defective.defectiveName,
+                defective.defectiveType
+            )
             .fetch();
 
 
@@ -304,4 +311,27 @@ public class PlanDefectiveQueryRepositoryImpl implements PlanDefectiveQueryRepos
                 perfDocNo
             ) : null;
     }
+
+    private BooleanExpression defectiveRateBetween(
+        BigDecimal minRate,
+        BigDecimal maxRate
+    ) {
+        if (minRate == null && maxRate == null) {
+            return null;
+        }
+
+        if (minRate != null && maxRate != null) {
+            return QProductionPerformances.productionPerformances
+                .performanceDefectiveRate.between(minRate, maxRate);
+        }
+
+        if (minRate != null) {
+            return QProductionPerformances.productionPerformances
+                .performanceDefectiveRate.goe(minRate);
+        }
+
+        return QProductionPerformances.productionPerformances
+            .performanceDefectiveRate.loe(maxRate);
+    }
+
 }
