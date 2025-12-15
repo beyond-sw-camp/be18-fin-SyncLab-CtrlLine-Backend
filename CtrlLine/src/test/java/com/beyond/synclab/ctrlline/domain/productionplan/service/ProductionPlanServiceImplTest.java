@@ -1,5 +1,19 @@
 package com.beyond.synclab.ctrlline.domain.productionplan.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.beyond.synclab.ctrlline.common.exception.AppException;
 import com.beyond.synclab.ctrlline.common.exception.CommonErrorCode;
 import com.beyond.synclab.ctrlline.domain.equipment.entity.Equipments;
@@ -16,7 +30,21 @@ import com.beyond.synclab.ctrlline.domain.line.errorcode.LineErrorCode;
 import com.beyond.synclab.ctrlline.domain.line.repository.LineRepository;
 import com.beyond.synclab.ctrlline.domain.productionperformance.entity.ProductionPerformances;
 import com.beyond.synclab.ctrlline.domain.productionperformance.repository.ProductionPerformanceRepository;
-import com.beyond.synclab.ctrlline.domain.productionplan.dto.*;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.AffectedPlanDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.CreateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.DeleteProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetAllProductionPlanResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanDetailResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanEndTimeResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanListResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.GetProductionPlanScheduleResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.PlanScheduleChangeResponseDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.SearchProductionPlanCommand;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanRequestDto;
+import com.beyond.synclab.ctrlline.domain.productionplan.dto.UpdateProductionPlanStatusResponseDto;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.ProductionPlans.PlanStatus;
 import com.beyond.synclab.ctrlline.domain.productionplan.entity.UpdateProductionPlanStatusRequestDto;
@@ -28,25 +56,31 @@ import com.beyond.synclab.ctrlline.domain.user.errorcode.UserErrorCode;
 import com.beyond.synclab.ctrlline.domain.user.repository.UserRepository;
 import com.beyond.synclab.ctrlline.domain.validator.DomainActivationValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.*;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.math.BigDecimal;
-import java.time.*;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("생산계획 서비스 테스트")
@@ -1336,13 +1370,13 @@ class ProductionPlanServiceImplTest {
         @BeforeEach
         void setUp() {
             requestDto = GetAllProductionPlanRequestDto.builder()
-                .factoryName("A공장")
-                .lineName("1호라인")
-                .itemName("샘플제품")
-                .itemCode("ITEM001")
-                .salesManagerName("김영업")
-                .productionManagerName("박생산")
-                .dueDate(testDate)
+                .factoryCode("A공장")
+                .lineCode("1호라인")
+                .itemCode("샘플제품")
+                .salesManagerNo("김영업")
+                .productionManagerNo("박생산")
+                .dueDateFrom(testDate)
+                .dueDateTo(testDate)
                 .startTime(testDateTime)
                 .endTime(testDateTime)
                 .build();

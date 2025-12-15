@@ -357,13 +357,13 @@ public class PlanQueryRepositoryImpl implements PlanQueryRepository {
                 .leftJoin(plan.salesManager, salesManager)
                 .leftJoin(plan.productionManager, prodManager)
                 .where(
-                        factoryNameContains(requestDto.factoryName(), fac),
-                        lineNameContains(requestDto.lineName()),
-                        itemNameContains(requestDto.itemName(), item),
+                        factoryCodeEq(requestDto.factoryCode(), fac),
+                        lineCodeEq(requestDto.lineCode()),
                         itemCodeEq(requestDto.itemCode(), item),
-                        salesManagerNameContains(requestDto.salesManagerName(), salesManager),
-                        productionManagerNameContains(requestDto.productionManagerName(), prodManager),
-                        dueDateFrom(requestDto.dueDate(), plan),
+                        salesManagerNoEq(requestDto.salesManagerNo(), salesManager),
+                        productionManagerNoEq(requestDto.productionManagerNo(), prodManager),
+                        dueDateFrom(requestDto.dueDateFrom(), plan),
+                        dueDateTo(requestDto.dueDateTo(), plan),
                         startTimeAfter(requestDto.startTime(), plan),
                         endTimeBefore(requestDto.endTime(), plan)
                 )
@@ -416,9 +416,12 @@ public class PlanQueryRepositoryImpl implements PlanQueryRepository {
         return hasText(value) ? QFactories.factories.factoryName.contains(value) : null;
     }
 
+
     private BooleanExpression lineNameContains(String value) {
         return hasText(value) ? QLines.lines.lineName.contains(value) : null;
     }
+
+
 
     /**
      * [start, end] 구간이 겹치는지 판단
