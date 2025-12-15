@@ -90,10 +90,7 @@ public class ProductionPlanReconciliationService {
             .filter(p -> p.isCompleted() || p.isRunning())
             .map(p -> {
                 LocalDateTime actualEnd = actualEndMap.get(p.getId());
-                if (actualEnd != null && actualEnd.isAfter(p.getEndTime())) {
-                    return actualEnd;
-                }
-                return p.getEndTime();
+                return actualEnd != null ? actualEnd : p.getEndTime();
             })
             .max(LocalDateTime::compareTo)
             .orElse(null);
